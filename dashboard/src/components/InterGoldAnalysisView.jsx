@@ -138,6 +138,18 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
           }
         });
 
+        const relevantEvents = extractedEvents.filter(ev =>
+          ev.importance >= 2 && (
+            ev.currency === "USD" ||
+            ev.currency === "USDTHB" ||
+            ev.event.toLowerCase().includes("fed") ||
+            ev.event.toLowerCase().includes("cpi") ||
+            ev.event.toLowerCase().includes("nfp") ||
+            ev.event.includes("การจ้างงาน") ||
+            ev.event.includes("ว่างงาน")
+          )
+        );
+
         // Intelligent Economic Indicator Parser & Evaluator for XAU/USD
         const parseEconomicNumber = (val) => {
           if (!val || val === "-" || val === "N/A") return null;
