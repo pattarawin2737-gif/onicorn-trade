@@ -1,0 +1,13 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "forex-trade-dashboard"
+pages_build_output_dir = "dist"
+
+# การตั้งค่าความเข้ากันได้
+compatibility_date = "2026-07-08"
+
+# การเชื่อมต่อฐานข้อมูล Cloudflare D1
+[[d1_databases]]
+binding = "DB"
+database_name = "forex_trade_db"
+database_id = "509f5d9d-0229-4edb-8261-ebca12e45fbb" # สำหรับใช้งานออนไลน์จะอัปเดตตรงนี้ตอน Deploy
+migrations_dir = "migrations"

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+dist/
+.wrangler/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Playwright & Screenshots
+test-results/
+playwright-report/
+*.png
+*.jpg
+*.jpeg
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Large reference documents & PDFs
+ข้อมูลวิเคราะห์/
+dist_backup*/

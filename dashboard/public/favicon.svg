@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0b0f19"/>
+      <stop offset="100%" style="stop-color:#1a233d"/>
+    </linearGradient>
+    <!-- Horn Gradient -->
+    <linearGradient id="hornGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fbbf24"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Circular Web App Icon Frame -->
+  <circle cx="50" cy="50" r="50" fill="url(#bg)"/>
+  
+  <!-- Subtle Grid Lines (Trading Chart Style) -->
+  <line x1="12.5" y1="0" x2="12.5" y2="100" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="25" y1="0" x2="25" y2="100" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="37.5" y1="0" x2="37.5" y2="100" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="50" y1="0" x2="50" y2="100" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="62.5" y1="0" x2="62.5" y2="100" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="75" y1="0" x2="75" y2="100" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="87.5" y1="0" x2="87.5" y2="100" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  
+  <line x1="0" y1="12.5" x2="100" y2="12.5" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="0" y1="25" x2="100" y2="25" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="0" y1="37.5" x2="100" y2="37.5" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="0" y1="62.5" x2="100" y2="62.5" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="0" y1="75" x2="100" y2="75" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+  <line x1="0" y1="87.5" x2="100" y2="87.5" stroke="rgba(59, 130, 246, 0.12)" stroke-width="1"/>
+
+  <!-- Left Candlestick: Bearish Red -->
+  <line x1="27" y1="35" x2="27" y2="75" stroke="#f87171" stroke-width="1.5"/>
+  <rect x="22" y="45" width="10" height="20" fill="#ef4444" rx="2"/>
+
+  <!-- Right Candlestick: Bullish Green -->
+  <line x1="73" y1="20" x2="73" y2="70" stroke="#34d399" stroke-width="1.5"/>
+  <rect x="68" y="30" width="10" height="25" fill="#10b981" rx="2"/>
+
+  <!-- Rising Breakout Trendline (Unicorn Spiral Trend) -->
+  <path d="M15,80 L40,60 L60,40 L85,20" fill="none" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" filter="drop-shadow(0px 0px 4px rgba(251,191,36,0.6))"/>
+
+  <!-- Golden/Pink Unicorn Horn in the Center (Breakout Bar Pattern) -->
+  <polygon points="38,72 62,20 50,72" fill="url(#hornGrad)" filter="drop-shadow(0px 4px 8px rgba(236,72,153,0.3))"/>
+  
+  <!-- Glowing Sparkle / Star at the Tip -->
+  <polygon points="62,14 64,18 69,19 65,22 66,26 62,24 58,26 59,22 55,19 60,18" fill="#fbbf24"/>
+</svg>

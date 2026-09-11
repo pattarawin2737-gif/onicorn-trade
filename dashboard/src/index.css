@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-primary: 'Inter', system-ui, sans-serif;
+  --font-title: 'Outfit', system-ui, sans-serif;
+  
+  /* Color Palette - Premium Dark Theme */
+  --bg-main: #0B0F19;
+  --bg-surface: #131A2E;
+  --bg-surface-light: #1E294B;
+  --border-color: #24325E;
+  
+  --color-primary: #3B82F6; /* Electric Blue */
+  --color-primary-glow: rgba(59, 130, 246, 0.15);
+  
+  --color-success: #10B981; /* Neon Green for Profit/Win */
+  --color-success-glow: rgba(16, 185, 129, 0.15);
+  
+  --color-danger: #EF4444; /* Neon Red for Loss/SL */
+  --color-danger-glow: rgba(239, 68, 68, 0.15);
+  
+  --color-warning: #F59E0B; /* Gold/Yellow for Draw/BE */
+  --color-warning-glow: rgba(245, 158, 11, 0.15);
+  
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.25);
+  
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-primary);
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-surface-light);
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+}
+
+.glow-effect {
+  position: relative;
+}
+
+.glow-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  box-shadow: var(--shadow-glow);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  pointer-events: none;
+}
+
+.glow-effect:hover::after {
+  opacity: 1;
+}
+
+
+/* ==========================================================================
+   Font Scaling System (Slightly larger fonts for readability)
+   ========================================================================== */
+body {
+  font-size: 16px; /* Base scale up from standard 14px */
+}
+
+/* Enlarge UI headers, labels, and text elements */
+.nav-tab {
+  font-size: 16.5px !important;
+}
+
+.stat-label {
+  font-size: 14.5px !important;
+}
+
+.stat-value {
+  font-size: 31px !important;
+}
+
+.chart-title {
+  font-size: 20px !important;
+}
+
+.select-filter, .calc-select, .calc-input, .form-input, .symbol-input {
+  font-size: 15px !important;
+}
+
+.form-label, .calc-label {
+  font-size: 13.5px !important;
+}
+
+.btn-quick-select {
+  font-size: 13px !important;
+}
+
+.pane-title {
+  font-size: 17.5px !important;
+}
+
+.section-title {
+  font-size: 16.5px !important;
+}
+
+.data-table th {
+  font-size: 13.5px !important;
+}
+
+.data-table td {
+  font-size: 13.5px !important;
+}
+
+.data-table td div, .data-table td span {
+  font-size: 12.5px !important;
+}
+
+/* Override inline font sizes rendered by React using attribute selectors */
+[style*="font-size: 10px"], [style*="font-size:10px"], [style*="fontSize: 10px"], [style*="fontSize:10px"] {
+  font-size: 12px !important;
+}
+
+[style*="font-size: 11px"], [style*="font-size:11px"], [style*="fontSize: 11px"], [style*="fontSize:11px"] {
+  font-size: 13px !important;
+}
+
+[style*="font-size: 12px"], [style*="font-size:12px"], [style*="fontSize: 12px"], [style*="fontSize:12px"] {
+  font-size: 14px !important;
+}
+
+[style*="font-size: 13px"], [style*="font-size:13px"], [style*="fontSize: 13px"], [style*="fontSize:13px"] {
+  font-size: 15px !important;
+}
+
+[style*="font-size: 14px"], [style*="font-size:14px"], [style*="fontSize: 14px"], [style*="fontSize:14px"] {
+  font-size: 16px !important;
+}
+
+/* Make Active Trades table compact to fit perfectly within the card frame */
+.active-trades-table th,
+.active-trades-table td {
+  padding: 8px 6px !important;
+}
+
+.active-trades-table button {
+  padding: 4px 6px !important;
+}
