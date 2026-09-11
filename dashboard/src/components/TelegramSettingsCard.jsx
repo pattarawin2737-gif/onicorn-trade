@@ -186,13 +186,64 @@ export default function TelegramSettingsCard() {
         const highCount = events.filter(e => e.stars === 3).length;
         const nowStr = new Date().toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
+        const parseNum = (val) => {
+          if (!val || val === "-" || val === "N/A") return null;
+          let clean = String(val).trim().replace(/,/g, "");
+          let mult = 1.0;
+          if (/K$/i.test(clean)) { mult = 1e3; clean = clean.slice(0, -1); }
+          else if (/M$/i.test(clean)) { mult = 1e6; clean = clean.slice(0, -1); }
+          else if (/B$/i.test(clean)) { mult = 1e9; clean = clean.slice(0, -1); }
+          else if (/%$/.test(clean)) { clean = clean.slice(0, -1); }
+          const n = parseFloat(clean);
+          return isNaN(n) ? null : n * mult;
+        };
+
         let eventListText = "";
         events.slice(0, 6).forEach(e => {
           const badge = e.stars === 3 ? "🔴 High Impact (★★★)" : "🟡 Medium Impact (★★☆)";
+          const name = String(e.event || "").toLowerCase();
+          const actN = parseNum(e.act);
+          const foreN = parseNum(e.fore);
+          const isUnemp = name.includes("ว่างงาน") || name.includes("jobless") || name.includes("unemployment");
+          const isInflation = name.includes("cpi") || name.includes("ppi") || name.includes("pce") || name.includes("เงินเฟ้อ");
+          const isEmployment = name.includes("non-farm") || name.includes("nfp") || name.includes("จ้างงาน");
+
+          let impactTxt = "";
+          if (actN !== null && foreN !== null) {
+            const diff = actN - foreN;
+            if (Math.abs(diff) < 1e-4) {
+              impactTxt = `• ⏺️ <b>ตรงตามคาดการณ์ [ทรงตัว 🟡]</b>: ตลาดซึมซับแล้ว ➔ ทองคำแกว่งตัวในกรอบ (Sideway)`;
+            } else if (diff > 0) {
+              if (isUnemp) {
+                impactTxt = `• 🟢 <b>ตัวเลขจริง (${e.act}) สูงกว่าคาด [หนุนทอง 🟢]</b>: ว่างงานเพิ่มขึ้น ดอลลาร์อ่อน ➔ หนุนทองคำพุ่งขึ้น`;
+              } else if (isInflation) {
+                impactTxt = `• 🔴 <b>ตัวเลขจริง (${e.act}) สูงกว่าคาด [กดดันทอง 🔻]</b>: เงินเฟ้อหนืด เฟดยังไม่รีบลดดอกเบี้ย ดอลลาร์พุ่ง ➔ กดดันทองคำย่อตัว`;
+              } else {
+                impactTxt = `• 🔴 <b>ตัวเลขจริง (${e.act}) แกร่งกว่าคาด [กดดันทอง 🔻]</b>: เศรษฐกิจแกร่ง ดอลลาร์แข็ง ➔ กดดันทองคำย่อตัว`;
+              }
+            } else {
+              if (isUnemp) {
+                impactTxt = `• 🔴 <b>ตัวเลขจริง (${e.act}) ต่ำกว่าคาด [กดดันทอง 🔻]</b>: ว่างงานลด ตลาดแรงงานแกร่ง ➔ กดดันทองคำพักฐาน`;
+              } else if (isInflation) {
+                impactTxt = `• 🟢 <b>ตัวเลขจริง (${e.act}) ต่ำกว่าคาด [หนุนทอง 🟢]</b>: เงินเฟ้อชะลอ หนุนเฟดลดดอกเบี้ย ➔ หนุนทองคำพุ่งขึ้นแรง!`;
+              } else {
+                impactTxt = `• 🟢 <b>ตัวเลขจริง (${e.act}) ต่ำกว่าคาด [หนุนทอง 🟢]</b>: ดอลลาร์อ่อนค่า ➔ หนุนราคาทองคำดีดตัวขึ้น`;
+              }
+            }
+          } else {
+            if (isInflation) {
+              impactTxt = `• หากจริง > คาด (${e.fore}) ➔ ดอลลาร์พุ่ง กดดันทอง 🔻 | หากต่ำกว่าคาด ➔ หนุนทองพุ่ง 🟢`;
+            } else if (isUnemp) {
+              impactTxt = `• หากคนว่างงาน > คาด ➔ หนุนทองพุ่ง 🟢 | หากต่ำกว่าคาด ➔ กดดันทองย่อ 🔻`;
+            } else {
+              impactTxt = `• หากแกร่งกว่าคาด ➔ กดดันทอง 🔻 | หากต่ำกว่าคาด ➔ หนุนทอง 🟢`;
+            }
+          }
+
           eventListText += `⏰ <b>${e.time} น. | ${e.event}</b>\n` +
             `⚡ ${badge} | ${e.cur}\n` +
             `📊 ตัวเลข: จริง <code>${e.act}</code> | คาดการณ์ <code>${e.fore}</code> | ก่อนหน้า <code>${e.prev}</code>\n` +
-            `🎯 <b>ผลกระทบทองคำ:</b> ตัวเลขแข็งกว่าคาด ➔ กดดันทองคำย่อตัว 🔻 \| ต่ำกว่าคาด ➔ หนุนทองคำพุ่ง 🟢\n` +
+            `🎯 <b>วิเคราะห์ผลกระทบทองคำ:</b>\n${impactTxt}\n` +
             `──────────────────────────\n`;
         });
 

@@ -136,55 +136,108 @@ def parse_news_rows(html_content):
 
     return events
 
+def parse_economic_number(val):
+    if not val or val in ['-', 'N/A', '']: return None
+    clean = str(val).strip().replace(',', '')
+    mult = 1.0
+    if clean.upper().endswith('K'):
+        mult = 1e3
+        clean = clean[:-1]
+    elif clean.upper().endswith('M'):
+        mult = 1e6
+        clean = clean[:-1]
+    elif clean.upper().endswith('B'):
+        mult = 1e9
+        clean = clean[:-1]
+    elif clean.endswith('%'):
+        clean = clean[:-1]
+    try:
+        return float(clean) * mult
+    except:
+        return None
+
 def analyze_gold_impact(event):
     """
     Generate tailored market impact analysis on XAU/USD for the event.
+    Evaluates actual vs forecast dynamically if numbers are already released.
     """
     ev_lower = event['event'].lower()
     cur = event['currency']
+    act_str = event.get('actual', '-').strip()
+    fore_str = event.get('forecast', '-').strip()
+    prev_str = event.get('previous', '-').strip()
 
-    # 1. Inflation indicators: CPI, PPI, PCE
-    if any(k in ev_lower for k in ['cpi', 'ppi', 'pce', 'ดัชนีราคาผู้บริโภค', 'ดัชนีราคาผู้ผลิต']):
+    act_num = parse_economic_number(act_str)
+    fore_num = parse_economic_number(fore_str)
+    prev_num = parse_economic_number(prev_str)
+
+    is_unemp = any(k in ev_lower for k in ['ว่างงาน', 'jobless', 'สวัสดิการว่างงาน', 'unemployment', 'claims'])
+    is_inflation = any(k in ev_lower for k in ['cpi', 'ppi', 'pce', 'ดัชนีราคาผู้บริโภค', 'ดัชนีราคาผู้ผลิต', 'เงินเฟ้อ'])
+    is_employment = any(k in ev_lower for k in ['non-farm', 'nfp', 'การจ้างงานนอกภาค', 'adp', 'ตำแหน่งงาน'])
+
+    # If actual number is released and we have forecast
+    if act_num is not None and fore_num is not None:
+        diff = act_num - fore_num
+        eps = 1e-4
+
+        if abs(diff) < eps:
+            if is_inflation:
+                trend = f" (ชะลอลงจากก่อนหน้า {prev_str})" if prev_num and act_num < prev_num else f" (สูงขึ้นจากก่อนหน้า {prev_str})" if prev_num and act_num > prev_num else ""
+                return f"• 🟡 <b>ตัวเลขจริง ({act_str}) ตรงตามคาดการณ์ ({fore_str}){trend}</b>: ตลาดรับรู้ข้อมูลไปแล้ว (Priced-in) ➔ ทองคำเคลื่อนไหวในกรอบเทคนิคเดิม (Sideway)"
+            else:
+                return f"• 🟡 <b>ตัวเลขจริง ({act_str}) เป็นไปตามคาดการณ์ ({fore_str})</b>: ตลาดซึมซับข้อมูลไปแล้ว ➔ ราคาทองคำเคลื่อนไหวทรงตัวในกรอบแนวรับ-แนวต้าน"
+        elif diff > eps:
+            # Actual > Forecast
+            if is_unemp:
+                return f"• 🟢 <b>ตัวเลขจริง ({act_str}) สูงกว่าคาด ({fore_str}) [หนุนทอง 🟢]</b>: คนตกงาน/ผู้ขอสวัสดิการเพิ่มขึ้น ดอลลาร์อ่อนค่า ➔ <b>หนุนราคาทองคำดีดตัวขึ้นแรง</b> 🟢"
+            elif is_inflation:
+                return f"• 🔴 <b>ตัวเลขจริง ({act_str}) สูงกว่าคาด ({fore_str}) [กดดันทอง 🔻]</b>: เงินเฟ้อยังหนืดตัว เฟดอาจชะลอลดดอกเบี้ย ดอลลาร์และ Yield พุ่ง ➔ <b>กดดันทองคำ Spot ย่อตัวลง</b> 🔻"
+            elif is_employment:
+                return f"• 🔴 <b>ตัวเลขจริง ({act_str}) แข็งแกร่งกว่าคาด ({fore_str}) [กดดันทอง 🔻]</b>: ตลาดแรงงานสหรัฐฯ ร้อนแรง ดอลลาร์แข็งค่า ➔ <b>กดดันราคาทองคำย่อตัวลง</b> 🔻"
+            else:
+                return f"• 🔴 <b>ตัวเลขจริง ({act_str}) ดีกว่าคาดการณ์ ({fore_str}) [กดดันทอง 🔻]</b>: ดอลลาร์แข็งค่า ➔ <b>ส่งผลกดดันราคาทองคำย่อตัวทดสอบแนวรับ</b> 🔻"
+        else:
+            # Actual < Forecast
+            if is_unemp:
+                return f"• 🔴 <b>ตัวเลขจริง ({act_str}) ต่ำกว่าคาด ({fore_str}) [กดดันทอง 🔻]</b>: ตลาดแรงงานยังตึงตัว ดอลลาร์แข็งค่า ➔ <b>กดดันราคาทองคำ Spot ย่อตัวลง</b> 🔻"
+            elif is_inflation:
+                return f"• 🟢 <b>ตัวเลขจริง ({act_str}) ชะลอตัวต่ำกว่าคาด ({fore_str}) [หนุนทอง 🟢]</b>: เงินเฟ้อลดลงชัดเจน หนุนเฟดลดดอกเบี้ย ดอลลาร์อ่อนค่า ➔ <b>หนุนทองคำ Spot พุ่งขึ้นแรง!</b> 🟢"
+            elif is_employment:
+                return f"• 🟢 <b>ตัวเลขจริง ({act_str}) ต่ำกว่าคาด ({fore_str}) [หนุนทอง 🟢]</b>: การจ้างงานชะลอตัว ดอลลาร์ถูกเทขาย ➔ <b>หนุนราคาทองคำดีดตัวพุ่งขึ้น</b> 🟢"
+            else:
+                return f"• 🟢 <b>ตัวเลขจริง ({act_str}) ต่ำกว่าคาดการณ์ ({fore_str}) [หนุนทอง 🟢]</b>: ดอลลาร์อ่อนค่า ➔ <b>หนุนราคาทองคำ Spot ปรับตัวขึ้น</b> 🟢"
+
+    # Pending scenarios (Before release)
+    if is_inflation:
         return (
             "• ตัวเลข สูงกว่า คาดการณ์ ➔ บ่งชี้เงินเฟ้อยังสูง ➔ ดอลลาร์แข็งค่า ➔ <b>กดดันทองคำ Spot ย่อตัวลง</b> 🔻\n"
             "• ตัวเลข ต่ำกว่า คาดการณ์ ➔ เงินเฟ้อชะลอตัว ➔ ดอลลาร์อ่อนค่า ➔ <b>หนุนทองคำดีดตัวขึ้นแรง</b> 🟢"
         )
 
-    # 2. Employment: Non-Farm, ADP, Employment Change
-    if any(k in ev_lower for k in ['non-farm', 'nfp', 'การจ้างงานนอกภาค', 'adp', 'ตำแหน่งงาน']):
+    if is_employment:
         return (
             "• ตัวเลข สูงกว่า คาดการณ์ ➔ ตลาดแรงงานสหรัฐฯ แข็งแกร่ง ➔ ดอลลาร์แข็ง ➔ <b>ทองคำย่อตัวลง</b> 🔻\n"
             "• ตัวเลข ต่ำกว่า คาดการณ์ ➔ ตลาดแรงงานชะลอตัว ➔ ดอลลาร์อ่อนค่า ➔ <b>หนุนราคาทองคำพุ่งขึ้น</b> 🟢"
         )
 
-    # 3. Jobless Claims / Unemployment Rate
-    if any(k in ev_lower for k in ['ว่างงาน', 'jobless', 'สวัสดิการว่างงาน', 'unemployment']):
+    if is_unemp:
         return (
             "• ผู้ขอสวัสดิการ สูงกว่า คาดการณ์ ➔ คนตกงานเพิ่มขึ้น ➔ ดอลลาร์อ่อน ➔ <b>หนุนทองคำดีดขึ้น</b> 🟢\n"
             "• ผู้ขอสวัสดิการ ต่ำกว่า คาดการณ์ ➔ ตลาดแรงงานแข็งแกร่ง ➔ ดอลลาร์แข็ง ➔ <b>กดดันทองคำพักฐาน</b> 🔻"
         )
 
-    # 4. Central Bank & Rates: Fed, FOMC, Powell, Lagarde, Interest Rate
     if any(k in ev_lower for k in ['fed', 'fomc', 'powell', 'ดอกเบี้ย', 'rate', 'พาวเวลล์', 'lagarde']):
         return (
             "• ส่งสัญญาณ Hawkish (คง/ตรึงดอกเบี้ยสูง) ➔ ดอลลาร์แข็ง ➔ <b>ทองคำมีโอกาสร่วงลงทดสอบแนวรับ</b> 🔻\n"
             "• ส่งสัญญาณ Dovish (มีโอกาสลดดอกเบี้ย) ➔ ดอลลาร์อ่อน ➔ <b>หนุนทองคำพุ่งทดสอบแนวต้าน</b> 🟢"
         )
 
-    # 5. GDP, Retail Sales, Consumer Confidence, PMI, ISM
     if any(k in ev_lower for k in ['gdp', 'ยอดค้าปลีก', 'retail', 'ism', 'pmi', 'ความเชื่อมั่น', 'existing home']):
         return (
             "• ตัวเลข สูงกว่า คาดการณ์ ➔ เศรษฐกิจสหรัฐฯ ทรงตัวแกร่ง ➔ ดอลลาร์แข็ง ➔ <b>ทองคำปรับฐาน</b> 🔻\n"
             "• ตัวเลข ต่ำกว่า คาดการณ์ ➔ เศรษฐกิจมีสัญญาณชะลอ ➔ ดอลลาร์อ่อน ➔ <b>หนุนทองคำรีบาวด์</b> 🟢"
         )
 
-    # 6. Crude Oil & Energy
-    if any(k in ev_lower for k in ['น้ำมัน', 'crude', 'oil', 'opec', 'eia']):
-        return (
-            "• ส่งผลกระทบต่อราคาน้ำมันโลกและต้นทุนเงินเฟ้อ อาจส่งผลต่อทิศทางค่าเงินดอลลาร์ในระยะสั้น"
-        )
-
-    # Default fallback for USD / FX
     if cur == "USD":
         return (
             "• ตัวเลขจริงสูงกว่าคาดการณ์ ➔ หนุนดอลลาร์แข็งค่า ➔ <b>กดดันราคาทองคำ Spot ย่อตัว</b> 🔻\n"

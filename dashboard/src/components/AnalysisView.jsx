@@ -540,32 +540,89 @@ export default function AnalysisView({ username }) {
       return;
     }
 
+    const parseEconomicNumber = (val) => {
+      if (!val || val === "-" || val === "N/A") return null;
+      let clean = String(val).trim().replace(/,/g, "");
+      let multiplier = 1.0;
+      if (/K$/i.test(clean)) { multiplier = 1e3; clean = clean.slice(0, -1); }
+      else if (/M$/i.test(clean)) { multiplier = 1e6; clean = clean.slice(0, -1); }
+      else if (/B$/i.test(clean)) { multiplier = 1e9; clean = clean.slice(0, -1); }
+      else if (/%$/.test(clean)) { clean = clean.slice(0, -1); }
+      const num = parseFloat(clean);
+      return isNaN(num) ? null : num * multiplier;
+    };
+
     const impacts = relevantEvents.map(ev => {
+      const name = String(ev.event || "").toLowerCase();
+      const actStr = String(ev.actual || "").trim();
+      const foreStr = String(ev.forecast || "").trim();
+      const prevStr = String(ev.previous || "").trim();
+
+      const actNum = parseEconomicNumber(actStr);
+      const foreNum = parseEconomicNumber(foreStr);
+
+      const isUnemp = name.includes("ว่างงาน") || name.includes("jobless") || name.includes("unemployment") || name.includes("claims");
+      const isInflation = name.includes("cpi") || name.includes("ppi") || name.includes("pce") || name.includes("เงินเฟ้อ") || name.includes("ราคาผู้บริโภค");
+      const isEmployment = name.includes("non-farm") || name.includes("nfp") || name.includes("จ้างงาน") || name.includes("adp");
+
       let impactText = "คาดว่าราคาจะแกว่งตัวในกรอบสั้นๆ";
       let direction = "neutral";
-      
-      const currency = ev.currency;
-      const isHighImpact = ev.importance === 3;
+      let badge = "⏳ รอประกาศ";
 
-      if (currency === "USD") {
-        if (isGold) {
-          impactText = isHighImpact 
-            ? "ตัวเลขจริงดีกว่าคาด: ดอลลาร์แข็ง/ทองร่วงลงรุนแรง | ตัวเลขจริงต่ำกว่าคาด: ดอลลาร์อ่อน/ทองพุ่งทะยาน"
-            : "ส่งผลกระทบปานกลาง: ตัวเลขจริงดีกว่าคาดจะกดดันราคาทองลงเล็กน้อย";
-          direction = isHighImpact ? "bearish" : "neutral";
+      if (actNum !== null && foreNum !== null) {
+        const diff = actNum - foreNum;
+        const eps = 1e-4;
+
+        if (Math.abs(diff) < eps) {
+          direction = "neutral";
+          badge = "⏺️ ตรงตามคาด";
+          impactText = `🟡 ตัวเลขจริง (${actStr}) เป็นไปตามคาดการณ์ (${foreStr}): ตลาดรับรู้ล่วงหน้าแล้ว (Priced-in) ➔ ราคาแกว่งตัวผันผวนในกรอบเดิม`;
+        } else if (diff > eps) {
+          if (isGold) {
+            if (isUnemp) {
+              direction = "bullish";
+              badge = "🔺 สูงกว่าคาด (หนุนทอง 🟢)";
+              impactText = `🟢 ตัวเลขจริง (${actStr}) สูงกว่าคาด (${foreStr}): คนตกงานเพิ่ม ดอลลาร์อ่อนค่า ➔ หนุนราคาทองคำ Spot ดีดตัวขึ้นแรง`;
+            } else if (isInflation) {
+              direction = "bearish";
+              badge = "🔺 สูงกว่าคาด (กดดันทอง 🔻)";
+              impactText = `🔴 ตัวเลขจริง (${actStr}) สูงกว่าคาด (${foreStr}): เงินเฟ้อหนืดตัว เฟดอาจชะลอลดดอกเบี้ย ดอลลาร์แข็ง ➔ กดดันราคาทองคำ Spot ย่อตัวลง`;
+            } else {
+              direction = "bearish";
+              badge = "🔺 แกร่งกว่าคาด (กดดันทอง 🔻)";
+              impactText = `🔴 ตัวเลขจริง (${actStr}) ดีกว่าคาดการณ์ (${foreStr}): ตัวเลขเศรษฐกิจแกร่ง ดอลลาร์แข็ง ➔ กดดันราคาทองคำ Spot ย่อตัวลง`;
+            }
+          } else {
+            direction = isUnemp ? "bearish" : "bullish";
+            badge = "🔺 สูงกว่าคาด";
+            impactText = isUnemp ? `🔴 ตัวเลขแย่กว่าคาด (${actStr} > ${foreStr}) ➔ กดดันค่าเงินให้อ่อนค่าลง` : `🟢 ตัวเลขแกร่งกว่าคาด (${actStr} > ${foreStr}) ➔ หนุนค่าเงินให้แข็งค่าขึ้น`;
+          }
         } else {
-          impactText = `ตัวเลขจริงดีกว่าคาด: หนุนดอลลาร์แข็งค่าขึ้นโดยตรง | ตัวเลขจริงต่ำกว่าคาด: กดดันให้ดอลลาร์อ่อนค่าลง`;
-          direction = "bullish";
+          // diff < -eps
+          if (isGold) {
+            if (isUnemp) {
+              direction = "bearish";
+              badge = "🔻 ต่ำกว่าคาด (กดดันทอง 🔻)";
+              impactText = `🔴 ตัวเลขจริง (${actStr}) ต่ำกว่าคาด (${foreStr}): คนตกงานน้อย ดอลลาร์แข็งค่า ➔ กดดันราคาทองคำ Spot ย่อตัวลง`;
+            } else if (isInflation) {
+              direction = "bullish";
+              badge = "🔻 ต่ำกว่าคาด (หนุนทอง 🟢)";
+              impactText = `🟢 ตัวเลขจริง (${actStr}) ชะลอต่ำกว่าคาด (${foreStr}): เงินเฟ้อลดลง หนุนเฟดลดดอกเบี้ย ➔ หนุนราคาทองคำ Spot พุ่งขึ้นแรง!`;
+            } else {
+              direction = "bullish";
+              badge = "🔻 ต่ำกว่าคาด (หนุนทอง 🟢)";
+              impactText = `🟢 ตัวเลขจริง (${actStr}) ชะลอตัว ดอลลาร์อ่อนค่า ➔ หนุนราคาทองคำ Spot ปรับตัวขึ้น`;
+            }
+          } else {
+            direction = isUnemp ? "bullish" : "bearish";
+            badge = "🔻 ต่ำกว่าคาด";
+            impactText = isUnemp ? `🟢 คนตกงานน้อยกว่าคาด (${actStr} < ${foreStr}) ➔ หนุนค่าเงินให้แข็งค่า` : `🔴 ตัวเลขชะลอตัว (${actStr} < ${foreStr}) ➔ กดดันค่าเงินให้อ่อนค่าลง`;
+          }
         }
-      } else if (currency === "EUR" && isEUR) {
-        impactText = `ตัวเลขจริงดีกว่าคาด: หนุนให้ EURUSD ดีดตัวขึ้น (EUR แข็งค่า) | ตัวเลขจริงต่ำกว่าคาด: กดดัน EURUSD ร่วงลง`;
-        direction = "bullish";
-      } else if (currency === "GBP" && isGBP) {
-        impactText = `ตัวเลขจริงดีกว่าคาด: หนุนให้ GBPUSD ดีดตัวขึ้น (GBP แข็งค่า) | ตัวเลขจริงต่ำกว่าคาด: กดดัน GBPUSD ร่วงลง`;
-        direction = "bullish";
-      } else if (currency === "JPY" && isJPY) {
-        impactText = `นโยบายธนาคารกลางญี่ปุ่น: หากขึ้นดอกเบี้ย/เข้มงวด JPY จะแข็งค่ารุนแรง ส่งผลให้กราฟ USDJPY ดิ่งตัวลงอย่างหนัก`;
-        direction = "bearish";
+      } else {
+        direction = "pending";
+        badge = "⏳ รอประกาศผล";
+        impactText = `🎯 รอประกาศตัวเลข (คาดการณ์ ${foreStr || "-"} | ก่อนหน้า ${prevStr || "-"}): หากตัวเลขจริงออกมาแข็งแกร่งกว่าคาดจะหนุนดอลลาร์/กดดันทองคำ 🔻 | หากต่ำกว่าคาดจะกดดันดอลลาร์/หนุนทองคำพุ่งขึ้น 🟢`;
       }
 
       return {
@@ -577,7 +634,8 @@ export default function AnalysisView({ username }) {
         actual: ev.actual || "-",
         forecast: ev.forecast || "-",
         previous: ev.previous || "-",
-        direction
+        direction,
+        badge
       };
     });
 

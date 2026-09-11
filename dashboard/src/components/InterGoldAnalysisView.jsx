@@ -138,30 +138,126 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
           }
         });
 
-        // Filter events relevant to XAU/USD (USD, Fed, NFP, CPI, Rates, Jobless)
-        const relevantEvents = extractedEvents.filter(ev => 
-          ev.importance >= 2 && (ev.currency === "USD" || ev.currency === "USDTHB" || ev.event.toLowerCase().includes("fed") || ev.event.toLowerCase().includes("cpi") || ev.event.toLowerCase().includes("nfp"))
-        );
+        // Intelligent Economic Indicator Parser & Evaluator for XAU/USD
+        const parseEconomicNumber = (val) => {
+          if (!val || val === "-" || val === "N/A") return null;
+          let clean = String(val).trim().replace(/,/g, "");
+          let multiplier = 1.0;
+          if (/K$/i.test(clean)) { multiplier = 1e3; clean = clean.slice(0, -1); }
+          else if (/M$/i.test(clean)) { multiplier = 1e6; clean = clean.slice(0, -1); }
+          else if (/B$/i.test(clean)) { multiplier = 1e9; clean = clean.slice(0, -1); }
+          else if (/%$/.test(clean)) { clean = clean.slice(0, -1); }
+          const num = parseFloat(clean);
+          return isNaN(num) ? null : num * multiplier;
+        };
 
-        const impacts = relevantEvents.map(ev => {
-          let impactText = `ส่งผลกระทบต่อความผันผวนของราคาทองคำสปอตโลก (XAU/USD)`;
-          let direction = "bullish";
+        const evaluateGoldNewsImpact = (ev) => {
+          const name = String(ev.event || "").toLowerCase();
+          const actStr = String(ev.actual || "").trim();
+          const foreStr = String(ev.forecast || "").trim();
+          const prevStr = String(ev.previous || "").trim();
 
-          if (ev.currency === "USD") {
-            impactText = `ข่าวตัวเลขเศรษฐกิจสหรัฐฯ: หากตัวเลขจริงออกมาแข็งแกร่งกว่าคาด ดอลลาร์จะแข็งค่า ส่งผลกดดันราคาทองคำ Spot ย่อตัวลง | หากตัวเลขจริงต่ำกว่าคาด ดอลลาร์จะอ่อนค่า หนุนราคาทองคำดีดตัวขึ้นรุนแรง`;
-            direction = ev.event.toLowerCase().includes("cpi") || ev.event.toLowerCase().includes("nfp") ? "bullish" : "bearish";
+          const actNum = parseEconomicNumber(actStr);
+          const foreNum = parseEconomicNumber(foreStr);
+          const prevNum = parseEconomicNumber(prevStr);
+
+          const isUnemp = name.includes("ว่างงาน") || name.includes("jobless") || name.includes("unemployment") || name.includes("claims");
+          const isInflation = name.includes("cpi") || name.includes("ppi") || name.includes("pce") || name.includes("เงินเฟ้อ") || name.includes("ราคาผู้บริโภค") || name.includes("ราคาผู้ผลิต");
+          const isEmployment = name.includes("non-farm") || name.includes("nfp") || name.includes("จ้างงาน") || name.includes("adp") || name.includes("payroll");
+
+          let direction = "pending"; // "bullish" | "bearish" | "neutral" | "pending"
+          let badge = "⏳ รอประกาศ";
+          let impact = "";
+
+          if (actNum !== null && foreNum !== null) {
+            const diff = actNum - foreNum;
+            const eps = 1e-4;
+
+            if (Math.abs(diff) < eps) {
+              direction = "neutral";
+              badge = "⏺️ ตรงตามคาด (ทรงตัว 🟡)";
+              if (isInflation) {
+                const trend = prevNum !== null ? (actNum > prevNum ? ` (สูงขึ้นจากครั้งก่อน ${prevStr})` : actNum < prevNum ? ` (ชะลอลงจากครั้งก่อน ${prevStr})` : ` (ทรงตัวเท่าครั้งก่อน)`) : "";
+                impact = `🟡 ตัวเลขจริง (${actStr}) ออกมาตรงตามคาดการณ์ (${foreStr})${trend}: ตลาดรับรู้ข้อมูลไปแล้วล่วงหน้า (Priced-in) ไม่สร้างความประหลาดใจเชิงลบ ➔ ราคาทองคำเคลื่อนไหวในกรอบเดิม (Sideway)`;
+              } else if (isEmployment || isUnemp) {
+                impact = `🟡 ตัวเลขจริง (${actStr}) ตรงตามคาดการณ์ (${foreStr}): ตลาดแรงงานขยายตัวตามที่ตลาดประเมินไว้ล่วงหน้า ➔ ราคาทองคำเคลื่อนไหวทรงตัวตามกรอบแนวรับ-แนวต้านเดิม`;
+              } else {
+                impact = `🟡 ตัวเลขจริง (${actStr}) เป็นไปตามคาดการณ์ (${foreStr}): ตลาดซึมซับข้อมูลล่วงหน้าแล้ว ➔ ราคาทองคำแกว่งตัวในกรอบเทคนิค`;
+              }
+            } else if (diff > eps) {
+              // Actual > Forecast
+              if (isUnemp) {
+                direction = "bullish";
+                badge = "🔺 สูงกว่าคาด (หนุนทอง 🟢)";
+                impact = `🟢 ตัวเลขจริง (${actStr}) สูงกว่าคาด (${foreStr}): จำนวนผู้ขอรับสวัสดิการ/อัตราว่างงานเพิ่มขึ้น บ่งชี้ตลาดแรงงานชะลอตัว ดอลลาร์อ่อนค่า ➔ หนุนราคาทองคำ Spot ดีดตัวขึ้นแรง`;
+              } else if (isInflation) {
+                direction = "bearish";
+                badge = "🔺 สูงกว่าคาด (กดดันทอง 🔻)";
+                impact = `🔴 ตัวเลขจริง (${actStr}) สูงกว่าคาดการณ์ (${foreStr}): อัตราเงินเฟ้อยังคงหนืดตัว/ลดลงช้ากว่าคาด ลดโอกาสที่เฟดจะเร่งลดดอกเบี้ย ดอลลาร์และ Bond Yield ปรับตัวขึ้น ➔ ส่งผลกดดันราคาทองคำ Spot ย่อตัวลง/พักฐาน`;
+              } else if (isEmployment) {
+                direction = "bearish";
+                badge = "🔺 แกร่งกว่าคาด (กดดันทอง 🔻)";
+                impact = `🔴 ตัวเลขจริง (${actStr}) แข็งแกร่งกว่าคาด (${foreStr}): ตลาดแรงงานสหรัฐฯ ร้อนแรง เฟดไม่จำเป็นต้องรีบลดดอกเบี้ย หนุนดอลลาร์แข็งค่า ➔ กดดันราคาทองคำ Spot ย่อตัวลง`;
+              } else {
+                direction = "bearish";
+                badge = "🔺 สูงกว่าคาด (กดดันทอง 🔻)";
+                impact = `🔴 ตัวเลขจริง (${actStr}) ออกมาดีกว่าคาดการณ์ (${foreStr}): ตัวเลขเศรษฐกิจสหรัฐฯ แข็งแกร่ง หนุนดอลลาร์แข็งค่า ➔ กดดันราคาทองคำ Spot ย่อตัวทดสอบแนวรับ`;
+              }
+            } else {
+              // Actual < Forecast
+              if (isUnemp) {
+                direction = "bearish";
+                badge = "🔻 ต่ำกว่าคาด (กดดันทอง 🔻)";
+                impact = `🔴 ตัวเลขจริง (${actStr}) ต่ำกว่าคาด (${foreStr}): คนว่างงานน้อยกว่าคาด บ่งชี้ตลาดแรงงานยังคงตึงตัว หนุนดอลลาร์แข็งค่า ➔ กดดันราคาทองคำ Spot ย่อตัวลง`;
+              } else if (isInflation) {
+                direction = "bullish";
+                badge = "🔻 ต่ำกว่าคาด (หนุนทอง 🟢)";
+                impact = `🟢 ตัวเลขจริง (${actStr}) ชะลอตัวต่ำกว่าคาดการณ์ (${foreStr}): เงินเฟ้อปรับลดลงชัดเจน เปิดทางให้เฟดมีโอกาสปรับลดอัตราดอกเบี้ยได้เร็ว/แรงขึ้น ดอลลาร์อ่อนค่า ➔ หนุนราคาทองคำ Spot พุ่งขึ้นแรง!`;
+              } else if (isEmployment) {
+                direction = "bullish";
+                badge = "🔻 ต่ำกว่าคาด (หนุนทอง 🟢)";
+                impact = `🟢 ตัวเลขจริง (${actStr}) ต่ำกว่าคาด (${foreStr}): ตลาดแรงงานสหรัฐฯ มีสัญญาณชะลอตัว ดอลลาร์ถูกเทขาย ➔ หนุนราคาทองคำ Spot ดีดตัวพุ่งขึ้นทดสอบแนวต้าน`;
+              } else {
+                direction = "bullish";
+                badge = "🔻 ต่ำกว่าคาด (หนุนทอง 🟢)";
+                impact = `🟢 ตัวเลขจริง (${actStr}) ต่ำกว่าคาดการณ์ (${foreStr}): เศรษฐกิจชะลอตัว ดอลลาร์อ่อนค่า ➔ หนุนราคาทองคำ Spot ปรับตัวขึ้น`;
+              }
+            }
+          } else if (actNum !== null && foreNum === null) {
+            direction = "neutral";
+            badge = "📊 ประกาศแล้ว";
+            impact = `ตัวเลขจริงประกาศออกมาที่ ${actStr} (ไม่มีคาดการณ์ก่อนหน้า) ตลาดจับตาทิศทางปฏิกิริยาของดอลลาร์`;
+          } else {
+            // Pending
+            direction = "pending";
+            badge = "⏳ รอประกาศผล";
+            if (isInflation) {
+              impact = `🎯 รอประกาศตัวเลข (คาดการณ์ ${foreStr || "-"} | ครั้งก่อน ${prevStr || "-"}): หากตัวเลขจริง > ${foreStr || "คาดการณ์"} ➔ เงินเฟ้อยังสูง ดอลลาร์แข็ง ➔ กดดันทองคำย่อตัว 🔻 | หากตัวเลขจริง < ${foreStr || "คาดการณ์"} ➔ เงินเฟ้อลด หนุนเฟดลดดอกเบี้ย ➔ หนุนทองคำพุ่งขึ้นแรง 🟢`;
+            } else if (isEmployment) {
+              impact = `🎯 รอประกาศตัวเลข (คาดการณ์ ${foreStr || "-"} | ครั้งก่อน ${prevStr || "-"}): หากการจ้างงานจริง > ${foreStr || "คาดการณ์"} ➔ ดอลลาร์พุ่ง กดดันทองคำย่อตัว 🔻 | หากต่ำกว่าคาด ➔ ดอลลาร์ร่วง หนุนทองคำดีดตัวพุ่งขึ้น 🟢`;
+            } else if (isUnemp) {
+              impact = `🎯 รอประกาศตัวเลข (คาดการณ์ ${foreStr || "-"} | ครั้งก่อน ${prevStr || "-"}): หากผู้ขอสวัสดิการ > ${foreStr || "คาดการณ์"} ➔ ตลาดแรงงานชะลอ หนุนทองคำดีดขึ้น 🟢 | หากต่ำกว่าคาด ➔ ดอลลาร์แข็ง กดดันทองคำย่อตัว 🔻`;
+            } else {
+              impact = `🎯 รอประกาศตัวเลข (คาดการณ์ ${foreStr || "-"}): หากตัวเลขแกร่งกว่าคาด ➔ กดดันทองคำย่อตัว 🔻 | หากต่ำกว่าคาด ➔ หนุนทองคำปรับตัวขึ้น 🟢`;
+            }
           }
 
+          return { direction, badge, impact };
+        };
+
+        const impacts = relevantEvents.map(ev => {
+          const evalResult = evaluateGoldNewsImpact(ev);
           return {
             time: ev.time,
             currency: ev.currency,
             importance: ev.importance,
             event: ev.event,
-            impact: impactText,
             actual: ev.actual || "-",
             forecast: ev.forecast || "-",
             previous: ev.previous || "-",
-            direction
+            direction: evalResult.direction,
+            badge: evalResult.badge,
+            impact: evalResult.impact
           };
         });
 
@@ -171,8 +267,26 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
           volatilityWarning = `⚠️ ระวังความผันผวนรุนแรงในตลาดทองคำโลก (XAU/USD)! มีข่าวตัวเลขเศรษฐกิจสหรัฐฯ สำคัญระดับ High Impact (★★★) จำนวน ${highImpactCount} ข่าว แนะนำระมัดระวังช่วงข่าวออก`;
         }
 
+        // Generate intelligent dynamic summary
+        const bullishEvents = impacts.filter(x => x.direction === "bullish");
+        const bearishEvents = impacts.filter(x => x.direction === "bearish");
+        const neutralEvents = impacts.filter(x => x.direction === "neutral");
+
+        let dynamicSummary = "";
+        if (bearishEvents.length > 0 && bullishEvents.length === 0) {
+          dynamicSummary = `💡 สรุปภาพรวมผลกระทบ: ตัวเลขเศรษฐกิจสำคัญที่ประกาศออกมา (${bearishEvents.map(b => b.event.split("(")[0].trim()).slice(0, 2).join(", ")}) แข็งแกร่ง/เงินเฟ้อสูงกว่าคาด ส่งผลให้ดอลลาร์และบอนด์ยีลด์ฟื้นตัวขึ้น กดดันราคาทองคำ Spot (XAU/USD) ย่อตัวลงทดสอบโซนแนวรับ แนะนำรอสัญญาณกลับตัวบริเวณแนวรับสำคัญ`;
+        } else if (bullishEvents.length > 0 && bearishEvents.length === 0) {
+          dynamicSummary = `💡 สรุปภาพรวมผลกระทบ: ตัวเลขเศรษฐกิจสำคัญที่ประกาศออกมา (${bullishEvents.map(b => b.event.split("(")[0].trim()).slice(0, 2).join(", ")}) ชะลอตัวลง/เงินเฟ้อต่ำกว่าคาด หนุนโอกาสที่เฟดจะเร่งลดอัตราดอกเบี้ย ดอลลาร์อ่อนค่าลงชัดเจน ส่งผลบวกโดยตรงหนุนราคาทองคำ Spot (XAU/USD) พุ่งขึ้นทดสอบโซนแนวต้าน`;
+        } else if (bearishEvents.length > 0 && bullishEvents.length > 0) {
+          dynamicSummary = `💡 สรุปภาพรวมผลกระทบ: ข้อมูลเศรษฐกิจออกมาแบบผสมผสาน (Mixed Data) โดยมีทั้งตัวเลขที่แข็งแกร่งกว่าคาด (${bearishEvents.length} ข่าว) และชะลอตัว (${bullishEvents.length} ข่าว) ส่งผลให้ราคาทองคำเกิดความผันผวนสองทิศทาง (Whipsaw) แนะนำเก็งกำไรในกรอบแนวรับ-แนวต้าน`;
+        } else if (neutralEvents.length > 0 && bearishEvents.length === 0 && bullishEvents.length === 0) {
+          dynamicSummary = `💡 สรุปภาพรวมผลกระทบ: ตัวเลขเศรษฐกิจสำคัญที่ประกาศออกมาทั้งหมดเป็นไปตามที่ตลาดคาดการณ์ไว้ล่วงหน้า (In-Line / Priced-in) ไม่สร้างแรงกระแทกผิดคาดต่อตลาด ราคาทองคำ Spot มีแนวโน้มเคลื่อนไหวทรงตัวในกรอบเทคนิคเดิม (Sideway)`;
+        } else {
+          dynamicSummary = `จากการวิเคราะห์ข่าวสารเศรษฐกิจล่าสุด พบปัจจัยหลัก ${relevantEvents.length} เหตุการณ์สำคัญ ตัวเลขเงินเฟ้อและอัตราดอกเบี้ยสหรัฐฯ ยังคงเป็นปัจจัยชี้นำทิศทางราคาทองคำ Spot โลกในระยะสั้นและระยะกลาง`;
+        }
+
         setNewsAnalysis({
-          summary: `จากการวิเคราะห์ข่าวสารเศรษฐกิจล่าสุด พบปัจจัยหลัก ${relevantEvents.length} เหตุการณ์สำคัญ ตัวเลขเงินเฟ้อและอัตราดอกเบี้ยสหรัฐฯ ยังคงเป็นปัจจัยชี้นำทิศทางราคาทองคำ Spot โลกในระยะสั้นและระยะกลาง`,
+          summary: dynamicSummary,
           impacts,
           volatilityWarning,
           loading: false
@@ -190,19 +304,9 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
               actual: "2.9%",
               forecast: "3.0%",
               previous: "3.1%",
-              impact: "ตัวเลขเงินเฟ้อสหรัฐฯ ชะลอตัว ต่ำกว่าคาด หนุนโอกาสเฟดลดดอกเบี้ย ส่งผลให้ราคาทองคำ Spot ดีดตัวขึ้นแรง",
-              direction: "bullish"
-            },
-            {
-              time: "21:00",
-              currency: "USD",
-              importance: 2,
-              event: "ยอดขายบ้านมือสอง (Existing Home Sales)",
-              actual: "3.95M",
-              forecast: "3.90M",
-              previous: "3.88M",
-              impact: "ตัวเลขทรงตัวในกรอบคาดการณ์ ตลาดทองคำโลกเคลื่อนไหวในกรอบแนวรับ S1 - แนวต้าน R1",
-              direction: "bullish"
+              direction: "bullish",
+              badge: "🔻 ต่ำกว่าคาด (หนุนทอง 🟢)",
+              impact: "🟢 ตัวเลขจริง (2.9%) ชะลอตัวต่ำกว่าคาด (3.0%): เงินเฟ้อลดลง หนุนโอกาสเฟดลดดอกเบี้ย ส่งผลให้ราคาทองคำ Spot ดีดตัวขึ้นแรง"
             }
           ],
           volatilityWarning: "⚠️ ระวังความผันผวนช่วงตลาดนิวยอร์กเปิดทำการ (19:30 - 22:00 น.)",
@@ -886,12 +990,41 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
                       {ev.importance === 3 ? "🔥 High Impact" : "⚡ Medium Impact"}
                     </span>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", color: "var(--text-muted)", fontSize: "11px", marginBottom: "6px", background: "rgba(0,0,0,0.2)", padding: "5px 8px", borderRadius: "4px" }}>
-                    <div>ตัวเลขจริง: <strong style={{ color: ev.direction === "bullish" ? "#22c55e" : ev.direction === "bearish" ? "#ef4444" : "#fff" }}>{ev.actual}</strong></div>
-                    <div>คาดการณ์: <span style={{ color: "#fff" }}>{ev.forecast}</span></div>
-                    <div>ครั้งก่อน: <span style={{ color: "#fff" }}>{ev.previous}</span></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: "6px", color: "var(--text-muted)", fontSize: "11px", marginBottom: "8px", background: "rgba(0,0,0,0.25)", padding: "6px 10px", borderRadius: "6px", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+                      <span>ตัวเลขจริง:</span>
+                      <strong style={{
+                        color: ev.direction === "bullish" ? "#22c55e" : ev.direction === "bearish" ? "#ef4444" : ev.direction === "neutral" ? "#facc15" : "#94a3b8",
+                        fontSize: "12px"
+                      }}>
+                        {ev.actual}
+                      </strong>
+                      {ev.badge && (
+                        <span style={{
+                          fontSize: "9.5px",
+                          padding: "1px 5px",
+                          borderRadius: "3px",
+                          fontWeight: "600",
+                          background: ev.direction === "bullish" ? "rgba(34, 197, 94, 0.15)" : ev.direction === "bearish" ? "rgba(239, 68, 68, 0.15)" : ev.direction === "neutral" ? "rgba(250, 204, 21, 0.15)" : "rgba(148, 163, 184, 0.15)",
+                          color: ev.direction === "bullish" ? "#86efac" : ev.direction === "bearish" ? "#fca5a5" : ev.direction === "neutral" ? "#fef08a" : "#cbd5e1",
+                          border: `1px solid ${ev.direction === "bullish" ? "rgba(34, 197, 94, 0.3)" : ev.direction === "bearish" ? "rgba(239, 68, 68, 0.3)" : ev.direction === "neutral" ? "rgba(250, 204, 21, 0.3)" : "rgba(148, 163, 184, 0.3)"}`
+                        }}>
+                          {ev.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div>คาดการณ์: <span style={{ color: "#fff", fontWeight: "500" }}>{ev.forecast}</span></div>
+                    <div>ครั้งก่อน: <span style={{ color: "var(--text-secondary)" }}>{ev.previous}</span></div>
                   </div>
-                  <div style={{ fontSize: "11.5px", color: "#60a5fa", lineHeight: "1.4" }}>
+                  <div style={{
+                    fontSize: "12px",
+                    color: ev.direction === "bullish" ? "#86efac" : ev.direction === "bearish" ? "#fca5a5" : ev.direction === "neutral" ? "#fef08a" : "#93c5fd",
+                    lineHeight: "1.5",
+                    background: ev.direction === "bullish" ? "rgba(34, 197, 94, 0.08)" : ev.direction === "bearish" ? "rgba(239, 68, 68, 0.08)" : ev.direction === "neutral" ? "rgba(250, 204, 21, 0.08)" : "rgba(59, 130, 246, 0.08)",
+                    padding: "8px 10px",
+                    borderRadius: "6px",
+                    border: `1px solid ${ev.direction === "bullish" ? "rgba(34, 197, 94, 0.2)" : ev.direction === "bearish" ? "rgba(239, 68, 68, 0.2)" : ev.direction === "neutral" ? "rgba(250, 204, 21, 0.2)" : "rgba(59, 130, 246, 0.2)"}`
+                  }}>
                     📌 {ev.impact}
                   </div>
                 </div>
