@@ -27,7 +27,7 @@ export default function ThaiStockSectorAnalysisCard({ onSelectSymbol }) {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [filterRating, setFilterRating] = useState("all"); // "all" | "overweight" | "selective" | "neutral"
   const [livePrices, setLivePrices] = useState({});
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(7200); // 2 hours = 7200s
 
   // Fetch Sector Intelligence Data
   const fetchSectorIntelligence = useCallback(async (isManual = false) => {
@@ -40,7 +40,7 @@ export default function ThaiStockSectorAnalysisCard({ onSelectSymbol }) {
         const data = await res.json();
         setSectorData(data);
         setLastUpdated(new Date());
-        setCountdown(60);
+        setCountdown(7200);
 
         // Extract all top pick symbols to fetch their latest live prices
         const symbolsToFetch = [];
@@ -82,13 +82,13 @@ export default function ThaiStockSectorAnalysisCard({ onSelectSymbol }) {
     fetchSectorIntelligence();
   }, [timeframe]);
 
-  // Automated 60s background refresh loop
+  // Automated 2-hour (7200s) background refresh loop
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           fetchSectorIntelligence();
-          return 60;
+          return 7200;
         }
         return prev - 1;
       });
@@ -111,6 +111,20 @@ export default function ThaiStockSectorAnalysisCard({ onSelectSymbol }) {
     }
     return sectorData.sectors;
   }, [sectorData, filterRating]);
+
+  // Format countdown in hours and minutes
+  const formatCountdown = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) {
+      return `${hours} ชม. ${minutes > 0 ? `${minutes} นาที` : ""}`.trim();
+    }
+    if (minutes > 0) {
+      return `${minutes} นาที ${secs} วิ`;
+    }
+    return `${secs} วินาที`;
+  };
 
   // Format timestamp in Thai
   const formatTimeThai = (date) => {
@@ -175,7 +189,7 @@ export default function ThaiStockSectorAnalysisCard({ onSelectSymbol }) {
                 gap: "5px"
               }}>
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e", display: "inline-block", boxShadow: "0 0 8px #22c55e" }} />
-                AI วิเคราะห์เรียลไทม์
+                อัปเดตอัตโนมัติทุก 2 ชม.
               </span>
             </div>
             <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "var(--text-secondary)" }}>
@@ -384,7 +398,7 @@ export default function ThaiStockSectorAnalysisCard({ onSelectSymbol }) {
             borderRadius: "4px",
             color: "#94a3b8"
           }}>
-            รีเฟรชใน {countdown} วินาที
+            รีเฟรชรอบถัดไปใน {formatCountdown(countdown)}
           </span>
         </div>
       </div>
