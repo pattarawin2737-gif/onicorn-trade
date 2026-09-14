@@ -1,4 +1,5 @@
 import GeminiAiAnalysisCard from "./GeminiAiAnalysisCard";
+import ThaiStockSectorAnalysisCard from "./ThaiStockSectorAnalysisCard";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { 
   TrendingUp, 
@@ -2140,6 +2141,9 @@ export default function ThaiStockAnalysisView({ username }) {
                 })()}
               </div>
             </div>
+
+            {/* Weekly & Monthly Attractive Sector Rotation Analysis System */}
+            <ThaiStockSectorAnalysisCard onSelectSymbol={handleOpenStockChart} />
 
             {/* Sector selector dropdown row */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px", background: "rgba(15, 23, 42, 0.3)", padding: "10px 16px", borderRadius: "8px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
