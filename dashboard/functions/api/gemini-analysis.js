@@ -341,9 +341,91 @@ ${userPrompt}` }]
         ],
         riskWarning: "ตลาดคริปโตมีความผันผวนสูงมาก ควรตั้ง Stop Loss และไม่ใช้ Leverage เกินระดับความเสี่ยงที่รับได้"
       };
+    } else if (assetType === "thai_stock") {
+      // Thai SET Stocks with exact SET Tick Size Rules
+      const roundSetTick = (val) => {
+        if (val < 2) return Math.round(val * 100) / 100;
+        if (val < 5) return Math.round(val * 50) / 50;
+        if (val < 10) return Math.round(val * 20) / 20;
+        if (val < 25) return Math.round(val * 10) / 10;
+        if (val < 100) return Math.round(val * 4) / 4;
+        if (val < 200) return Math.round(val * 2) / 2;
+        if (val < 400) return Math.round(val * 1) / 1;
+        return Math.round(val / 2) * 2;
+      };
+
+      const cleanSym = symbol.replace("SET:", "").toUpperCase();
+      const entryLow = roundSetTick(numPrice * 0.985).toFixed(2);
+      const entryHigh = roundSetTick(numPrice * 0.995).toFixed(2);
+      const tpPrice = roundSetTick(numPrice * 1.065).toFixed(2);
+      const slPrice = roundSetTick(numPrice * 0.965).toFixed(2);
+
+      // Sector and stock specific drivers
+      let drivers = [
+        "โมเมนตัมโครงสร้างราคาเหนือเส้นค่าเฉลี่ย EMA 20/50 วัน",
+        "กระแสเงินทุนต่างชาติและกองทุนสถาบันในประเทศ (Institutional Flow)",
+        "แนวโน้มผลประกอบการไตรมาสล่าสุดและการจ่ายเงินปันผล (Dividend Yield)"
+      ];
+      let sectorDesc = "กลุ่มอุตสาหกรรมหลักของตลาดหลักทรัพย์แห่งประเทศไทย";
+
+      if (["PTT", "PTTEP", "TOP", "SPRC", "BANPU"].includes(cleanSym)) {
+        sectorDesc = "กลุ่มพลังงานและปิโตรเคมี";
+        drivers = [
+          "ทิศทางราคาน้ำมันดิบโลก (Brent/WTI) และค่าการกลั่นอ้างอิงสิงคโปร์ (GRM)",
+          "ดีมานด์การใช้ก๊าซธรรมชาติและโครงสร้างพลังงานหมุนเวียน",
+          "กระแสเงินสดจากการดำเนินงานและนโยบายจ่ายเงินปันผลสม่ำเสมอ"
+        ];
+      } else if (["SCB", "KBANK", "BBL", "KTB", "TTB", "TISCO"].includes(cleanSym)) {
+        sectorDesc = "กลุ่มธนาคารพาณิชย์และการเงิน";
+        drivers = [
+          "ส่วนต่างอัตราดอกเบี้ยสุทธิ (NIM) และแนวโน้มดอกเบี้ยนโยบาย กนง.",
+          "ประสิทธิภาพการควบคุมสินเชื่อด้อยคุณภาพ (NPL Ratio) และสำรองหนี้",
+          "การเติบโตของรายได้ค่าธรรมเนียมและบริการดิจิทัลแบงก์กิ้ง"
+        ];
+      } else if (["CPALL", "CPAXT", "CRC", "BJC", "HMPRO"].includes(cleanSym)) {
+        sectorDesc = "กลุ่มค้าปลีกและอุปโภคบริโภค";
+        drivers = [
+          "การเติบโตของยอดขายสาขาเดิม (Same Store Sales Growth: SSSG)",
+          "กำลังซื้อภาคครัวเรือนและมาตรการกระตุ้นเศรษฐกิจในประเทศ",
+          "การขยายสาขาเชิงรุกและการบริหารต้นทุนการขนส่งสินค้า"
+        ];
+      } else if (["DELTA", "HANA", "KCE"].includes(cleanSym)) {
+        sectorDesc = "กลุ่มชิ้นส่วนอิเล็กทรอนิกส์และเทคโนโลยี";
+        drivers = [
+          "อุปสงค์การลงทุนโครงสร้างพื้นฐาน AI Server และ Data Center ทั่วโลก",
+          "แนวโน้มอัตราแลกเปลี่ยนค่าเงินบาทเทียบดอลลาร์สหรัฐ (USD/THB)",
+          "การฟื้นตัวของคำสั่งซื้อในอุตสาหกรรมยานยนต์ไฟฟ้า (EV) และระบบอัตโนมัติ"
+        ];
+      } else if (["BDMS", "BH", "BCH", "CHG", "PR9"].includes(cleanSym)) {
+        sectorDesc = "กลุ่มการแพทย์และโรงพยาบาล";
+        drivers = [
+          "สัดส่วนคนไข้ต่างชาติ (Medical Tourism) จากตะวันออกกลางและอาเซียน",
+          "อัตราการครองเตียง (Bed Occupancy Rate) และการขยายศูนย์แพทย์เฉพาะทาง",
+          "การร่วมมือกับบริษัทประกันสุขภาพเพื่อขยายฐานลูกค้าพรีเมียม"
+        ];
+      } else if (["AOT", "MINT", "CENTEL", "BA", "AAV"].includes(cleanSym)) {
+        sectorDesc = "กลุ่มการท่องเที่ยว ขนส่ง และโรงแรม";
+        drivers = [
+          "สถิติจำนวนนักท่องเที่ยวต่างชาติขาเข้าและจำนวนเที่ยวบินพาณิชย์",
+          "รายได้เฉลี่ยต่อห้องพัก (RevPAR) และอัตราค่าบริการผู้โดยสารขาออก",
+          "นโยบายฟรีวีซ่าและเทศกาลวันหยุดยาวกระตุ้นการเดินทาง"
+        ];
+      }
+
+      aiResult = {
+        signal: isUp ? "BULLISH" : "NEUTRAL",
+        confidenceScore: isUp ? 86 : 77,
+        biasTitle: isUp ? `🟢 สัญญาณซื้อสะสมตามโครงสร้างขาขึ้น (${cleanSym})` : `🟡 พักตัวในกรอบสร้างฐานสะสม (${cleanSym})`,
+        entryZone: `฿${entryLow} - ฿${entryHigh}`,
+        targetPrice: `฿${tpPrice} (+${((parseFloat(tpPrice)-numPrice)/numPrice*100).toFixed(1)}%)`,
+        stopLoss: `฿${slPrice} (-${((numPrice-parseFloat(slPrice))/numPrice*100).toFixed(1)}%)`,
+        summary: `หุ้น ${cleanSym} (${sectorDesc} ราคาปัจจุบัน ฿${numPrice.toFixed(2)}) เคลื่อนไหวในทิศทางได้เปรียบ โครงสร้างราคารักษาแนวรับตามช่วงราคา SET ได้มั่นคง แนะนำวางแผนสะสมตามแนวรับสำคัญ`,
+        keyDrivers: drivers,
+        riskWarning: "ควรกำหนดจุด Stop Loss ตาม Tick Size ตลาดหลักทรัพย์ไทย และหลีกเลี่ยงการไล่ราคาหากหลุดแนวรับหลัก"
+      };
     } else {
-      // Stocks (Thai & Foreign)
-      const curSym = assetType === "thai_stock" ? "฿" : "$";
+      // Foreign Stocks
+      const curSym = "$";
       aiResult = {
         signal: isUp ? "BULLISH" : "NEUTRAL",
         confidenceScore: isUp ? 82 : 72,

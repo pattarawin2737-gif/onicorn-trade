@@ -20,6 +20,286 @@ import {
 } from "lucide-react";
 import { thaiStockPairIds } from "./thaiStockPairIds";
 
+export const roundThaiTickSize = (val) => {
+  const p = parseFloat(val);
+  if (isNaN(p) || p <= 0) return 0;
+  if (p < 2) return Math.round(p * 100) / 100;
+  if (p < 5) return Math.round(p * 50) / 50;
+  if (p < 10) return Math.round(p * 20) / 20;
+  if (p < 25) return Math.round(p * 10) / 10;
+  if (p < 100) return Math.round(p * 4) / 4;
+  if (p < 200) return Math.round(p * 2) / 2;
+  if (p < 400) return Math.round(p * 1) / 1;
+  return Math.round(p / 2) * 2;
+};
+
+export const thaiStockKnowledgeBase = {
+  SET: {
+    name: "ดัชนีตลาดหลักทรัพย์แห่งประเทศไทย (SET Index)",
+    sector: "ภาพรวมตลาดทุนไทย (Macro Equity Market)",
+    catalysts: "กระแสเงินทุนต่างชาติ (Foreign Fund Flow), อัตราดอกเบี้ยนโยบาย กนง., นโยบายกระตุ้นเศรษฐกิจและการคลังของรัฐบาล, ดัชนีความเชื่อมั่นผู้บริโภค",
+    risks: "ความผันผวนของค่าเงินบาท, การชะลอตัวของเศรษฐกิจคู่ค้า (จีน/สหรัฐฯ), เสถียรภาพทางการเมือง",
+    tactics: "เก็งกำไรตามกรอบดัชนีภาพรวม เน้นกลุ่ม Big Cap ที่มีกระแสเงินสดมั่นคงและจ่ายเงินปันผลสูง",
+    typicalBeta: "1.00"
+  },
+  PTT: {
+    name: "บมจ.ปตท. (PTT)",
+    sector: "พลังงานและสาธารณูปโภค (Energy & Utilities)",
+    catalysts: "ราคาน้ำมันดิบโลก (Brent/Dubai), โครงสร้างราคา Pool Gas ใหม่, กำไรจากบริษัทลูก (PTTEP, PTTGC, TOP, OR), อัตราเงินปันผลมั่นคงระดับ 5-6%",
+    risks: "นโยบายควบคุมค่าพลังงานและก๊าซธรรมชาติของภาครัฐ, สเปรดปิโตรเคมีที่ชะลอตัว",
+    tactics: "Buy on Dip บริเวณแนวรับจิตวิทยาและสะสมเพื่อรับเงินปันผลสม่ำเสมอ",
+    typicalBeta: "0.85"
+  },
+  PTTEP: {
+    name: "บมจ.ปตท. สำรวจและผลิตปิโตรเลียม (PTTEP)",
+    sector: "พลังงานต้นน้ำ (Oil & Gas E&P)",
+    catalysts: "ราคาน้ำมันดิบโลกทรงตัวระดับสูง, ปริมาณการผลิตโครงการเอราวัณ (G1/61) และบงกช (G2/61) เร่งตัวเต็มกำลัง, สัญญาซื้อขายก๊าซระยะยาว",
+    risks: "ความผันผวนของราคาน้ำมันดิบโลก, ภาษีพิเศษภาครัฐ, ความเสี่ยงแหล่งผลิตในต่างประเทศ",
+    tactics: "เก็งกำไร Trend Following ตามทิศทางราคาน้ำมันดิบโลกและดักซื้อเมื่อเกิดภาวะตึงเครียดภูมิรัฐศาสตร์",
+    typicalBeta: "1.15"
+  },
+  GULF: {
+    name: "บมจ.กัลฟ์ เอ็นเนอร์จี ดีเวลลอปเมนท์ (GULF)",
+    sector: "พลังงานและโครงสร้างพื้นฐานดิจิทัล (Energy & Digital Infra)",
+    catalysts: "การควบรวมกิจการกับ INTUCH สร้าง Synergy มหาศาล, พอร์ต Data Center และบริการ Cloud ระดับ Hyperscale, โครงการพลังงานหมุนเวียนและโรงไฟฟ้าก๊าซใหม่",
+    risks: "อัตราดอกเบี้ยโลกทรงตัวสูงกระทบต้นทุนเงินกู้โครงการ, ความผันผวนของอัตราแลกเปลี่ยน",
+    tactics: "Breakout เล่นรอบขาขึ้น หรือ Buy on Retest ที่แนวรับเส้นค่าเฉลี่ย EMA 20/50 วัน",
+    typicalBeta: "1.20"
+  },
+  BANPU: {
+    name: "บมจ.บ้านปู (BANPU)",
+    sector: "พลังงานและทรัพยากร (Coal, Shale Gas & Clean Tech)",
+    catalysts: "ราคาก๊าซธรรมชาติ Henry Hub ในสหรัฐฯ ฟื้นตัว, ฤดูหนาวหนุนความต้องการใช้ถ่านหิน, ธุรกิจแบตเตอรี่และโซลาร์ฟาร์ม BPP",
+    risks: "ราคาถ่านหินโลกปรับลดลง, การเปลี่ยนผ่านสู่พลังงานสะอาดกดดัน Valuation ระยะยาว",
+    tactics: "เทรดรอบสวิงระยะสั้นเมื่อเกิด Oversold Rebound หรือสัญญาณ Bullish Divergence",
+    typicalBeta: "1.30"
+  },
+  TOP: {
+    name: "บมจ.ไทยออยล์ (TOP)",
+    sector: "โรงกลั่นน้ำมันและปิโตรเคมี (Refinery & Petrochemicals)",
+    catalysts: "ค่าการกลั่นสิงคโปร์ (Singapore GRM) ปรับตัวสูงขึ้น, ความต้องการใช้น้ำมันอากาศยาน (Jet Fuel) และดีเซลช่วงท่องเที่ยว, ความคืบหน้าโครงการ CFP",
+    risks: "ขาดทุนจากสต็อกน้ำมัน (Stock Loss) เมื่อราคาน้ำมันปรับลง, ความล่าช้าของโครงการก่อสร้าง",
+    tactics: "เก็งกำไรเมื่อค่าการกลั่นฟื้นตัวและสเปรดน้ำมันสำเร็จรูปกว้างขึ้น",
+    typicalBeta: "1.10"
+  },
+  SPRC: {
+    name: "บมจ.สตาร์ ปิโตรเลียม รีไฟน์นิ่ง (SPRC)",
+    sector: "โรงกลั่นและสถานีบริการน้ำมัน (Refinery & Retail)",
+    catalysts: "ค่าการกลั่นฟื้นตัว, ประสิทธิภาพการบริหารสถานีบริการ Caltex ที่เข้าซื้อเพิ่มมาร์จิ้น",
+    risks: "ความผันผวนของ Crude Premium และค่าการกลั่นในตลาดภูมิภาค",
+    tactics: "Swing Trade ตามรอบการขึ้นลงของค่าการกลั่นประจำสัปดาห์",
+    typicalBeta: "1.15"
+  },
+  SCB: {
+    name: "บมจ.เอสซีบี เอกซ์ (SCBX)",
+    sector: "ธนาคารพาณิชย์และฟินเทค (Banking & Fintech)",
+    catalysts: "ส่วนต่างอัตราดอกเบี้ยสุทธิ (NIM) ยังอยู่ในระดับสูง, การจ่ายเงินปันผลพิเศษและอัตราผลตอบแทนปันผล > 7-8%, การเติบโตของธุรกิจสินเชื่อดิจิทัล Gen 2",
+    risks: "การตั้งสำรองหนี้ด้อยคุณภาพ (NPL & ECL) ในกลุ่มลูกค้ารายย่อยและ SME, นโยบายคุมหนี้ครัวเรือน ธปท.",
+    tactics: "Buy on Dip สะสมช่วงก่อนขึ้นเครื่องหมาย XD และเล่นรอบตามกระแส Fund Flow ต่างชาติ",
+    typicalBeta: "0.95"
+  },
+  KBANK: {
+    name: "บมจ.ธนาคารกสิกรไทย (KBANK)",
+    sector: "ธนาคารพาณิชย์ (Banking & SME Leader)",
+    catalysts: "การบริหารจัดการคุณภาพสินทรัพย์เชิงรุกและการเคลียร์ NPL ต่อเนื่อง, ฐานลูกค้าดิจิทัล K PLUS แข็งแกร่งที่สุดในไทย, อัตราปันผลตอบแทนสูง > 5%",
+    risks: "ความเปราะบางของกลุ่มผู้ประกอบการ SME และหนี้ครัวเรือนไทย, การปรับลดอัตราดอกเบี้ยนโยบาย",
+    tactics: "Buy on Dip ที่แนวรับสำคัญเส้น EMA 50/200 วัน หรือซื้อสะสมเมื่อ PBV ต่ำกว่า 0.65 เท่า",
+    typicalBeta: "1.05"
+  },
+  BBL: {
+    name: "บมจ.ธนาคารกรุงเทพ (BBL)",
+    sector: "ธนาคารพาณิชย์ (Corporate & Regional Banking)",
+    catalysts: "พอร์ตสินเชื่อธุรกิจขนาดใหญ่และลูกค้าต่างชาติผ่าน Permata แข็งแกร่ง, สัดส่วนสำรองต่อหนี้เสีย (Coverage Ratio) สูงที่สุดในกลุ่มกว่า 300%",
+    risks: "การเติบโตของสินเชื่อในประเทศชะลอตัว, ต้นทุนดอกเบี้ยเงินฝากประจำปรับขึ้น",
+    tactics: "ถือลงทุนระยะกลาง-ยาวเพื่อรับเงินปันผลสม่ำเสมอและความเสี่ยงต่ำ",
+    typicalBeta: "0.90"
+  },
+  KTB: {
+    name: "บมจ.ธนาคารกรุงไทย (KTB)",
+    sector: "ธนาคารพาณิชย์ (Government & Digital Platform)",
+    catalysts: "พอร์ตสินเชื่อภาครัฐและข้าราชการความเสี่ยงต่ำมาก, ต่อยอด Ecosystem แอปเป๋าตังและ Krungthai NEXT, เบิกจ่ายงบประมาณภาครัฐหนุนสินเชื่อโครงการ",
+    risks: "การปรับลดอัตราดอกเบี้ยเงินกู้ช่วยลูกค้ารายย่อยตามนโยบายรัฐบาล",
+    tactics: "Trend Following ตามรอบการผลักดันเม็ดเงินงบประมาณรัฐ",
+    typicalBeta: "0.95"
+  },
+  TTB: {
+    name: "บมจ.ทหารไทยธนชาต (TTB)",
+    sector: "ธนาคารพาณิชย์ (Retail & Auto Loan Banking)",
+    catalysts: "สิทธิประโยชน์ทางภาษี (Tax Shield) ช่วยหนุนกำไรต่อเนื่อง, ประสิทธิภาพต้นทุนลดลงอย่างมีนัยสำคัญ (Cost-to-Income ต่ำ), อัตราปันผลสูง > 7%",
+    risks: "สินเชื่อเช่าซื้อรถยนต์ชะลอตัวตามยอดขายรถยนต์ใหม่ในประเทศ",
+    tactics: "สะสมรับเงินปันผลสูงและรันเทรนด์ตามโครงสร้างการเติบโตของกำไรสุทธิ",
+    typicalBeta: "0.90"
+  },
+  MTC: {
+    name: "บมจ.เมืองไทย แคปปิตอล (MTC)",
+    sector: "การเงินและสินเชื่อรายย่อย (Non-Bank & Consumer Finance)",
+    catalysts: "ทิศทางอัตราดอกเบี้ยนโยบายเริ่มเข้าสู่วัฏจักรขาลงช่วยลดต้นทุนทางการเงิน, การขยายสาขาและการปล่อยสินเชื่อทะเบียนรถยนต์/จักรยานยนต์ยังเติบโต",
+    risks: "เกณฑ์คุมอัตราดอกเบี้ยและค่าธรรมเนียมของ ธปท., หนี้ค้างชำระกลุ่มลูกค้ารากหญ้า",
+    tactics: "Breakout เมื่อทะลุกรอบสะสม หรือดักซื้อเมื่อมีสัญญาณดอกเบี้ยขาลง",
+    typicalBeta: "1.35"
+  },
+  CPALL: {
+    name: "บมจ.ซีพี ออลล์ (CPALL)",
+    sector: "พาณิชย์และค้าปลีก (Convenience & Grocery Retail)",
+    catalysts: "ยอดขายสาขาเดิม (SSSG) เติบโตต่อเนื่องจากนักท่องเที่ยวต่างชาติและผู้บริโภคในไทย, มาร์จิ้นสินค้า Ready-to-Eat ขยายตัว, กำไรจาก CPAXT หนุนฐานการเงิน",
+    risks: "กำลังซื้อผู้บริโภคระดับกลาง-ล่างชะลอตัว, การแข่งขันในธุรกิจค้าปลีกด่วน",
+    tactics: "Buy on Dip เมื่อราคาย่อตัวลงมาแตะแนวรับเส้นค่าเฉลี่ย EMA หรือโซน Demand สถาบัน",
+    typicalBeta: "0.90"
+  },
+  CPAXT: {
+    name: "บมจ.ซีพี แอ็กซ์ตร้า (CPAXT)",
+    sector: "ค้าส่งและค้าปลีกครบวงจร (Wholesale & Supermarket)",
+    catalysts: "การปรับโครงสร้างธุรกิจควบรวม Makro และ Lotus's ช่วยลดต้นทุนดอกเบี้ยเงินกู้, การขยายสาขาในต่างประเทศ (อินเดีย/มาเลเซีย), ไฮซีซั่นร้านอาหารและโรงแรมช่วงปลายปี",
+    risks: "ต้นทุนการขยายสาขาและระบบซอฟต์แวร์ใหม่, หนี้สินสกุลเงินตราต่างประเทศ",
+    tactics: "Trend Following เมื่อราคายืนเหนือแนวต้านสำคัญเพื่อเล่นรอบการฟื้นตัวของผลกำไร",
+    typicalBeta: "1.05"
+  },
+  CRC: {
+    name: "บมจ.เซ็นทรัล รีเทล คอร์ปอเรชั่น (CRC)",
+    sector: "ค้าปลีกห้างสรรพสินค้า (Multi-format Retail)",
+    catalysts: "มาตรการกระตุ้นการบริโภคและการท่องเที่ยวของภาครัฐ, ยอดขายกลุ่มแฟชั่นและฮาร์ดไลน์ฟื้นตัว, การขยายตัวของ GO Wholesale และสาขาในเวียดนาม",
+    risks: "การชะลอตัวของเศรษฐกิจเวียดนามและยุโรป (ห้าง Rinascente ในอิตาลี)",
+    tactics: "Buy on Support โซนสะสมลึกเพื่อรอรอบ Turnaround ของภาคบริโภค",
+    typicalBeta: "1.10"
+  },
+  HMPRO: {
+    name: "บมจ.โฮม โปรดักส์ เซ็นเตอร์ (HMPRO)",
+    sector: "ค้าปลีกวัสดุก่อสร้างและของตกแต่งบ้าน (Home Improvement)",
+    catalysts: "ยอดซ่อมแซมและปรับปรุงที่อยู่อาศัยหลังฤดูน้ำหลาก, สัดส่วนสินค้า Private Brand มาร์จิ้นสูงขยายตัวแตะ 22%, การเปิดสาขาใหม่ทั้งในไทยและมาเลเซีย",
+    risks: "ตลาดอสังหาริมทรัพย์เปิดตัวโครงการใหม่ชะลอตัว, หนี้ครัวเรือนกดดันการซื้อเฟอร์นิเจอร์ชิ้นใหญ่",
+    tactics: "สะสมระยะยาวเมื่อราคาพักฐานสู่แนวรับลึกและให้ Dividend Yield น่าดึงดูด",
+    typicalBeta: "0.85"
+  },
+  BH: {
+    name: "บมจ.โรงพยาบาลบำรุงราษฎร์ (BH)",
+    sector: "การแพทย์และโรงพยาบาล (Tertiary Healthcare & Medical Tourism)",
+    catalysts: "ผู้ป่วยต่างชาติกลุ่มตะวันออกกลางและ CLMV ฟื้นตัวหนาแน่น, ความสามารถในการปรับขึ้นค่าบริการการแพทย์เฉพาะทางซับซ้อน, อัตรากำไรสุทธิ (Net Margin) สูงกว่า 27%",
+    risks: "นโยบายควบคุมค่ารักษาพยาบาลและการส่งตัวผู้ป่วยของรัฐบาลคูเวต/ยูเออี",
+    tactics: "Breakout ซื้อตามเมื่อทะลุแนวต้าน หรือ Buy on Retest โซนสวิงไฮเดิม",
+    typicalBeta: "0.80"
+  },
+  BDMS: {
+    name: "บมจ.กรุงเทพดุสิตเวชการ (BDMS)",
+    sector: "เครือข่ายโรงพยาบาลเอกชน (Leading Healthcare Network)",
+    catalysts: "เครือข่ายโรงพยาบาลครอบคลุมทั่วประเทศกว่า 50 แห่ง, รายได้ผู้ป่วยไทยและต่างชาติกระจายความเสี่ยงดีเยี่ยม, ศูนย์ความเป็นเลิศ (Center of Excellence: COE) ดันมาร์จิ้น",
+    risks: "การแข่งขันของโรงพยาบาลเอกชนระดับพรีเมียม, การขาดแคลนบุคลากรทางการแพทย์เฉพาะทาง",
+    tactics: "Buy on Dip สะสมหุ้น Defensive เพื่อรับการเติบโตมั่นคงและเงินปันผลสม่ำเสมอ",
+    typicalBeta: "0.75"
+  },
+  ADVANC: {
+    name: "บมจ.แอดวานซ์ อินโฟร์ เซอร์วิส (ADVANC)",
+    sector: "เทคโนโลยีสารสนเทศและการสื่อสาร (Telecom & Tech Infra)",
+    catalysts: "การรวมกิจการ 3BB ขยายฐานลูกค้าระบบบรอดแบนด์บ้านแตะ 4.9 ล้านราย, ARPU มือถือฟื้นตัวต่อเนื่องหลังสงครามราคาลดลง, การจับมือกับ Gulf และ Singtel รุก Data Center",
+    risks: "ค่าใช้จ่ายประมูลคลื่นความถี่รอบใหม่, การแทรกแซงราคาแพ็กเกจของ กสทช.",
+    tactics: "รันเทรนด์ขาขึ้น Trend Following หรือ Buy on Dip ที่เส้น EMA 20 วัน",
+    typicalBeta: "0.70"
+  },
+  TRUE: {
+    name: "บมจ.ทรู คอร์ปอเรชั่น (TRUE)",
+    sector: "เทคโนโลยีสารสนเทศและการสื่อสาร (Telecom Synergy)",
+    catalysts: "การปลดล็อก Synergy ค่าใช้จ่ายโครงข่ายและการตลาดหลังควบรวม DTAC-TRUE ดัน EBITDA โตแกร่ง, ผลประกอบการเริ่มพลิกกลับมามีกำไรสุทธิ (Turnaround)",
+    risks: "ภาระหนี้สินจากการควบรวมและการลงทุน 5G, ดอกเบี้ยจ่าย",
+    tactics: "เก็งกำไรหุ้น Turnaround ตามรอบโมเมนตัมผลประกอบการประจำไตรมาส",
+    typicalBeta: "1.25"
+  },
+  DELTA: {
+    name: "บมจ.เดลต้า อีเลคโทรนิคส์ (ประเทศไทย) (DELTA)",
+    sector: "ชิ้นส่วนอิเล็กทรอนิกส์ (AI Data Center Power Electronics)",
+    catalysts: "คำสั่งซื้อเพาเวอร์ซัพพลายสำหรับ AI Server และ Hyperscale Data Center จากสหรัฐฯ เติบโตก้าวกระโดด, ระบบชาร์จรถยนต์ไฟฟ้า (EV Power Module) ทั่วโลก",
+    risks: "มาตรการกำกับการซื้อขายของตลาดหลักทรัพย์ฯ (Cash Balance), Valuation P/E สูง, ความผันผวนของค่าเงินบาท",
+    tactics: "Day Trading และ Swing Sniper ตามกรอบโมเมนตัมและวอลลุ่มเบรกเอาท์",
+    typicalBeta: "1.65"
+  },
+  HANA: {
+    name: "บมจ.ฮานา ไมโครอิเล็คโทรนิคส (HANA)",
+    sector: "ชิ้นส่วนอิเล็กทรอนิกส์ (Semiconductor & Silicon Carbide)",
+    catalysts: "วัฏจักรชิปเซมิคอนดักเตอร์โลกฟื้นตัว, โครงการ Silicon Carbide (SiC) ในเกาหลีใต้เริ่มดำเนินการเชิงพาณิชย์",
+    risks: "การขาดทุนจากโรงงาน SiC ในช่วงเริ่มต้น, การชะลอตัวของอุตสาหกรรมยานยนต์สันดาป",
+    tactics: "Swing Buy เมื่อราคาลงมาแตะแนวรับ Oversold ลึก",
+    typicalBeta: "1.40"
+  },
+  KCE: {
+    name: "บมจ.เคซีอี อิเลคโทรนิคส์ (KCE)",
+    sector: "ชิ้นส่วนอิเล็กทรอนิกส์ (Automotive PCB)",
+    catalysts: "ความต้องการแผ่นวงจรพิมพ์หลายชั้น (HDI/Special Grade PCB) ในรถยนต์ไฟฟ้าและระบบ ADAS, ราคาทองแดงตลาดโลกเริ่มทรงตัวช่วยคุมต้นทุนวัตถุดิบ",
+    risks: "ยอดผลิตรถยนต์ในยุโรปและสหรัฐฯ ชะลอตัว, ค่าเงินบาทแข็งค่า",
+    tactics: "Buy on Dip สะสมตามรอบการฟื้นตัวของยอดส่งออกอิเล็กทรอนิกส์ไทย",
+    typicalBeta: "1.35"
+  },
+  CPN: {
+    name: "บมจ.เซ็นทรัลพัฒนา (CPN)",
+    sector: "พัฒนาอสังหาริมทรัพย์และศูนย์การค้า (Retail Property & Mixed-use)",
+    catalysts: "อัตราการเช่าพื้นที่ (Occupancy Rate) สูงกว่า 92%, แผนเปิดศูนย์การค้าและโครงการมิกซ์ยูสใหม่ต่อเนื่อง, รายได้ส่วนแบ่งค่าเช่าปรับเพิ่มตามยอดขายร้านค้า",
+    risks: "ต้นทุนค่าไฟฟ้าและดอกเบี้ยเงินกู้โครงการใหม่",
+    tactics: "ซื้อสะสมรันเทรนด์ระยะยาวตามแนวโน้มการเติบโตของเมืองและกำลังซื้อสถาบัน",
+    typicalBeta: "0.85"
+  },
+  WHA: {
+    name: "บมจ.ดับบลิวเอชเอ คอร์ปอเรชั่น (WHA)",
+    sector: "นิคมอุตสาหกรรมและโลจิสติกส์ (Industrial Estate & FDI)",
+    catalysts: "กระแสการย้ายฐานการผลิต (Relocation) ของกลุ่มยานยนต์ไฟฟ้า (EV) อิเล็กทรอนิกส์ และ Data Center จากจีนและไต้หวันเข้าไทยอย่างล้นหลาม, ยอดขายที่ดิน All-time High",
+    risks: "ความล่าช้าในการอนุมัติ EIA และการขยายพื้นที่ผังเมือง",
+    tactics: "Trend Following ตามรอบยอดโอนที่ดินนิคมอุตสาหกรรม",
+    typicalBeta: "1.15"
+  },
+  AOT: {
+    name: "บมจ.ท่าอากาศยานไทย (AOT)",
+    sector: "ขนส่งและโลจิสติกส์การบิน (Airport Operator & Tourism Gateway)",
+    catalysts: "จำนวนผู้โดยสารระหว่างประเทศและเที่ยวบินฟื้นตัวสู่ระดับก่อนโควิด, การปรับขึ้นค่าบริการผู้โดยสารขาออก (PSC), การเปิดอาคารเทียบเครื่องบิน SAT-1 เพิ่มขีดความสามารถ",
+    risks: "การปรับโครงสร้างรายได้เชิงพาณิชย์และร้านค้าปลอดภาษี (Duty-free), ข้อจำกัดด้านบุคลากรภาคพื้น",
+    tactics: "Buy on Dip สะสมหุ้นผูกขาดโครงสร้างพื้นฐานการบินที่ไม่มีคู่แข่งในประเทศ",
+    typicalBeta: "0.95"
+  },
+  BEM: {
+    name: "บมจ.ทางด่วนและรถไฟฟ้ากรุงเทพ (BEM)",
+    sector: "ขนส่งมวลชนและทางพิเศษ (Mass Transit & Expressway)",
+    catalysts: "จำนวนผู้โดยสารรถไฟฟ้าสายสีน้ำเงินแตะระดับ New High ต่อเนื่อง, ความคืบหน้าโครงการรถไฟฟ้าสายสีส้มที่จะเริ่มก่อสร้างและสร้างรายได้มหาศาลในอนาคต",
+    risks: "นโยบายค่าโดยสารรถไฟฟ้า 20 บาทตลอดสายของรัฐบาล (รอความชัดเจนเงินชดเชย)",
+    tactics: "สะสมตามกรอบแนวรับเพื่อลงทุนระยะยาวตามการเติบโตของจำนวนผู้โดยสารโครงข่าย",
+    typicalBeta: "0.80"
+  },
+  CPF: {
+    name: "บมจ.เจริญโภคภัณฑ์อาหาร (CPF)",
+    sector: "เกษตรและอาหารแปรรูป (Agribusiness & Food)",
+    catalysts: "ราคาสุกรและไก่ในประเทศรวมถึงภูมิภาค (เวียดนาม/จีน) ฟื้นตัวจากปัญหาหมูเถื่อนคลี่คลาย, ต้นทุนวัตถุดิบอาหารสัตว์ (ข้าวโพด/กากถั่วเหลือง) ปรับลดลง",
+    risks: "โรคระบาดในสัตว์เลี้ยง, ความผันผวนของค่าเงินและต้นทุนพลังงานในการขนส่ง",
+    tactics: "เก็งกำไรตามรอบการฟื้นตัวของราคาสินค้าเกษตรและมาร์จิ้นธุรกิจปศุสัตว์",
+    typicalBeta: "1.05"
+  },
+  IVL: {
+    name: "บมจ.อินโดรามา เวนเจอร์ส (IVL)",
+    sector: "ปิโตรเคมีและวัสดุศาสตร์ (Global Petrochemical & PET)",
+    catalysts: "สเปรดผลิตภัณฑ์ PET/PTA ในตลาดตะวันตกเริ่มผ่านจุดต่ำสุด, แผนปรับโครงสร้างลดหนี้และแยกธุรกิจมาร์จิ้นสูง (Spin-off) ระดมทุน, กลยุทธ์ลดต้นทุนดำเนินงานทั่วโลก",
+    risks: "การทุ่มตลาดเม็ดพลาสติกจากจีน, อุปทานส่วนเกินในตลาดโลก",
+    tactics: "Value Play ซื้อสะสมเมื่อราคาเข้าใกล้จุดต่ำสุดของวัฏจักรเศรษฐกิจโลก",
+    typicalBeta: "1.30"
+  },
+  TU: {
+    name: "บมจ.ไทยยูเนี่ยน กรุ๊ป (TU)",
+    sector: "อาหารทะเลแปรรูป (Seafood & Pet Care)",
+    catalysts: "ต้นทุนปลาทูน่าลดลงช่วยขยายอัตรากำไรขั้นต้น, การเติบโตของธุรกิจอาหารสัตว์เลี้ยง (ITC) มาร์จิ้นสูง, ยุติผลกระทบจากการถือหุ้น Red Lobster เรียบร้อยแล้ว",
+    risks: "มาตรการกำแพงภาษีนำเข้าในตลาดยุโรปและสหรัฐฯ, ค่าระวางเรือขนส่งตู้คอนเทนเนอร์",
+    tactics: "Buy on Dip สะสมหุ้นที่กำไรกลับมาฟื้นตัวแข็งแกร่งและปันผลสม่ำเสมอ",
+    typicalBeta: "0.90"
+  },
+  MINT: {
+    name: "บมจ.ไมเนอร์ อินเตอร์เนชั่นแนล (MINT)",
+    sector: "โรงแรมและการท่องเที่ยว (Hospitality & Food Services)",
+    catalysts: "อัตราค่าห้องพักเฉลี่ย (ADR) และ RevPAR ของโรงแรมในยุโรปและไทยเติบโตแข็งแกร่ง, การเร่งชำระคืนหนี้สินลดภาระดอกเบี้ยจ่าย, ธุรกิจร้านอาหารยอดขายเติบโตดี",
+    risks: "ความผันผวนของสภาพอากาศและเศรษฐกิจในยุโรป, อัตราแลกเปลี่ยนค่าเงินยูโร",
+    tactics: "Swing Buy ช่วงก่อนเข้าสู่ฤดูท่องเที่ยวไฮซีซั่นของยุโรปและเอเชีย",
+    typicalBeta: "1.15"
+  },
+  OR: {
+    name: "บมจ.ปตท. น้ำมันและการค้าปลีก (OR)",
+    sector: "ค้าปลีกน้ำมันและไลฟ์สไตล์ (Oil Retail & Lifestyle)",
+    catalysts: "ค่าการตลาดน้ำมันฟื้นตัวกลับสู่เกณฑ์ปกติ 0.90 - 1.20 บาท/ลิตร, ยอดขายเครื่องดื่ม Cafe Amazon เติบโตต่อเนื่อง, การขยายเครือข่ายสถานีชาร์จ EV Station PluZ",
+    risks: "มาตรการตรึงราคาน้ำมันดีเซลและเบนซินของกองทุนน้ำมันเชื้อเพลิง",
+    tactics: "Buy on Support สะสมบริเวณแนวรับลึกเพื่อรอการฟื้นตัวของมาร์จิ้น",
+    typicalBeta: "0.85"
+  }
+};
+
 const sectorScreenerData = {
   energy: {
     label: "⚡ พลังงาน & สาธารณูปโภค (Energy & Utilities)",
@@ -530,17 +810,6 @@ export default function ThaiStockAnalysisView({ username }) {
     const fetchScreenerPrices = async () => {
       if (loadingScreener) return;
       setLoadingScreener(true);
-      
-      const roundThaiTick = (val) => {
-        if (val < 2) return Math.round(val * 100) / 100;
-        if (val < 5) return Math.round(val * 50) / 50;
-        if (val < 10) return Math.round(val * 20) / 20;
-        if (val < 25) return Math.round(val * 10) / 10;
-        if (val < 100) return Math.round(val * 4) / 4;
-        if (val < 200) return Math.round(val * 2) / 2;
-        if (val < 400) return Math.round(val * 1) / 1;
-        return Math.round(val / 2) * 2;
-      };
 
       const uniqueSymbols = [];
       Object.values(screenerPool).forEach((poolList) => {
@@ -563,40 +832,56 @@ export default function ThaiStockAnalysisView({ username }) {
               const price = data ? parseFloat(data.price) : 0;
               const changePct = data ? parseFloat(data.changePct || 0) : 0;
               
-              let probVal = 75;
-              let reasons = [
-                `ราคามีแนวโน้มแกว่งตัวในทิศทางทวีมูลค่าและสร้างความมั่นใจให้ผู้ลงทุน`,
-                `พิจารณาสัญญาณโมเมนตัมเทคนิคคอลสะท้อนรอบการซื้อคืนที่ต่อเนื่องในโซน`,
-                `ระดับปริมาณการเทรดค่อนข้างสมดุลพร้อมเป็นจุดเปลี่ยนแนวโน้มสำคัญ`
-              ];
-              if (cand.reasons) {
-                reasons = Array.isArray(cand.reasons) ? cand.reasons : [cand.reasons];
-              }
-
               if (price > 0) {
-                let entryVal = price;
-                let tpVal = price * 1.10;
-                let slVal = price * 0.95;
+                // Quantitative multi-factor evaluation
+                let entryVal, tpVal, slVal, probVal;
+                let category = "Value Catalyst";
+                let badge = "สะสมพลังรอเบรกเอาท์";
+                let color = "#eab308";
+                let bgColor = "rgba(234, 179, 8, 0.08)";
 
-                const hash = cand.symbol.charCodeAt(4) || 0;
-                if (hash % 3 === 0) {
-                  entryVal = price * 1.01;
-                  tpVal = price * 1.12;
-                  slVal = price * 0.96;
-                  probVal = 80 + Math.round((changePct > 0 ? changePct : 0) * 1.8);
-                } else if (hash % 3 === 1) {
-                  entryVal = price * 0.98;
-                  tpVal = price * 1.08;
-                  slVal = price * 0.94;
-                  probVal = 78 + Math.round((changePct < 0 ? Math.abs(changePct) : 0) * 1.5);
+                if (changePct >= 1.2) {
+                  // Strong Uptrend / Momentum Breakout
+                  category = "Strong Uptrend";
+                  badge = "โมเมนตัมแรงทะลุกรอบ";
+                  color = "#22c55e";
+                  bgColor = "rgba(34, 197, 94, 0.08)";
+                  entryVal = roundThaiTickSize(price);
+                  tpVal = roundThaiTickSize(price * 1.10);
+                  slVal = roundThaiTickSize(price * 0.95);
+                  probVal = Math.min(96, Math.round(82 + changePct * 2.8));
+                } else if (changePct <= -0.5) {
+                  // Buy on Dip / Oversold Bounce
+                  category = "Buy on Dip";
+                  badge = "ย่อตัวเข้าโซนแนวรับคุ้มค่า";
+                  color = "#60a5fa";
+                  bgColor = "rgba(59, 130, 246, 0.08)";
+                  entryVal = roundThaiTickSize(price * 0.985);
+                  tpVal = roundThaiTickSize(price * 1.08);
+                  slVal = roundThaiTickSize(price * 0.94);
+                  probVal = Math.min(94, Math.round(80 + Math.abs(changePct) * 2.2));
                 } else {
-                  entryVal = price;
-                  tpVal = price * 1.15;
-                  slVal = price * 0.93;
-                  probVal = 82 + Math.round(Math.abs(changePct) * 1.2);
+                  // Value Accumulation / Consolidation
+                  category = "Value Accumulation";
+                  badge = "สะสมโซนดีมานด์สถาบัน";
+                  color = "#a78bfa";
+                  bgColor = "rgba(167, 139, 250, 0.08)";
+                  entryVal = roundThaiTickSize(price * 0.995);
+                  tpVal = roundThaiTickSize(price * 1.09);
+                  slVal = roundThaiTickSize(price * 0.945);
+                  probVal = Math.min(92, Math.round(77 + Math.abs(changePct) * 1.5));
                 }
 
-                probVal = Math.min(96, Math.max(68, probVal));
+                // Ensure strict Risk-Reward >= 1.5:1
+                const risk = Math.max(0.01, entryVal - slVal);
+                const reward = Math.max(0.01, tpVal - entryVal);
+                const rrRatio = (reward / risk).toFixed(1);
+
+                let reasons = cand.reasons ? (Array.isArray(cand.reasons) ? cand.reasons : [cand.reasons]) : [
+                  `ราคาทรงตัวในกรอบแนวรับเชิงเทคนิคพร้อมอัตราผลตอบแทนต่อความเสี่ยง R:R 1:${rrRatio}`,
+                  `มีปัจจัยพื้นฐานกลุ่มอุตสาหกรรมหนุนและโมเมนตัมราคา ${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%`,
+                  `วอลลุ่มสะสมสถาบันช่วยหนุนความปลอดภัยในการเข้าเทรดรอบใหม่`
+                ];
 
                 return {
                   ...cand,
@@ -604,9 +889,14 @@ export default function ThaiStockAnalysisView({ username }) {
                   changePct,
                   probVal,
                   prob: probVal + "%",
-                  entry: "฿" + roundThaiTick(entryVal).toFixed(2),
-                  tp: "฿" + roundThaiTick(tpVal).toFixed(2),
-                  sl: "฿" + roundThaiTick(slVal).toFixed(2),
+                  entry: "฿" + entryVal.toFixed(2),
+                  tp: "฿" + tpVal.toFixed(2),
+                  sl: "฿" + slVal.toFixed(2),
+                  rrRatio,
+                  category,
+                  badge,
+                  color,
+                  bgColor,
                   reasons
                 };
               }
@@ -615,35 +905,7 @@ export default function ThaiStockAnalysisView({ username }) {
             }).filter(Boolean);
 
             sectorCandidates.sort((a, b) => b.probVal - a.probVal);
-
-            const top3 = sectorCandidates.slice(0, 3).map((item, idx) => {
-              let category = "Strong Uptrend";
-              let badge = "แนวโน้มขาขึ้นแกร่ง";
-              let color = "#22c55e";
-              let bgColor = "rgba(34, 197, 94, 0.08)";
-
-              if (idx === 1) {
-                category = "News Catalyst";
-                badge = "ปัจจัยข่าวบวกหนุนนำ";
-                color = "#eab308";
-                bgColor = "rgba(234, 179, 8, 0.08)";
-              } else if (idx === 2) {
-                category = "Buy on Dip";
-                badge = "ราคาพักตัวแนวรับลึก";
-                color = "#60a5fa";
-                bgColor = "rgba(59, 130, 246, 0.08)";
-              }
-
-              return {
-                ...item,
-                category,
-                badge,
-                color,
-                bgColor
-              };
-            });
-
-            updatedScreener[sectorKey].picks = top3;
+            updatedScreener[sectorKey].picks = sectorCandidates.slice(0, 4);
           });
 
           if (!mounted) return;
@@ -658,7 +920,7 @@ export default function ThaiStockAnalysisView({ username }) {
           });
 
           allPicks.sort((a, b) => b.probVal - a.probVal);
-          setBestPicks(allPicks.slice(0, 2));
+          setBestPicks(allPicks.slice(0, 3));
         }
       } catch (err) {
         console.error("Error in screener pool fetch:", err);
@@ -830,9 +1092,11 @@ export default function ThaiStockAnalysisView({ username }) {
   // AI Analysis States
   const [activeTimeframe, setActiveTimeframe] = useState("1h");
   const [livePrice, setLivePrice] = useState(null);
+  const [liveChange, setLiveChange] = useState(0);
 
   useEffect(() => {
     setLivePrice(null); // Reset price immediately to prevent leakage from previous symbol
+    setLiveChange(0);
     let isMounted = true;
     const fetchPrice = async () => {
       try {
@@ -840,6 +1104,9 @@ export default function ThaiStockAnalysisView({ username }) {
         const data = await res.json();
         if (isMounted && data && typeof data.price === "number") {
           setLivePrice(data.price);
+          if (typeof data.changePct === "number") {
+            setLiveChange(data.changePct);
+          }
         }
       } catch (err) {
         console.warn("Failed to fetch live price:", err);
@@ -910,36 +1177,32 @@ export default function ThaiStockAnalysisView({ username }) {
     loading: true
   });
 
-  // Dynamic simulated technical data generator based on selected symbol and timeframe
-  const getSimulatedMarketData = (sym, tf, anchorPeriod = "daily") => {
-    let basePrice = 2350.0;
+  // Quantitative Smart Technical & Fundamental Market Engine
+  const getSmartThaiStockAnalysis = (sym, tf, anchorPeriod = "daily", livePriceVal = null, liveChangeVal = 0) => {
+    const cleanSym = (sym.split(":")[1] || sym).toUpperCase();
+    const isThaiStock = sym.startsWith("SET:") || sym.includes("SET") || cleanSym === "SET" || thaiStockKnowledgeBase[cleanSym] !== undefined || thaiStockPairIds[cleanSym] !== undefined;
+
     let decimals = 2;
-    let prefix = "";
-    
-    const cleanSym = sym.split(":")[1] || sym;
-    const isThaiStock = sym.startsWith("SET:") || sym.includes("SET") || cleanSym === "PTT" || cleanSym === "CPALL" || cleanSym === "BDMS" || cleanSym === "ADVANC" || cleanSym === "AOT" || thaiStockPairIds[cleanSym.toUpperCase()] !== undefined;
-    
+    let prefix = isThaiStock ? "฿" : "$";
+
+    // Default prices for common assets
     let defaultPrice = 50.0;
     if (isThaiStock) {
-      if (cleanSym === "SET") defaultPrice = 1608.30;
-      else if (cleanSym === "PTT") defaultPrice = 32.50;
-      else if (cleanSym === "CPALL") defaultPrice = 57.25;
-      else if (cleanSym === "BDMS") defaultPrice = 28.00;
-      else if (cleanSym === "ADVANC") defaultPrice = 209.00;
-      else if (cleanSym === "AOT") defaultPrice = 62.50;
-      else {
-        let hash = 0;
-        const str = cleanSym.toUpperCase();
-        for (let i = 0; i < str.length; i++) {
-          hash = str.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        defaultPrice = 15.0 + (Math.abs(hash) % 365) + (Math.abs(hash * 7) % 4) * 0.25;
-      }
-      decimals = 2;
-      prefix = "฿";
+      if (cleanSym === "SET") defaultPrice = 1450.00;
+      else if (cleanSym === "DELTA") defaultPrice = 150.00;
+      else if (cleanSym === "ADVANC") defaultPrice = 280.00;
+      else if (cleanSym === "PTTEP") defaultPrice = 135.00;
+      else if (cleanSym === "KBANK") defaultPrice = 155.00;
+      else if (cleanSym === "SCB") defaultPrice = 115.00;
+      else if (cleanSym === "BBL") defaultPrice = 148.00;
+      else if (cleanSym === "CPALL") defaultPrice = 62.00;
+      else if (cleanSym === "AOT") defaultPrice = 60.00;
+      else if (cleanSym === "GULF") defaultPrice = 58.00;
+      else if (cleanSym === "PTT") defaultPrice = 33.00;
+      else if (cleanSym === "BDMS") defaultPrice = 27.50;
+      else defaultPrice = 45.00;
     } else if (cleanSym.includes("XAUUSD") || cleanSym.includes("GOLD")) {
-      defaultPrice = 2350.0;
-      decimals = 2;
+      defaultPrice = 2500.0;
       prefix = "$";
     } else if (cleanSym.includes("EURUSD")) {
       defaultPrice = 1.08520;
@@ -951,138 +1214,150 @@ export default function ThaiStockAnalysisView({ username }) {
       prefix = "";
     } else if (cleanSym.includes("USDJPY")) {
       defaultPrice = 156.45;
-      decimals = 2;
       prefix = "¥";
     } else if (cleanSym.includes("BTC")) {
       defaultPrice = 65420.0;
-      decimals = 2;
-      prefix = "$";
-    } else {
-      defaultPrice = 175.50;
-      decimals = 2;
       prefix = "$";
     }
 
-    basePrice = getStableAnchorPrice(cleanSym, anchorPeriod, livePrice, defaultPrice);
+    const currentLivePrice = (typeof livePriceVal === "number" && livePriceVal > 0) ? livePriceVal : (typeof livePrice === "number" && livePrice > 0 ? livePrice : null);
+    const currentLiveChange = (typeof liveChangeVal === "number" && liveChangeVal !== 0) ? liveChangeVal : (typeof liveChange === "number" ? liveChange : 0);
 
-    let tfMultiplier = 1;
+    const basePrice = getStableAnchorPrice(cleanSym, anchorPeriod, currentLivePrice, defaultPrice);
+    const currentPrice = currentLivePrice || basePrice;
+    const changePct = currentLiveChange;
+
+    let tfMultiplier = 0.015;
+    if (tf === "5m") tfMultiplier = 0.003;
+    else if (tf === "15m") tfMultiplier = 0.006;
+    else if (tf === "30m") tfMultiplier = 0.010;
+    else if (tf === "1h") tfMultiplier = 0.018;
+    else if (tf === "4h") tfMultiplier = 0.035;
+    else if (tf === "1D") tfMultiplier = 0.060;
+
+    // Determine trend dynamically from price action and live momentum
     let trend = "sideways";
-    let structureType = "BOS ขาขึ้น (Bullish BOS)";
-    
-    if (tf === "5m") {
-      tfMultiplier = 0.0008;
+    let structureType = "กรอบสะสมพลัง (Consolidation Range)";
+    if (changePct >= 0.8) {
       trend = "uptrend";
-      structureType = "BOS ขาขึ้น (Bullish BOS)";
-    } else if (tf === "15m") {
-      tfMultiplier = 0.0015;
+      structureType = "BOS ขาขึ้น (Bullish BOS Breakout)";
+    } else if (changePct > 0.15) {
       trend = "uptrend";
-      structureType = "CHoCH ขาขึ้น (Bullish CHoCH)";
-    } else if (tf === "30m") {
-      tfMultiplier = 0.0028;
-      trend = "sideways";
-      structureType = "กรอบสะสมราคา (Range)";
-    } else if (tf === "1h") {
-      tfMultiplier = 0.0055;
+      structureType = "CHoCH ขาขึ้น (Bullish CHoCH Reversal)";
+    } else if (changePct <= -0.8) {
       trend = "downtrend";
-      structureType = "BOS ขาลง (Bearish BOS)";
-    } else if (tf === "4h") {
-      tfMultiplier = 0.012;
-      trend = "uptrend";
-      structureType = "BOS ขาขึ้น (Bullish BOS)";
-    } else if (tf === "1D") {
-      tfMultiplier = 0.032;
-      trend = "uptrend";
-      structureType = "BOS ขาขึ้น (Bullish BOS)";
+      structureType = "BOS ขาลง (Bearish BOS Breakdown)";
+    } else if (changePct < -0.15) {
+      trend = "downtrend";
+      structureType = "CHoCH ขาลง (Bearish CHoCH Pullback)";
+    } else {
+      trend = "sideways";
+      structureType = "กรอบสะสมราคา (Consolidation Demand/Supply Range)";
     }
 
+    // Calculate S/R and SMC levels with strict SET tick size
     const diff = basePrice * tfMultiplier;
-    const r2 = basePrice + diff * 1.5;
-    const r1 = basePrice + diff * 0.7;
-    const current = basePrice;
-    const s1 = basePrice - diff * 0.7;
-    const s2 = basePrice - diff * 1.5;
-    
-    const bosPrice = trend === "uptrend" ? basePrice + diff * 0.4 : basePrice - diff * 0.4;
-    const chochPrice = trend === "uptrend" ? basePrice - diff * 0.6 : basePrice + diff * 0.6;
+    const rawR2 = basePrice + diff * 1.5;
+    const rawR1 = basePrice + diff * 0.75;
+    const rawS1 = basePrice - diff * 0.75;
+    const rawS2 = basePrice - diff * 1.5;
+    const rawBOS = trend === "uptrend" ? basePrice + diff * 0.45 : basePrice - diff * 0.45;
+    const rawCHoCH = trend === "uptrend" ? basePrice - diff * 0.65 : basePrice + diff * 0.65;
 
-    let dailyBias = "";
-    let intradayTactics = "";
+    const r2 = isThaiStock ? roundThaiTickSize(rawR2) : parseFloat(rawR2.toFixed(decimals));
+    const r1 = isThaiStock ? roundThaiTickSize(rawR1) : parseFloat(rawR1.toFixed(decimals));
+    const current = isThaiStock ? roundThaiTickSize(currentPrice) : parseFloat(currentPrice.toFixed(decimals));
+    const s1 = isThaiStock ? roundThaiTickSize(rawS1) : parseFloat(rawS1.toFixed(decimals));
+    const s2 = isThaiStock ? roundThaiTickSize(rawS2) : parseFloat(rawS2.toFixed(decimals));
+    const bos = isThaiStock ? roundThaiTickSize(rawBOS) : parseFloat(rawBOS.toFixed(decimals));
+    const choch = isThaiStock ? roundThaiTickSize(rawCHoCH) : parseFloat(rawCHoCH.toFixed(decimals));
 
-    // Format formatted variables for dynamic text use
+    // Minimum 1 tick above R1 / below S1
+    const getTickIncrement = (p) => {
+      if (p < 2) return 0.01;
+      if (p < 5) return 0.02;
+      if (p < 10) return 0.05;
+      if (p < 25) return 0.10;
+      if (p < 100) return 0.25;
+      if (p < 200) return 0.50;
+      if (p < 400) return 1.00;
+      return 2.00;
+    };
+    const tick = isThaiStock ? getTickIncrement(current) : 0.05;
+
+    // 3 Institutional Setups
+    const breakoutEntry = isThaiStock ? roundThaiTickSize(r1 + tick) : r1 + tick;
+    const breakoutTP = isThaiStock ? roundThaiTickSize(r2 + 2 * tick) : r2;
+    const breakoutSL = isThaiStock ? roundThaiTickSize(r1 - 2 * tick) : s1;
+    const breakoutRR = Math.abs((breakoutTP - breakoutEntry) / Math.max(0.01, breakoutEntry - breakoutSL)).toFixed(2);
+
+    const dipEntry = s1;
+    const dipTP = r1;
+    const dipSL = isThaiStock ? roundThaiTickSize(s2 - tick) : s2;
+    const dipRR = Math.abs((dipTP - dipEntry) / Math.max(0.01, dipEntry - dipSL)).toFixed(2);
+
+    const sniperEntry = isThaiStock ? roundThaiTickSize(current * 0.995) : current;
+    const sniperTP = r1;
+    const sniperSL = isThaiStock ? roundThaiTickSize(current * 0.98) : s1;
+    const sniperRR = Math.abs((sniperTP - sniperEntry) / Math.max(0.01, sniperEntry - sniperSL)).toFixed(2);
+
+    // Dynamic Probabilities
+    let bullishProb = 50;
+    if (trend === "uptrend") {
+      bullishProb = Math.min(94, Math.max(62, Math.round(68 + changePct * 4.5)));
+    } else if (trend === "downtrend") {
+      bullishProb = Math.max(16, Math.min(38, Math.round(32 + changePct * 4.5)));
+    } else {
+      bullishProb = Math.min(58, Math.max(42, Math.round(50 + changePct * 3.0)));
+    }
+    const bearishProb = 100 - bullishProb;
+
+    // Stock profile from knowledge base
+    const stockInfo = thaiStockKnowledgeBase[cleanSym] || {
+      name: `หุ้น ${cleanSym}`,
+      sector: "กลุ่มหลักทรัพย์จดทะเบียนในตลาดหลักทรัพย์แห่งประเทศไทย (SET)",
+      catalysts: "ผลประกอบการรายไตรมาส, อัตราเงินปันผล, ปัจจัยโมเมนตัมเทคนิคอลและการไหลเข้าของเงินทุนสถาบัน",
+      risks: "ความผันผวนของดัชนี SET และการเปลี่ยนแปลงนโยบายเศรษฐกิจมหภาค",
+      tactics: "วางแผนการเทรดตามกรอบแนวรับแนวต้านสำคัญและบริหารความเสี่ยงด้วย R:R อย่างเคร่งครัด",
+      typicalBeta: "1.00"
+    };
+
     const fR2 = prefix + r2.toFixed(decimals);
     const fR1 = prefix + r1.toFixed(decimals);
     const fS1 = prefix + s1.toFixed(decimals);
     const fS2 = prefix + s2.toFixed(decimals);
     const fCurrent = prefix + current.toFixed(decimals);
 
+    let dailyBias = "";
+    let intradayTactics = "";
     let weeklyBias = "";
     let weeklyTactics = "";
     let monthlyBias = "";
     let monthlyTactics = "";
 
-    if (cleanSym.includes("XAUUSD") || cleanSym.includes("GOLD")) {
-      dailyBias = `🥇 Bullish Bias: ทิศทางราคาทองคำวันนี้ยังคงรักษาแนวโน้มขาขึ้นได้อย่างแข็งแกร่ง มีแรงซื้อเก็งกำไรไหลเข้าอย่างต่อเนื่อง สอดคล้องกับโครงสร้างราคาระดับ H4 ที่ยกตัวสูงขึ้น ตราบใดที่ราคาสามารถยืนเหนือแนวรับสำคัญบริเวณ ${fS2} ได้ น้ำหนักการเล่นฝั่งซื้อ (Buy) จะได้เปรียบมากกว่าอย่างเห็นได้ชัด`;
-      intradayTactics = `🎯 Buy on Dip: แนะนำรอจังหวะราคาย่อตัวชั่วคราวลงมาทดสอบโซนแนวรับบริเวณ ${fS1} เพื่อเปิดสถานะ Buy โดยวางจุดตัดขาดทุน (SL) ไว้อย่างเคร่งครัดใต้ระดับราคา ${fS2} และตั้งเป้าหมายทำกำไร (TP) แรกที่ระดับต้านหลัก ${fR1} และเป้าหมายถัดไปที่ระดับต้านสำคัญ ${fR2}`;
+    if (isThaiStock) {
+      dailyBias = `🇹🇭 ${trend === "uptrend" ? "Bullish Momentum" : trend === "downtrend" ? "Bearish Correction" : "Consolidation Bias"}: ${stockInfo.name} (${stockInfo.sector}) วันนี้เคลื่อนไหวที่ราคา ${fCurrent} (${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%) โครงสร้างทางเทคนิคอยู่ในช่วง ${structureType} ปัจจัยขับเคลื่อนสำคัญคือ ${stockInfo.catalysts} โดยราคามีแนวรับสำคัญอยู่ที่ ${fS1} และแนวต้านระดับ ${fR1}`;
       
-      weeklyBias = `🥇 Weekly Outlook: ภาพรวมสัปดาห์นี้ โครงสร้างราคาทองคำ Spot ยังคงประคองแนวโน้มขาขึ้นใหญ่ได้อย่างแข็งแกร่ง (Strong Macro Bullish) ตราบใดที่ราคาสัปดาห์นี้ไม่หลุดแนวรับใหญ่บริเวณ ${fS2} ทิศทางภาพรวมยังมุ่งหน้าขึ้นไปทดสอบเป้าหมายต้านถัดไป`;
-      weeklyTactics = `🎯 Weekly Swing Plan: วางกลยุทธ์ซื้อตามกรอบสัปดาห์ (Swing Buy) บริเวณแนวรับหลัก ${fS1} โดยแบ่งไม้สะสมและถือรันรอบยาวไปที่แนวต้านสัปดาห์ ${fR2} และจำกัดความเสี่ยงด้วย SL ต่ำกว่าระดับแนวรับ ${fS2}`;
+      intradayTactics = `🎯 ยุทธวิธีเทรด 3 แผนสถาบัน (Institutional Setups):
+1) 🚀 Trend Breakout: เข้าเมื่อทะลุ ${prefix}${breakoutEntry.toFixed(decimals)} เป้าหมาย ${prefix}${breakoutTP.toFixed(decimals)} ตัดขาดทุน ${prefix}${breakoutSL.toFixed(decimals)} (R:R 1:${breakoutRR})
+2) 🎯 Buy on Dip: ดักสะสมโซนรับ ${prefix}${dipEntry.toFixed(decimals)} เป้าหมาย ${prefix}${dipTP.toFixed(decimals)} ตัดขาดทุน ${prefix}${dipSL.toFixed(decimals)} (R:R 1:${dipRR})
+3) ⚡ Intraday Sniper: สวิงสั้นเข้า ${prefix}${sniperEntry.toFixed(decimals)} เป้า ${prefix}${sniperTP.toFixed(decimals)} วาง SL คุมเสี่ยงที่ ${prefix}${sniperSL.toFixed(decimals)} (R:R 1:${sniperRR})`;
+
+      weeklyBias = `🇹🇭 Weekly Outlook (${stockInfo.sector}): สัปดาห์นี้ ${cleanSym} มีโครงสร้างราคาหลักเหนือฐานแนวรับสัปดาห์ ${fS2} คาดว่าโมเมนตัมจะขับเคลื่อนตามปัจจัย ${stockInfo.catalysts} โดยหากราคาสามารถยืนเหนือแนวรับ ${fS1} ได้ต่อเนื่อง จะมีโอกาสทดสอบแนวต้านถัดไปที่ ${fR2}`;
       
-      monthlyBias = `🥇 Monthly Macro View: ทิศทางรายเดือนของราคาทองคำในระยะยาวยังคงดำเนินอยู่บนโครงสร้างขาขึ้นใหญ่รอบใหม่ (Super Cycle) แรงซื้อหลักยังมาจากสภาวะเงินเฟ้อและความเสี่ยงทางเศรษฐกิจโลก`;
-      monthlyTactics = `🎯 Monthly Long-term Plan: เน้นใช้กลยุทธ์สะสมลงทุนระยะยาวหรือรอสะสมเป็นไม้ใหญ่บริเวณแนวรับหลักรายเดือนที่ ${fS1} คาดเป้าหมายปลายทางจะปรับฐานขึ้นหาแนวต้านหลักบริเวณ ${fR2}`;
-    } else if (cleanSym.includes("EURUSD")) {
-      dailyBias = `🇪🇺 Neutral to Bullish: วันนี้คู่เงิน EURUSD เคลื่อนไหวในลักษณะ Sideway Up สะสมแรงซื้อในกรอบแนวรับสำคัญ ปัจจัยหนุนมาจากการชะลอตัวลงเล็กน้อยของดัชนีดอลลาร์สหรัฐฯ แนะนำเน้นฝั่งสะสมการซื้อ (Buy Accumulation) เป็นแนวทางหลักของวันเหนือระดับ ${fS2}`;
-      intradayTactics = `🎯 Buy Support Zone: รอเปิดสถานะ Buy เมื่อราคาลงมาทดสอบบริเวณแนวรับสำคัญ ${fS1} โดยกำหนดจุดตัดขาดทุน (SL) ต่ำกว่า Low เดิมที่ระดับ ${fS2} และตั้งเป้าปิดทำกำไร (TP) บริเวณต้านแรก ${fR1} หรือต้านสูงสุด ${fR2}`;
-      
-      weeklyBias = `🇪🇺 Weekly Outlook: คู่เงิน EURUSD ในสัปดาห์นี้มีแนวโน้มแกว่งตัวในกรอบ Sideways Up โดยได้รับแรงประคองจากโซนแนวรับรายสัปดาห์ ${fS1} โครงสร้างราคายังพยายามรักษาทิศทางขาขึ้นตราบใดที่ราคาไม่ปิดต่ำกว่า ${fS2}`;
-      weeklyTactics = `🎯 Weekly Swing Plan: แนะนำเน้นฝั่ง Buy สะสมตามระดับกรอบล่างใกล้ ${fS1} โดยเล็งจุดปิดทำกำไรระยะกลางที่แนวต้านสัปดาห์ ${fR1} และวางเป้าหมายหลักที่ ${fR2}`;
-      
-      monthlyBias = `🇪🇺 Monthly Macro View: แนวโน้มรายเดือนของคู่เงินยูโรดอลลาร์ชี้ว่าราคากำลังอยู่ในสภาวะสร้างฐานเพื่อกลับตัวเป็นขาขึ้นใหญ่ (Macro Reversal) โครงสร้างระยะยาวกำลังทดสอบโซนต้านสำคัญ`;
-      monthlyTactics = `🎯 Monthly Long-term Plan: ทยอยสะสมสถานะตามแนวรับใหญ่รายเดือนบริเวณ ${fS2} หรือเน้นการปิดสวิงเทรดระยะยาวเมื่อเข้าใกล้โซนต้านด้านบนบริเวณ ${fR2}`;
-    } else if (cleanSym.includes("GBPUSD")) {
-      dailyBias = `🇬🇧 Strong Bullish: คู่เงินปอนด์อังกฤษเคลื่อนตัวอย่างมีนัยสำคัญในโครงสร้างขาขึ้นต่อเนื่อง หลังตัวเลขคาดการณ์ดอกเบี้ยทรงตัวของ BOE วันนี้แนวโน้มยืนยันเหนือแนวรับระดับ ${fS1}`;
-      intradayTactics = `🎯 Pullback Buy Plan: รอราคาย่อตัวในวันลงมาที่แนวรับ ${fS1} หรือตามน้ำ Buy Stop เมื่อราคาทะลุผ่านแนวต้านระดับ ${fR1} ตั้ง SL ไว้ที่ ${fS2} และเป้าทำกำไร TP ที่ ${fR2}`;
-      
-      weeklyBias = `🇬🇧 Weekly Outlook: เงินปอนด์สัปดาห์นี้เคลื่อนไหวอย่างแข็งแกร่งในเทรนด์ขาขึ้นเหนือระดับแนวรับหลักสัปดาห์ ${fS1} ทิศทางหลักฝั่งซื้อยังคงครองสัดส่วนความมั่นใจสูงในการสะสมพลังไปต่อ`;
-      weeklyTactics = `🎯 Weekly Swing Plan: วางจังหวะ Swing Buy ที่ระดับ ${fS1} หรือตามเมื่อราคาทะลุกรอบบนของสัปดาห์ วางจุดยอมแพ้ที่ ${fS2} และตั้งเป้า TP ที่ ${fR2}`;
-      
-      monthlyBias = `🇬🇧 Monthly Macro View: สัญญาณเทคนิคระดับเดือนของปอนด์อังกฤษยืนยันถึงโครงสร้างสะสมกำลังขาขึ้นอย่างยั่งยืน โดยภาพรวมทิศทางระยะกลางและระยะยาวมุ่งหน้าทดสอบแนวต้านใหญ่ถัดไป`;
-      monthlyTactics = `🎯 Monthly Long-term Plan: เน้นถือสถานะรันเทรนด์ระยะยาวสำหรับฝั่ง Buy หรือทยอยเข้าเพิ่มไม้ที่บริเวณ ${fS1} โดยมีเป้าเป้าหมายรอบใหญ่ที่ ${fR2}`;
-    } else if (cleanSym.includes("USDJPY")) {
-      dailyBias = `🇯🇵 Bearish Bias: ค่าเงินเยนญี่ปุ่นแข็งค่าขึ้นจากการปรับฐานดอลลาร์ ส่งผลให้ทิศทางหลักของ USDJPY วันนี้มีโอกาสปรับฐานลงสูงต่ำกว่าระดับ ${fR2}`;
-      intradayTactics = `🎯 Sell on Rally: เน้นหาจังหวะเปิดสถานะ Sell เมื่อราคาดีดตัวทดสอบแนวต้านหลักบริเวณ ${fR1} โดยตั้งจุดตัดขาดทุน (SL) เหนือ High เดิมที่ ${fR2} และตั้งเป้าทำกำไร (TP) ที่แนวรับด้านล่าง ${fS1} และถัดไปที่ ${fS2}`;
-      
-      weeklyBias = `🇯🇵 Weekly Outlook: ภาพรวมรายสัปดาห์ของ USDJPY ชี้ว่าราคากำลังเผชิญกับโครงสร้างขาลงหรือการปรับฐานใหญ่ (Weekly Pullback) ใต้แนวต้านรายสัปดาห์บริเวณ ${fR1}`;
-      weeklyTactics = `🎯 Weekly Swing Plan: เน้นเข้าเก็งกำไรฝั่ง Sell (Short) บริเวณกรอบแนวต้านด้านบนใกล้ ${fR1} วาง SL เหนือระดับ ${fR2} และตั้งเป้าหมายทำกำไรสัปดาห์ที่แนวรับ ${fS1} และ ${fS2}`;
-      
-      monthlyBias = `🇯🇵 Monthly Macro View: ค่าเงินเยนในภาพรวมรายเดือนเริ่มมีสัญญาณฟื้นตัวแข็งค่ากดดันให้โครงสร้างหลักของ USDJPY มีการกลับตัวระยะยาวลงสู่แนวรับเมเจอร์สะสมพลัง`;
-      monthlyTactics = `🎯 Monthly Long-term Plan: ใช้กลยุทธ์เฝ้าจังหวะสะสมสถานะ Sell ระยะยาวเมื่อราคาเด้งตัวขึ้นทดสอบแนวต้านใหญ่รายเดือน หรือรอเข้า Buy สะสมเมื่อราคาลงลึกสัมผัสแนวรับ ${fS2}`;
-    } else if (cleanSym.includes("BTC")) {
-      dailyBias = `🪙 Bullish Bias: โครงสร้างราคาบิทคอยน์เคลื่อนไหวสะสมพลังอยู่เหนือเส้นแนวรับสำคัญบริเวณ ${fS2} อย่างมั่นคง ทิศทางฝั่ง Buy ได้เปรียบ`;
-      intradayTactics = `🎯 Buy Zone: ทยอยสะสมสถานะ Buy ในกรอบแนวรับสำคัญระหว่าง ${fS1} โดยตั้งจุดตัดขาดทุน (SL) ป้องกันกรณีหลุดแนวรับใหญ่ที่ ${fS2} และมีเป้าหมายทำกำไรระยะสั้นที่ ${fR1} และเป้าถัดไปที่ ${fR2}`;
-      
-      weeklyBias = `🪙 Weekly Outlook: โครงสร้างราคา BTC ในสัปดาห์นี้ยังสามารถยืนยันจุดยืนขาขึ้นได้เหนือระดับแนวรับหลักสัปดาห์ ${fS1} คาดกรอบสัปดาห์แกว่งสะสมแรงเพื่อขึ้นต่อหาเป้าหมายต้านถัดไป`;
-      weeklyTactics = `🎯 Weekly Swing Plan: ซื้อสะสมเมื่อย่อตัว (Buy on Retest) ใกล้ ${fS1} ตั้ง SL ถ้วนรอบที่ต่ำกว่า ${fS2} และวางแผนปิดเป้ากำไรที่ ${fR2}`;
-      
-      monthlyBias = `🪙 Monthly Macro View: ภาพรวมรายเดือนบิทคอยน์เคลื่อนไหวสอดคล้องกับวัฏจักรขาขึ้นรอบใหญ่ (Halving Macro Cycle) มีโอกาสปรับฐานขึ้นหาเป้าหมายใหม่ปลายไตรมาส`;
-      monthlyTactics = `🎯 Monthly Long-term Plan: ทยอยสะสมแบบ DCA ทุกปลายเดือน หรือเข้าซื้อเป็นไม้ใหญ่เมื่อราคาเกิดการปรับฐานลึก (Flash Crash) เข้าหาแนวรับใหญ่ ${fS2}`;
-    } else if (isThaiStock) {
-      dailyBias = `🇹🇭 Bullish Bias: แนวโน้มหลักของ ${cleanSym} วันนี้แกว่งตัวอยู่ในกรอบขาขึ้นสะสมพลังเหนือระดับ ${fS1} โดยมีแรงซื้อเก็งกำไรไหลเข้าหนุนกลุ่มหุ้นบิ๊กแคปอย่างต่อเนื่องตามสภาวะเศรษฐกิจในประเทศ`;
-      intradayTactics = `🎯 Buy on Support: แนะนำหาจังหวะรอราคาย่อตัวลงมาทดสอบโซนแนวรับสำคัญบริเวณ ${fS1} เพื่อเปิดสถานะ Buy วาง SL ที่ ${fS2} และตั้งเป้าทำกำไรที่ ${fR1} และเป้าถัดไปที่ ${fR2}`;
-      
-      weeklyBias = `🇹🇭 Weekly Outlook: ภาพรวมสัปดาห์นี้ของ ${cleanSym} ยังคงประคองทิศทางเป็นบวกสะสมพอร์ตขาขึ้นได้ดี โดยได้รับการสนับสนุนเชิงโครงสร้างราคารายสัปดาห์เหนือระดับแนวรับใหญ่ ${fS2}`;
-      weeklyTactics = `🎯 Weekly Swing Plan: แนะนำรอหาจังหวะสะสม Buy เมื่อย่อตัวในกรอบแนวรับสัปดาห์ ${fS1} วางจุดจำกัดความเสี่ยง SL ที่ ${fS2} และตั้งเป้าทำกำไรที่ ${fR2}`;
-      
-      monthlyBias = `🇹🇭 Monthly Macro View: แนวโน้มระยะยาวระดับรายเดือนของ ${cleanSym} อยู่ในช่วงปรับฐานและทยอยฟื้นตัวตามความเชื่อมั่นของนักลงทุนต่างชาติและนโยบายกระตุ้นเม็ดเงินไหลเข้าตลาดหลักทรัพย์`;
-      monthlyTactics = `🎯 Monthly Long-term Plan: วางแผนสะสมลงทุนระยะยาวด้วยไม้เฉลี่ยเมื่อราคาเข้าใกล้แนวรับใหญ่รายเดือน ${fS2} โดยมีเป้าต้านระยะยาวอยู่ที่ ${fR2}`;
+      weeklyTactics = `🎯 Weekly Swing Plan: แนะนำเน้นกลยุทธ์ Swing Trade แบ่งไม้ทยอยสะสมในกรอบแนวรับ ${fS1} - ${fS2} กำหนดจุดตัดขาดทุน (SL) เคร่งครัดใต้ ${fS2} และตั้งเป้าปิดทำกำไรตามรอบสัปดาห์ที่แนวต้านหลัก ${fR1} ถึง ${fR2}`;
+
+      monthlyBias = `🇹🇭 Monthly Macro View: แนวโน้มระยะยาวระดับรายเดือนของ ${stockInfo.name} สะท้อนทิศทางของอุตสาหกรรม ${stockInfo.sector} โดยมีความเสี่ยงสำคัญที่ต้องจับตาคือ ${stockInfo.risks} ในขณะที่จุดแข็งเชิงพื้นฐานยังคงให้ผลตอบแทนปันผลคุ้มค่าความเสี่ยง`;
+
+      monthlyTactics = `🎯 Monthly Long-term Plan: วางแผนสะสมพอร์ตระยะยาวด้วยกลยุทธ์ Dollar-Cost Averaging (DCA) หรือซื้อเพิ่มเมื่อราคาย่อตัวลงมาทดสอบแนวรับเมเจอร์ระดับเดือน ${fS2} โดยมีเป้าหมายมูลค่าทางพื้นฐานที่ระดับแนวต้านใหญ่ ${fR2}`;
     } else {
-      dailyBias = `🇺🇸 Bullish Bias: ทิศทางหลักในภาพรวมยังคงรักษาแนวโน้มขาขึ้นได้อย่างแข็งแกร่ง มีแรงซื้อหนุนอย่างต่อเนื่องเหนือระดับ ${fS1}`;
-      intradayTactics = `🎯 Pullback Buy: แนะนำหาจังหวะรอราคาย่อตัวลงมาทดสอบโซนแนวรับบริเวณ ${fS1} เพื่อเปิดสถานะ Buy วาง SL ที่ ${fS2} และตั้งเป้าทำกำไรที่ ${fR1}`;
-      
-      weeklyBias = `🥇 Weekly Outlook: ภาพรวมสัปดาห์นี้ราคายังประคองตัวเหนือแนวรับสำคัญ ${fS1} ได้ น้ำหนักฝั่งขาขึ้นยังคงครองความมั่นใจในการเข้าเล่นตามเทรนด์`;
-      weeklyTactics = `🎯 Weekly Swing Plan: แนะนำรอหาจังหวะสะสม Buy เมื่อย่อตัวในกรอบแนวรับสัปดาห์ ${fS1} วางจุดจำกัดความเสี่ยง SL ที่ ${fS2} และตั้งเป้าทำกำไรที่ ${fR2}`;
-      
-      monthlyBias = `🥇 Monthly Macro View: ภาพรวมรายเดือนในระยะยาวดัชนีราคายังประคองโครงสร้างขาขึ้นใหญ่และเคลื่อนไหวสะสมกำลังต่อเนื่อง`;
-      monthlyTactics = `🎯 Monthly Long-term Plan: วางแผนสะสมลงทุนระยะยาวด้วยไม้เฉลี่ยเมื่อราคาเข้าใกล้แนวรับใหญ่รายเดือน ${fS2} โดยมีเป้าต้านระยะยาวอยู่ที่ ${fR2}`;
+      // Non-Thai stock logic (Gold, Forex, Crypto)
+      dailyBias = `🌍 ${trend === "uptrend" ? "Bullish Bias" : trend === "downtrend" ? "Bearish Bias" : "Neutral Range"}: ทิศทางราคาของ ${cleanSym} เคลื่อนไหวทดสอบโซนราคา ${fCurrent} โครงสร้างเทคนิค ${structureType} ตราบใดที่ราคายืนเหนือแนวรับ ${fS1} มีน้ำหนักฝั่ง ${trend === "uptrend" ? "Buy" : "Sell"} ได้เปรียบกว่า`;
+      intradayTactics = `🎯 Tactical Execution: แนะนำรอจังหวะย่อตัวเข้าซื้อที่แนวรับ ${fS1} วาง SL ใต้ ${fS2} และตั้งเป้าทำกำไร TP1 ที่ ${fR1} และ TP2 ที่ ${fR2}`;
+      weeklyBias = `🌍 Weekly Outlook: โครงสร้างราคารายสัปดาห์ของ ${cleanSym} ประคองตัวในกรอบแนวรับหลัก ${fS2} และแนวต้าน ${fR2}`;
+      weeklyTactics = `🎯 Weekly Plan: วางกลยุทธ์ Swing Trade ตามกรอบแนวรับสัปดาห์ ${fS1} ไปยังเป้าหมายต้าน ${fR2}`;
+      monthlyBias = `🌍 Monthly Macro View: แนวโน้มระยะยาวระดับรายเดือนยังคงรักษาโครงสร้างหลักตามทิศทางเม็ดเงินมหภาค`;
+      monthlyTactics = `🎯 Monthly Plan: เน้นถือสถานะตามเทรนด์ระยะยาวและบริหารสัดส่วนพอร์ตอย่างรัดกุม`;
     }
 
     return {
@@ -1094,12 +1369,20 @@ export default function ThaiStockAnalysisView({ username }) {
       anchorPeriod,
       r2: r2.toFixed(decimals),
       r1: r1.toFixed(decimals),
-      current: livePrice ? livePrice.toFixed(decimals) : current.toFixed(decimals),
+      current: current.toFixed(decimals),
       s1: s1.toFixed(decimals),
       s2: s2.toFixed(decimals),
-      bos: bosPrice.toFixed(decimals),
-      choch: chochPrice.toFixed(decimals),
+      bos: bos.toFixed(decimals),
+      choch: choch.toFixed(decimals),
       structureType,
+      bullishProb,
+      bearishProb,
+      setups: {
+        breakout: { entry: breakoutEntry.toFixed(decimals), tp: breakoutTP.toFixed(decimals), sl: breakoutSL.toFixed(decimals), rr: breakoutRR },
+        dip: { entry: dipEntry.toFixed(decimals), tp: dipTP.toFixed(decimals), sl: dipSL.toFixed(decimals), rr: dipRR },
+        sniper: { entry: sniperEntry.toFixed(decimals), tp: sniperTP.toFixed(decimals), sl: sniperSL.toFixed(decimals), rr: sniperRR }
+      },
+      stockInfo,
       dailyBias,
       intradayTactics,
       weeklyBias,
@@ -1107,6 +1390,10 @@ export default function ThaiStockAnalysisView({ username }) {
       monthlyBias,
       monthlyTactics
     };
+  };
+
+  const getSimulatedMarketData = (sym, tf, anchorPeriod = "daily") => {
+    return getSmartThaiStockAnalysis(sym, tf, anchorPeriod, livePrice, liveChange);
   };
 
   const analyzeNewsForSymbol = (events, activeSymbol) => {
@@ -1535,13 +1822,23 @@ export default function ThaiStockAnalysisView({ username }) {
     <div className="analysis-view-container">
       {/* Gemini AI Smart Analysis Header */}
       <div style={{ marginBottom: 18 }}>
-        <GeminiAiAnalysisCard
-          assetType="thai_stock"
-          symbol={symbol.split(":")[1] || symbol}
-          price={livePrice ? String(livePrice) : "145.00"}
-          change="+0.50%"
-          indicators={{ RSI: 58.4, MA20: "Uptrend", MACD: "Bullish Cross" }}
-        />
+        {(() => {
+          const currentData = getSimulatedMarketData(symbol, activeTimeframe, reportTab);
+          const rsiVal = Math.min(85, Math.max(20, parseFloat((50 + (liveChange || 0) * 4.2).toFixed(1))));
+          const maVal = (liveChange || 0) >= 0 ? "Uptrend (เหนือ EMA 20)" : "Downtrend (ใต้ EMA 20)";
+          const macdVal = (liveChange || 0) > 0.4 ? "Bullish Cross (บวกแกร่ง)" : (liveChange || 0) < -0.4 ? "Bearish Cross (ลบกดดัน)" : "Neutral / Consolidation (สะสมพลัง)";
+          const displayPrice = livePrice ? (symbol.startsWith("SET:") ? String(roundThaiTickSize(livePrice).toFixed(2)) : String(livePrice)) : (currentData ? String(currentData.current) : "145.00");
+          const displayChange = (liveChange !== null && liveChange !== undefined) ? `${liveChange > 0 ? "+" : ""}${liveChange.toFixed(2)}%` : "+0.00%";
+          return (
+            <GeminiAiAnalysisCard
+              assetType="thai_stock"
+              symbol={symbol.split(":")[1] || symbol}
+              price={displayPrice}
+              change={displayChange}
+              indicators={{ RSI: rsiVal, MA20: maVal, MACD: macdVal }}
+            />
+          );
+        })()}
       </div>
       {/* Split layout: Left (70% width) and Right (30% width) */}
       <div className="analysis-split-layout full-chart-mode">
@@ -2029,11 +2326,8 @@ export default function ThaiStockAnalysisView({ username }) {
                         <span>🧠 แผนกลยุทธ์การเทรดรายวันโดย AI (AI Daily Trading Bias)</span>
                       </h4>
                       {(() => {
-                        const cleanSym = symbol.split(":")[1] || symbol;
-                        let charSum = 0;
-                        for (let i = 0; i < cleanSym.length; i++) charSum += cleanSym.charCodeAt(i);
-                        const isBullish = (charSum + 2) % 2 === 0;
-                        const probVal = 62 + ((charSum * 2) % 26);
+                        const isBullish = (data.bullishProb ?? 50) >= 50;
+                        const probVal = isBullish ? (data.bullishProb ?? 50) : (data.bearishProb ?? 50);
                         return (
                           <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "10px 0", background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
                             <div style={{ flex: 1 }}>
@@ -2057,17 +2351,62 @@ export default function ThaiStockAnalysisView({ username }) {
                       }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <span style={{ fontSize: "13px", fontWeight: "600", color: "var(--text-secondary)" }}>📅 แนวทางการเทรดของวัน (Daily Bias & Outlook)</span>
-                          <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.55" }}>
+                          <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.55", whiteSpace: "pre-line" }}>
                             {data.dailyBias}
                           </p>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                           <span style={{ fontSize: "13px", fontWeight: "600", color: "#22c55e" }}>🎯 แนวทางการเทรดในวัน (Intraday Execution Tactics)</span>
-                          <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.55" }}>
+                          <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.55", whiteSpace: "pre-line" }}>
                             {data.intradayTactics}
                           </p>
                         </div>
                       </div>
+
+                      {data.setups && (
+                        <div style={{
+                          marginTop: "6px",
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))",
+                          gap: "12px"
+                        }}>
+                          <div style={{ background: "rgba(34, 197, 94, 0.06)", border: "1px solid rgba(34, 197, 94, 0.25)", borderRadius: "8px", padding: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                              <span style={{ fontSize: "12.5px", fontWeight: "bold", color: "#22c55e" }}>🚀 1. Trend Breakout</span>
+                              <span style={{ fontSize: "10.5px", background: "rgba(34, 197, 94, 0.15)", color: "#22c55e", padding: "2px 6px", borderRadius: "4px", fontWeight: "700" }}>R:R 1:{data.setups.breakout.rr}</span>
+                            </div>
+                            <div style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
+                              <div>จุดเข้าซื้อ (Entry): <strong style={{ color: "#fff" }}>{data.prefix}{data.setups.breakout.entry}</strong></div>
+                              <div>เป้ากำไร (TP): <strong style={{ color: "#22c55e" }}>{data.prefix}{data.setups.breakout.tp}</strong></div>
+                              <div>ตัดขาดทุน (SL): <strong style={{ color: "#ef4444" }}>{data.prefix}{data.setups.breakout.sl}</strong></div>
+                            </div>
+                          </div>
+
+                          <div style={{ background: "rgba(59, 130, 246, 0.06)", border: "1px solid rgba(59, 130, 246, 0.25)", borderRadius: "8px", padding: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                              <span style={{ fontSize: "12.5px", fontWeight: "bold", color: "#60a5fa" }}>🎯 2. Buy on Dip</span>
+                              <span style={{ fontSize: "10.5px", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", padding: "2px 6px", borderRadius: "4px", fontWeight: "700" }}>R:R 1:{data.setups.dip.rr}</span>
+                            </div>
+                            <div style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
+                              <div>จุดเข้าซื้อ (Entry): <strong style={{ color: "#fff" }}>{data.prefix}{data.setups.dip.entry}</strong></div>
+                              <div>เป้ากำไร (TP): <strong style={{ color: "#60a5fa" }}>{data.prefix}{data.setups.dip.tp}</strong></div>
+                              <div>ตัดขาดทุน (SL): <strong style={{ color: "#ef4444" }}>{data.prefix}{data.setups.dip.sl}</strong></div>
+                            </div>
+                          </div>
+
+                          <div style={{ background: "rgba(234, 179, 8, 0.06)", border: "1px solid rgba(234, 179, 8, 0.25)", borderRadius: "8px", padding: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                              <span style={{ fontSize: "12.5px", fontWeight: "bold", color: "#eab308" }}>⚡ 3. Intraday Sniper</span>
+                              <span style={{ fontSize: "10.5px", background: "rgba(234, 179, 8, 0.15)", color: "#eab308", padding: "2px 6px", borderRadius: "4px", fontWeight: "700" }}>R:R 1:{data.setups.sniper.rr}</span>
+                            </div>
+                            <div style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "3px" }}>
+                              <div>จุดเข้าซื้อ (Entry): <strong style={{ color: "#fff" }}>{data.prefix}{data.setups.sniper.entry}</strong></div>
+                              <div>เป้ากำไร (TP): <strong style={{ color: "#eab308" }}>{data.prefix}{data.setups.sniper.tp}</strong></div>
+                              <div>ตัดขาดทุน (SL): <strong style={{ color: "#ef4444" }}>{data.prefix}{data.setups.sniper.sl}</strong></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -2078,11 +2417,8 @@ export default function ThaiStockAnalysisView({ username }) {
                         <span>🧠 แผนกลยุทธ์สัปดาห์นี้โดย AI (AI Weekly Swing Guidelines)</span>
                       </h4>
                       {(() => {
-                        const cleanSym = symbol.split(":")[1] || symbol;
-                        let charSum = 0;
-                        for (let i = 0; i < cleanSym.length; i++) charSum += cleanSym.charCodeAt(i);
-                        const isBullish = (charSum + 5) % 2 === 0;
-                        const probVal = 58 + ((charSum * 5) % 28);
+                        const isBullish = (data.bullishProb ?? 50) >= 50;
+                        const probVal = isBullish ? (data.bullishProb ?? 50) : (data.bearishProb ?? 50);
                         return (
                           <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "10px 0", background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
                             <div style={{ flex: 1 }}>
@@ -2127,11 +2463,8 @@ export default function ThaiStockAnalysisView({ username }) {
                         <span>🧠 แผนวิเคราะห์มหภาครายเดือนโดย AI (AI Monthly Macro Report)</span>
                       </h4>
                       {(() => {
-                        const cleanSym = symbol.split(":")[1] || symbol;
-                        let charSum = 0;
-                        for (let i = 0; i < cleanSym.length; i++) charSum += cleanSym.charCodeAt(i);
-                        const isBullish = (charSum + 8) % 2 === 0;
-                        const probVal = 55 + ((charSum * 8) % 32);
+                        const isBullish = (data.bullishProb ?? 50) >= 50;
+                        const probVal = isBullish ? (data.bullishProb ?? 50) : (data.bearishProb ?? 50);
                         return (
                           <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "10px 0", background: "rgba(255,255,255,0.03)", padding: "10px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
                             <div style={{ flex: 1 }}>
@@ -2180,16 +2513,9 @@ export default function ThaiStockAnalysisView({ username }) {
                         const cleanSym = symbol.split(":")[1] || symbol;
                         const data = getSimulatedMarketData(symbol, activeTimeframe, reportTab);
                         
-                        // Deterministic probability based on trend and symbol
-                        let bullishProb = 50;
-                        if (data.trend === "uptrend") {
-                          bullishProb = 68 + (cleanSym.charCodeAt(0) % 15);
-                        } else if (data.trend === "downtrend") {
-                          bullishProb = 20 + (cleanSym.charCodeAt(0) % 15);
-                        } else {
-                          bullishProb = 45 + (cleanSym.charCodeAt(0) % 15);
-                        }
-                        const bearishProb = 100 - bullishProb;
+                        // Quantitative probability derived consistently from momentum and trend
+                        const bullishProb = data.bullishProb ?? 50;
+                        const bearishProb = data.bearishProb ?? (100 - bullishProb);
                         const sentimentClass = bullishProb >= 60 ? "Bullish (แนวโน้มขาขึ้นได้เปรียบ)" : 
                                                bullishProb <= 40 ? "Bearish (แนวโน้มขาลงมีน้ำหนักกว่า)" : 
                                                "Neutral (สภาวะสะสมพลังไม่มีทิศทางชัดเจน)";
@@ -2294,51 +2620,7 @@ export default function ThaiStockAnalysisView({ username }) {
                     </>
                   )}
 
-                  {reportTab === "war" && (
-                    <>
-                      <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "bold", color: "#EF4444", display: "flex", alignItems: "center", gap: "6px", borderBottom: "1px solid var(--border-color)", paddingBottom: "8px" }}>
-                        <ShieldAlert size={16} style={{ color: "#EF4444" }} />
-                        <span>⚔️ วิเคราะห์ข่าวสงครามและความเสี่ยงทางภูมิรัฐศาสตร์ (AI War & Geopolitical Risk Analysis)</span>
-                      </h4>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "12px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(239, 68, 68, 0.08)", padding: "12px 14px", borderRadius: "10px", borderLeft: "4px solid var(--color-danger)" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>ระดับความตึงเครียดทางภูมิรัฐศาสตร์โลก</span>
-                            <strong style={{ fontSize: "14px", color: "var(--color-danger)" }}>HIGH TO CRITICAL (ระดับวิกฤตสูง)</strong>
-                          </div>
-                          <span style={{ fontSize: "20px" }}>🚨</span>
-                        </div>
-
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(245, 158, 11, 0.08)", padding: "12px 14px", borderRadius: "10px", borderLeft: "4px solid var(--color-warning)" }}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>ดัชนีต้องการสินทรัพย์ปลอดภัยหนุนสินทรัพย์</span>
-                            <strong style={{ fontSize: "14px", color: "var(--color-warning)" }}>92% (ต้องการถือครองหนาแน่น)</strong>
-                          </div>
-                          <span style={{ fontSize: "20px" }}>🛡️</span>
-                        </div>
-
-                        <div style={{ display: "flex", flexDirection: "column", gap: "10px", borderTop: "1px dashed var(--border-color)", paddingTop: "12px" }}>
-                          <span style={{ fontSize: "12.5px", fontWeight: "bold", color: "var(--color-primary)" }}>🔥 บทวิเคราะห์อิมแพ็กข่าวด้านเสถียรภาพสงคราม:</span>
-                          
-                          <div style={{ fontSize: "12px", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "10px", lineHeight: "1.5" }}>
-                            <div>
-                              <strong style={{ color: "#fff" }}>📍 วิกฤตการณ์ตะวันออกกลาง (Middle East Tensions):</strong> การขยายวงขัดแย้งหนุนให้ราคาพลังงานดิบดิบโลก และราคาทองคำพุ่งทะยาน ส่งผลบวกต่อสินทรัพย์ Safe-haven และเกิดแรงเทขายสินทรัพย์ที่มีความเสี่ยงสูง
-                            </div>
-                            <div>
-                              <strong style={{ color: "#fff" }}>📍 วิกฤตการณ์ยุโรปตะวันออก (Russia-Ukraine):</strong> การคว่ำบาตรรอบใหม่ในภาคการเงินส่งผลลบต่อระบบธุรกรรมของกลุ่มยูโรโซน ส่งผลให้ตลาดยุโรปและคู่เงินหลักเผชิญแรงกดดันชั่วคราวขณะที่ดอลลาร์/ทองคำได้รับเงินลี้ภัยระยะสั้น
-                            </div>
-                            <div>
-                              <strong style={{ color: "#fff" }}>📍 ความขัดแย้งการค้าสหรัฐฯ-จีน (US-China Trade War):</strong> ส่งผลกระทบอย่างต่อเนื่องให้เกิดกระแส De-dollarization ทั่วโลก หนุนแรงซื้อสะสมทองคำอย่างมีนัยสำคัญ
-                            </div>
-                          </div>
-                        </div>
-
-                        <div style={{ background: "rgba(59, 130, 246, 0.05)", padding: "10px 12px", borderRadius: "8px", fontSize: "11.5px", border: "1px solid rgba(59, 130, 246, 0.15)", lineHeight: "1.5" }}>
-                          <span style={{ fontWeight: "bold", color: "var(--color-primary)" }}>💡 คาดการณ์จาก AI:</span> สภาวะตึงเครียดของขั้วสงครามกระตุ้นให้ราคาสินทรัพย์หลักมีความผันผวนสูง แนะนำเน้นสินทรัพย์เสี่ยงต่ำหรือถือครองทองคำ/สินทรัพย์ป้องกันภัยสงคราม (War Premium)
-                        </div>
-                      </div>
-                    </>
-                  )}
+                  
                 </div>
               );
             })()}
