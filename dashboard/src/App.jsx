@@ -393,10 +393,19 @@ export default function App() {
                 const params = new URLSearchParams(window.location.search);
                 const t = params.get("tab");
                 if (t) return t;
+                const savedTab = localStorage.getItem("onicorn_active_tab");
+                if (savedTab) return savedTab;
             }
         } catch(e) {}
         return "inter_gold_analysis";
     }), [activeMarketType, setActiveMarketType] = useState("forex"), [selectedPlanSheet, setSelectedPlanSheet] = useState("PLAN 2569"), [overviewPairFilter, setOverviewPairFilter] = useState("ALL"), [overviewResultFilter, setOverviewResultFilter] = useState("ALL"), [overviewLimitFilter, setOverviewLimitFilter] = useState(10), [tradesData, setTradesData] = useState([]), [planData, setPlanData] = useState(null), [sessionLogs, setSessionLogs] = useState([]), [loading, setLoading] = useState(!1), [dataError, setDataError] = useState(""), [isDemoMode, setIsDemoMode] = useState(!1), [$authLoading, setShowConfigAlert] = useState(!1), [pairFilter, setPairFilter] = useState("ALL"), [resultFilter, setResultFilter] = useState("ALL"), chartRef1 = useRef(null), $setPasswordInput = useRef(null), zo = useRef(null), No = useRef(null);
+    useEffect(() => {
+        if (activeTab && typeof window !== "undefined") {
+            try {
+                localStorage.setItem("onicorn_active_tab", activeTab);
+            } catch(e) {}
+        }
+    }, [activeTab]);
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentPrices(prev => {
