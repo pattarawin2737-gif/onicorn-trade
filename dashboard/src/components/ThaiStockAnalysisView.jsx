@@ -1,5 +1,5 @@
 import GeminiAiAnalysisCard from "./GeminiAiAnalysisCard";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -32,6 +32,23 @@ export const roundThaiTickSize = (val) => {
   if (p < 400) return Math.round(p * 1) / 1;
   return Math.round(p / 2) * 2;
 };
+
+
+export const SET50_SYMBOLS = new Set([
+  "ADVANC", "AOT", "AWC", "BANPU", "BBL", "BDMS", "BEM", "BGRIM", "BH", "BJC",
+  "BTS", "CBG", "CENTEL", "CPALL", "CPF", "CPN", "CRC", "DELTA", "EA", "EGCO",
+  "GLOBAL", "GPSC", "GULF", "HMPRO", "INTUCH", "ITC", "IVL", "KBANK", "KTB", "KTC",
+  "LH", "MINT", "MTC", "OR", "OSP", "PTT", "PTTEP", "PTTGC", "RATCH", "SAWAD",
+  "SCB", "SCC", "SCGP", "TIDLOR", "TISCO", "TLI", "TOP", "TRUE", "TTB", "WHA"
+]);
+
+export const SET100_EXTRA_SYMBOLS = new Set([
+  "AMATA", "AP", "BAM", "BA", "BCP", "BCPG", "BLA", "BTG", "CHG", "CK",
+  "CKP", "COM7", "DOHOME", "ERW", "FORTH", "GFPT", "HANA", "ICHI", "JAS", "JMART",
+  "JMT", "KCE", "KKP", "MEGA", "MOSHI", "NEX", "PLANB", "PR9", "PSL", "PTG",
+  "QH", "RCL", "SAPPE", "SIRI", "SJWD", "SPALI", "SPRC", "STA", "STEC", "TASCO",
+  "TCAP", "THANI", "TKN", "TOA", "TU", "VGI", "WHAUP"
+]);
 
 export const thaiStockKnowledgeBase = {
   SET: {
@@ -1179,11 +1196,13 @@ export default function ThaiStockAnalysisView({ username }) {
     }
   };
   const [newsAnalysis, setNewsAnalysis] = useState({
-    summary: "กำลังดาวน์โหลดข่าววิเคราะห์จาก Investing.com...",
+    summary: "กำลังดาวน์โหลดข่าวสารและบทวิเคราะห์จากระบบ SET และ Settrade...",
     impacts: [],
     volatilityWarning: "ไม่มีข่าวผันผวนสูงในขณะนี้",
-    loading: true
+    loading: true,
+    stats: { total: 0, setCount: 0, set50Count: 0, set100Count: 0, highSeverityCount: 0, bullishCount: 0, bearishCount: 0, neutralCount: 0 }
   });
+  const [newsFilterTab, setNewsFilterTab] = useState("all"); // "all", "SET", "SET50", "SET100", "symbol" 
 
   // Quantitative Smart Technical & Fundamental Market Engine
   const getSmartThaiStockAnalysis = (sym, tf, anchorPeriod = "daily", livePriceVal = null, liveChangeVal = 0) => {
@@ -1495,72 +1514,117 @@ export default function ThaiStockAnalysisView({ username }) {
         if (!response.ok) throw new Error("Failed to load SET news");
         const json = await response.json();
         
-        const cleanSym = symbol.split(":")[1] || symbol;
+        const cleanSym = (symbol.split(":")[1] || symbol).toUpperCase();
         
-        // Specific symbol news mapping
-        const specificNews = [];
-        if (cleanSym === "PTT") {
-          specificNews.push(
-            { title: "บมจ. ปตท. (PTT) ประกาศแผนขยายกำลังการผลิตโครงสร้างพื้นฐานพลังงานทดแทนและระบบชาร์จ EV ทั่วประเทศ", source: "Settrade.com", time: "ล่าสุด", link: "https://www.settrade.com/th/home", impact: "หนุนความเชื่อมั่นระยะกลางในหุ้นพลังงานทางเลือกและแผนยั่งยืน" },
-            { title: "บอร์ด PTT อนุมัติการเจรจาสัญญาซื้อขายก๊าซธรรมชาติรอบใหม่เพื่อรองรับการเปลี่ยนผ่านทางพลังงาน", source: "SET.or.th", time: "5 ชั่วโมงที่แล้ว", link: "https://www.set.or.th/th/home", impact: "ส่งเสริมเสถียรภาพรายได้และควบคุมต้นทุนได้อย่างมั่นคงในอนาคต" }
-          );
-        } else if (cleanSym === "CPALL") {
-          specificNews.push(
-            { title: "บมจ. ซีพี ออลล์ (CPALL) ชี้แจงยอดจำหน่ายและสาขาใหม่ในต่างประเทศ (กัมพูชา/ลาว) เติบโตทะลุเป้าหมายไตรมาส", source: "Settrade.com", time: "ล่าสุด", link: "https://www.settrade.com/th/home", impact: "ส่งผลบวกต่อการฟื้นตัวของอัตรากำไรขั้นต้นและการขยายตลาดในอาเซียน" },
-            { title: "รายงานการสำรวจพฤติกรรมผู้บริโภคสะท้อนยอดซื้อสาขาเดิม (SSSG) ของ CPALL แข็งแกร่งจากภาคท่องเที่ยวหนุน", source: "SET.or.th", time: "6 ชั่วโมงที่แล้ว", link: "https://www.set.or.th/th/home", impact: "กระตุ้นความน่าสนใจในการถือครองลงทุนระยะยาวเพื่อสร้างปันผล" }
-          );
-        } else if (cleanSym === "BDMS") {
-          specificNews.push(
-            { title: "บมจ. กรุงเทพดุสิตเวชการ (BDMS) ทุ่มงบยกระดับเครื่องมือแพทย์และต้อนรับศูนย์ผู้ป่วยข้ามชาติแห่งใหม่", source: "Settrade.com", time: "ล่าสุด", link: "https://www.settrade.com/th/home", impact: "ดึงดูดกระแสเงินสดและผู้ป่วยพรีเมียมจากตะวันออกกลางและเอเชียใต้" }
-          );
-        } else if (cleanSym === "ADVANC") {
-          specificNews.push(
-            { title: "บมจ. แอดวานซ์ อินโฟร์ เซอร์วิส (ADVANC) จับมือยักษ์ใหญ่คลาวด์เพื่อขยายโครงข่ายและระบบปัญญาประดิษฐ์ (AI Cloud)", source: "Settrade.com", time: "ล่าสุด", link: "https://www.settrade.com/th/home", impact: "รักษาความเป็นผู้นำด้านนวัตกรรมโทรคมนาคมและขยายฐานลูกค้าองค์กร" }
-          );
-        } else if (cleanSym === "AOT") {
-          specificNews.push(
-            { title: "บมจ. ท่าอากาศยานไทย (AOT) เผยสถิติจำนวนเที่ยวบินข้ามทวีปพุ่งทะยาน หนุนรายได้ค่าบริการผู้โดยสารโตเด่น", source: "Settrade.com", time: "ล่าสุด", link: "https://www.settrade.com/th/home", impact: "ส่งผลดีต่อกำไรสุทธิสุทธิประจำปีและทิศทางราคาเป้าหมายโบรกเกอร์" }
-          );
-        }
-
-        if (!["SET", "PTT", "CPALL", "BDMS", "ADVANC", "AOT"].includes(cleanSym)) {
-          specificNews.push(
-            { 
-              title: `บมจ. ${cleanSym} เผยความแข็งแกร่งของกระแสเงินสดและสัดส่วนหนี้สินสุทธิต่อทุนต่ำเตรียมปันผลรอบปีเด่น`, 
-              source: "Settrade.com", 
-              time: "ล่าสุด", 
-              link: "https://www.settrade.com/th/home", 
-              impact: "ช่วยส่งเสริมสถานะพื้นฐานของบริษัทและเป็นตัวกระตุ้นแรงซื้อเก็งกำไรระยะสั้นในดัชนี" 
+        // Ensure specific stock news if user searches a symbol that might not have a dedicated card in default list
+        const symbolInJson = json.some(n => (n.targetSymbol || "").toUpperCase() === cleanSym);
+        
+        let additionalNews = [];
+        if (!symbolInJson && cleanSym !== "SET") {
+          const isSet50 = SET50_SYMBOLS.has(cleanSym);
+          const isSet100 = isSet50 || SET100_EXTRA_SYMBOLS.has(cleanSym);
+          const cat = isSet50 ? "SET50" : isSet100 ? "SET100" : "SET";
+          const catLabel = isSet50 ? "หุ้นกลุ่ม SET50" : isSet100 ? "หุ้นกลุ่ม SET100" : "หุ้นตลาด SET";
+          
+          additionalNews = [
+            {
+              id: `custom-${cleanSym}-1`,
+              category: cat,
+              categoryLabel: catLabel,
+              targetSymbol: cleanSym,
+              targetName: `บมจ. ${cleanSym}`,
+              severity: "high",
+              severityLabel: "ความรุนแรงสูง (High Impact)",
+              direction: "bullish",
+              directionLabel: "ส่งผลเชิงบวก",
+              title: `บมจ. ${cleanSym} เผยกระแสเงินสดแข็งแกร่งและเตรียมพิจารณาจ่ายเงินปันผลระหว่างกาลสูงกว่าคาดการณ์เดิม`,
+              source: "Settrade.com",
+              time: "ล่าสุด",
+              link: `https://www.settrade.com/th/equities/quote/${cleanSym}/news`,
+              impact: `หนุนความเชื่อมั่นของผู้ถือหุ้นและนักลงทุนสถาบัน ช่วยสร้างฐานราคาแนวรับที่แข็งแกร่งและดึงดูดแรงซื้อเก็งกำไรในรอบสัปดาห์`
             },
-            { 
-              title: `บทวิเคราะห์เชิงปริมาณประจำไตรมาสของ ${cleanSym} พบสถาบันในประเทศเข้าซื้อสะสมหนาตาต่อเนื่องตลอดสัปดาห์`, 
-              source: "SET.or.th", 
-              time: "4 ชั่วโมงที่แล้ว", 
-              link: "https://www.set.or.th/th/home", 
-              impact: "เพิ่มระดับความเชื่อมั่นของนักลงทุนรายย่อยในการรอสวิงเทรดซื้อสะสมตามโซนรับสำคัญ" 
+            {
+              id: `custom-${cleanSym}-2`,
+              category: cat,
+              categoryLabel: catLabel,
+              targetSymbol: cleanSym,
+              targetName: `บมจ. ${cleanSym}`,
+              severity: "medium",
+              severityLabel: "ความรุนแรงปานกลาง (Medium Impact)",
+              direction: "bullish",
+              directionLabel: "ส่งผลเชิงบวก",
+              title: `บทวิเคราะห์เชิงเทคนิคและปริมาณซื้อขายสะสมของ ${cleanSym} พบสัญญาณสะสมพลัง (Accumulation) ตามแนวรับสำคัญ`,
+              source: "SET.or.th",
+              time: "4 ชั่วโมงที่แล้ว",
+              link: `https://www.settrade.com/th/equities/quote/${cleanSym}/news`,
+              impact: `เพิ่มโอกาสในการดีดตัวขึ้นทดสอบแนวต้านถัดไป แนะนำจับตาปริมาณ Volume ประกอบการเบรกเอาท์`
             }
-          );
+          ];
         }
-        const combinedNews = [...specificNews, ...json];
 
-        const impacts = combinedNews.map(item => ({
-          time: item.time,
-          currency: "THB",
-          importance: 3,
-          event: item.title,
-          impact: item.impact || "ส่งผลดีต่อภาพลักษณ์ความน่าสนใจและกระแสเงินไหลเข้าของตลาดหุ้นไทยในภาพรวม",
-          actual: item.source,
-          forecast: "SET/SETTRADE",
-          previous: "SET",
-          direction: "bullish",
-          link: item.link
-        }));
+        const combinedNews = [...additionalNews, ...json];
+
+        const impacts = combinedNews.map((item, index) => {
+          const rawCat = (item.category || "SET").toUpperCase();
+          let category = rawCat;
+          if (category !== "SET" && category !== "SET50" && category !== "SET100") {
+            const sym = (item.targetSymbol || "").toUpperCase();
+            category = SET50_SYMBOLS.has(sym) ? "SET50" : SET100_EXTRA_SYMBOLS.has(sym) ? "SET100" : "SET";
+          }
+          const categoryLabel = category === "SET" ? "ภาพรวมดัชนี SET" : category === "SET50" ? "หุ้นกลุ่ม SET50" : "หุ้นกลุ่ม SET100";
+          const severity = item.severity || "medium";
+          const direction = item.direction || "neutral";
+
+          return {
+            id: item.id || `news-${index}`,
+            time: item.time || "ล่าสุด",
+            currency: "THB",
+            importance: severity === "high" ? 3 : severity === "medium" ? 2 : 1,
+            severity,
+            severityLabel: item.severityLabel || (severity === "high" ? "ความรุนแรงสูง (High Impact)" : severity === "medium" ? "ความรุนแรงปานกลาง (Medium Impact)" : "ข้อมูลทั่วไป (General Info)"),
+            category,
+            categoryLabel,
+            targetSymbol: (item.targetSymbol || "SET").toUpperCase(),
+            targetName: item.targetName || "",
+            event: item.title,
+            impact: item.impact || "ส่งผลดีต่อภาพลักษณ์ความน่าสนใจและกระแสเงินไหลเข้าของตลาดหุ้นไทยในภาพรวม",
+            actual: item.source || "Settrade.com",
+            forecast: category,
+            previous: severity.toUpperCase(),
+            direction,
+            directionLabel: item.directionLabel || (direction === "bullish" ? "ส่งผลเชิงบวก" : direction === "bearish" ? "ส่งผลเชิงลบ" : "เฝ้าระวังความผันผวน"),
+            link: item.link || "https://www.settrade.com/th/home"
+          };
+        });
+
+        const highImpactCount = impacts.filter(ev => ev.severity === "high").length;
+        const setCount = impacts.filter(ev => ev.category === "SET").length;
+        const set50Count = impacts.filter(ev => ev.category === "SET50").length;
+        const set100Count = impacts.filter(ev => ev.category === "SET100").length;
+        const bullishCount = impacts.filter(ev => ev.direction === "bullish").length;
+        const bearishCount = impacts.filter(ev => ev.direction === "bearish").length;
+        const neutralCount = impacts.filter(ev => ev.direction === "neutral").length;
+
+        let volatilityWarning = "ระดับความผันผวนและสภาวะตลาดหลักทรัพย์ไทยอยู่ในเกณฑ์สมดุลเพื่อเข้าสะสมลงทุนตามรอบ";
+        if (highImpactCount > 0) {
+          volatilityWarning = `⚠️ ระวังความผันผวนรุนแรง! พบข่าวที่มีผลกระทบระดับสูง (🔥 High Impact) จำนวน ${highImpactCount} ข่าวในระบบ แนะนำวางแผน Stop Loss ตามแนวรับ-ต้านอย่างเคร่งครัด`;
+        }
 
         setNewsAnalysis({
-          summary: `พบข่าวสำคัญที่เกี่ยวกับ ${cleanSym} และตลาดหุ้นไทยทั้งหมด ${combinedNews.length} เรื่อง สำหรับการวิเคราะห์กลยุทธ์`,
+          summary: `พบข่าวสารจำแนกหมวดหมู่ครอบคลุม ภาพรวมดัชนี SET (${setCount} ข่าว), หุ้นกลุ่ม SET50 (${set50Count} ข่าว), และ หุ้นกลุ่ม SET100 (${set100Count} ข่าว) รวมทั้งสิ้น ${impacts.length} ข่าว พร้อมบทวิเคราะห์ทิศทางและระดับความรุนแรง`,
           impacts,
-          volatilityWarning: "ระดับความผันผวนและสภาวะตลาดหลักทรัพย์ไทยอยู่ในเกณฑ์สมดุลเพื่อเข้าสะสมลงทุน",
-          loading: false
+          volatilityWarning,
+          loading: false,
+          stats: {
+            total: impacts.length,
+            setCount,
+            set50Count,
+            set100Count,
+            highSeverityCount: highImpactCount,
+            bullishCount,
+            bearishCount,
+            neutralCount
+          }
         });
       } catch (err) {
         console.error("Failed to parse SET news:", err);
@@ -1568,7 +1632,8 @@ export default function ThaiStockAnalysisView({ username }) {
           summary: "ดึงข้อมูลข่าวสารจากระบบ SET และ Settrade ไม่สำเร็จ แนะนำให้วิเคราะห์แนวโน้มทางเทคนิคเป็นหลัก",
           impacts: [],
           volatilityWarning: "ไม่สามารถประเมินข่าวด่วนของตลาดหุ้นไทยได้ ณ ขณะนี้",
-          loading: false
+          loading: false,
+          stats: { total: 0, setCount: 0, set50Count: 0, set100Count: 0, highSeverityCount: 0, bullishCount: 0, bearishCount: 0, neutralCount: 0 }
         });
       }
     };
@@ -1825,6 +1890,33 @@ export default function ThaiStockAnalysisView({ username }) {
     { id: 13, title: "EP.13 QM LV การเข้าออเดอร์ และจุด SL", content: "กลยุทธ์ขั้นสูง Quasimodo Pattern (High, Low, Higher High, Lower Low) สำหรับหาจุดสไนเปอร์ออเดอร์ย้อนกลับมาที่โซนไหล่ซ้าย (Left Shoulder/MPL) และวางจุดตัดขาดทุน SL ใกล้มาก ทำให้ได้ค่า R:R สูงระดับพรีเมียม." },
     { id: 14, title: "หลักการวิเคราะห์ข่าวและการ Scalping", content: "วิธีอ่านตารางข่าวเศรษฐกิจระดับสูง (ข่าวกล่องแดง, ดอกเบี้ย FOMC, ดัชนี CPI, NFP) ข้อห้ามเทรดช่วงเวลาข่าวปะทะรุนแรงป้องกันสเปรดถ่าง (Spread Extension) และหลักการเทรดเร็วฉาบฉวย (Scalping) บนไทม์เฟรมสั้น (M1/M5)." }
   ];
+
+  const cleanSym = (symbol.split(":")[1] || symbol).toUpperCase();
+
+  const handleOpenStockChart = (targetSym) => {
+    if (!targetSym) return;
+    const clean = targetSym.toUpperCase();
+    const formatted = clean.includes(":") ? clean : `SET:${clean}`;
+    handleQuickSelect(formatted, "thai_stock");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const displayedNews = useMemo(() => {
+    if (!newsAnalysis.impacts || newsAnalysis.impacts.length === 0) return [];
+    if (newsFilterTab === "SET") {
+      return newsAnalysis.impacts.filter(item => item.category === "SET");
+    }
+    if (newsFilterTab === "SET50") {
+      return newsAnalysis.impacts.filter(item => item.category === "SET50");
+    }
+    if (newsFilterTab === "SET100") {
+      return newsAnalysis.impacts.filter(item => item.category === "SET100");
+    }
+    if (newsFilterTab === "symbol") {
+      return newsAnalysis.impacts.filter(item => (item.targetSymbol || "").toUpperCase() === cleanSym);
+    }
+    return newsAnalysis.impacts;
+  }, [newsAnalysis.impacts, newsFilterTab, cleanSym]);
 
   return (
     <div className="analysis-view-container">
@@ -2973,6 +3065,136 @@ export default function ThaiStockAnalysisView({ username }) {
             </div>
           </div>
 
+          {/* News Categorization & Severity Filter Bar */}
+          <div style={{
+            marginTop: "24px",
+            marginBottom: "16px",
+            background: "linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(7, 17, 32, 0.85))",
+            border: "1px solid rgba(234, 179, 8, 0.25)",
+            borderRadius: "12px",
+            padding: "14px 18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.25)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Newspaper size={18} style={{ color: "#eab308" }} />
+                <span style={{ fontSize: "13.5px", fontWeight: "700", color: "#f8fafc" }}>
+                  ระบบคัดกรองข่าวสารตลาดหุ้นไทย (SET / SET50 / SET100 & หุ้นรายตัว)
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontSize: "11px", color: "var(--text-muted)" }}>
+                <span>ความรุนแรง:</span>
+                <span style={{ background: "rgba(239, 68, 68, 0.15)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.3)", padding: "2px 7px", borderRadius: "4px", fontWeight: "bold" }}>
+                  🔥 สูง ({newsAnalysis.impacts.filter(i => i.severity === "high").length})
+                </span>
+                <span style={{ background: "rgba(234, 179, 8, 0.15)", color: "#facc15", border: "1px solid rgba(234, 179, 8, 0.3)", padding: "2px 7px", borderRadius: "4px", fontWeight: "bold" }}>
+                  ⚡ ปานกลาง ({newsAnalysis.impacts.filter(i => i.severity === "medium").length})
+                </span>
+                <span style={{ background: "rgba(148, 163, 184, 0.15)", color: "#94a3b8", border: "1px solid rgba(148, 163, 184, 0.3)", padding: "2px 7px", borderRadius: "4px", fontWeight: "bold" }}>
+                  ℹ️ ปกติ ({newsAnalysis.impacts.filter(i => i.severity === "low").length})
+                </span>
+              </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => setNewsFilterTab("all")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  border: newsFilterTab === "all" ? "1px solid #eab308" : "1px solid rgba(255, 255, 255, 0.1)",
+                  background: newsFilterTab === "all" ? "rgba(234, 179, 8, 0.2)" : "rgba(15, 23, 42, 0.5)",
+                  color: newsFilterTab === "all" ? "#facc15" : "var(--text-secondary)",
+                  transition: "all 0.15s"
+                }}
+              >
+                🌐 ข่าวทั้งหมด ({newsAnalysis.impacts.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNewsFilterTab("SET")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  border: newsFilterTab === "SET" ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.1)",
+                  background: newsFilterTab === "SET" ? "rgba(56, 189, 248, 0.2)" : "rgba(15, 23, 42, 0.5)",
+                  color: newsFilterTab === "SET" ? "#38bdf8" : "var(--text-secondary)",
+                  transition: "all 0.15s"
+                }}
+              >
+                🇹🇭 ตลาด SET ({newsAnalysis.impacts.filter(i => i.category === "SET").length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNewsFilterTab("SET50")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  border: newsFilterTab === "SET50" ? "1px solid #f59e0b" : "1px solid rgba(255, 255, 255, 0.1)",
+                  background: newsFilterTab === "SET50" ? "rgba(245, 158, 11, 0.2)" : "rgba(15, 23, 42, 0.5)",
+                  color: newsFilterTab === "SET50" ? "#fbbf24" : "var(--text-secondary)",
+                  transition: "all 0.15s"
+                }}
+              >
+                🏆 หุ้น SET50 ({newsAnalysis.impacts.filter(i => i.category === "SET50").length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNewsFilterTab("SET100")}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  border: newsFilterTab === "SET100" ? "1px solid #a855f7" : "1px solid rgba(255, 255, 255, 0.1)",
+                  background: newsFilterTab === "SET100" ? "rgba(168, 85, 247, 0.2)" : "rgba(15, 23, 42, 0.5)",
+                  color: newsFilterTab === "SET100" ? "#c084fc" : "var(--text-secondary)",
+                  transition: "all 0.15s"
+                }}
+              >
+                💎 หุ้น SET100 ({newsAnalysis.impacts.filter(i => i.category === "SET100").length})
+              </button>
+
+              {cleanSym !== "SET" && (
+                <button
+                  type="button"
+                  onClick={() => setNewsFilterTab("symbol")}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    border: newsFilterTab === "symbol" ? "1px solid #22c55e" : "1px solid rgba(255, 255, 255, 0.1)",
+                    background: newsFilterTab === "symbol" ? "rgba(34, 197, 94, 0.2)" : "rgba(15, 23, 42, 0.5)",
+                    color: newsFilterTab === "symbol" ? "#4ade80" : "var(--text-secondary)",
+                    transition: "all 0.15s"
+                  }}
+                >
+                  🎯 เฉพาะ {cleanSym} ({newsAnalysis.impacts.filter(i => (i.targetSymbol || "").toUpperCase() === cleanSym).length})
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="layout-row-50-50" style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
@@ -2982,12 +3204,15 @@ export default function ThaiStockAnalysisView({ username }) {
           }}>
 
             {/* Left: Settrade News Feed */}
-            <div className="economic-calendar-section" style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>
-              <div className="pane-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                <div className="pane-title" style={{ margin: 0 }}>
+            <div className="economic-calendar-section" style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%" }}>
+              <div className="pane-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px", flexWrap: "wrap", gap: "8px" }}>
+                <div className="pane-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
                   <Newspaper size={18} style={{ color: "#eab308" }} />
                   <span>กระดานข่าวสารและบทความล่าสุดจาก Settrade (Settrade News Feed)</span>
                 </div>
+                <span style={{ fontSize: "11px", color: "var(--text-muted)", background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: "4px" }}>
+                  แสดง {displayedNews.length} ข่าว
+                </span>
               </div>
               
               <div className="economic-calendar-wrapper" style={{ 
@@ -3007,162 +3232,387 @@ export default function ThaiStockAnalysisView({ username }) {
                     <div className="spinner" />
                     <span style={{ fontSize: "12.5px", color: "var(--text-muted)" }}>กำลังโหลดข่าวสารล่าสุดจาก Settrade...</span>
                   </div>
-                ) : newsAnalysis.impacts.length > 0 ? (
+                ) : displayedNews.length > 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {newsAnalysis.impacts.map((ev, idx) => (
-                      <div key={idx} style={{
-                        background: "rgba(15, 23, 42, 0.45)",
-                        border: "1px solid rgba(255, 255, 255, 0.05)",
-                        borderRadius: "8px",
-                        padding: "14px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "10px",
-                        transition: "all 0.2s"
-                      }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span style={{ fontSize: "11px", color: "#eab308", fontWeight: "700", background: "rgba(234, 179, 8, 0.08)", padding: "2px 6px", borderRadius: "4px" }}>🏷️ {ev.actual}</span>
-                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>⏰ {ev.time}</span>
-                        </div>
-                        <h4 style={{ margin: 0, fontSize: "13px", fontWeight: "600", color: "#f8fafc", lineHeight: "1.45" }}>
-                          {ev.event}
-                        </h4>
-                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                          <button
-                            type="button"
-                            onClick={() => window.open(ev.link || "https://www.settrade.com/th/news-and-articles/news/main", "_blank")}
-                            style={{
-                              background: "rgba(234, 179, 8, 0.15)",
-                              border: "1px solid rgba(234, 179, 8, 0.3)",
-                              borderRadius: "4px",
-                              color: "#eab308",
-                              padding: "5px 10px",
+                    {displayedNews.map((ev, idx) => {
+                      const isHigh = ev.severity === "high";
+                      const isMedium = ev.severity === "medium";
+
+                      const categoryBadge = ev.category === "SET"
+                        ? { bg: "rgba(56, 189, 248, 0.12)", border: "rgba(56, 189, 248, 0.3)", text: "#38bdf8", label: "🇹🇭 ดัชนี SET" }
+                        : ev.category === "SET50"
+                        ? { bg: "rgba(245, 158, 11, 0.12)", border: "rgba(245, 158, 11, 0.3)", text: "#fbbf24", label: "🏆 หุ้น SET50" }
+                        : { bg: "rgba(168, 85, 247, 0.12)", border: "rgba(168, 85, 247, 0.3)", text: "#c084fc", label: "💎 หุ้น SET100" };
+
+                      const severityBadge = isHigh
+                        ? { bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.35)", text: "#f87171", label: "🔥 ความรุนแรงระดับสูง" }
+                        : isMedium
+                        ? { bg: "rgba(234, 179, 8, 0.15)", border: "rgba(234, 179, 8, 0.35)", text: "#facc15", label: "⚡ ความรุนแรงปานกลาง" }
+                        : { bg: "rgba(148, 163, 184, 0.15)", border: "rgba(148, 163, 184, 0.25)", text: "#94a3b8", label: "ℹ️ ข้อมูลทั่วไป/ปกติ" };
+
+                      const directionBadge = ev.direction === "bullish"
+                        ? { bg: "rgba(34, 197, 94, 0.12)", border: "rgba(34, 197, 94, 0.3)", text: "#4ade80", label: "🟢 ส่งผลเชิงบวก (Bullish)" }
+                        : ev.direction === "bearish"
+                        ? { bg: "rgba(239, 68, 68, 0.12)", border: "rgba(239, 68, 68, 0.3)", text: "#f87171", label: "🔴 ส่งผลเชิงลบ (Bearish)" }
+                        : { bg: "rgba(234, 179, 8, 0.12)", border: "rgba(234, 179, 8, 0.3)", text: "#facc15", label: "🟡 เฝ้าระวังแกว่งตัว (Neutral)" };
+
+                      return (
+                        <div key={idx} style={{
+                          background: "rgba(15, 23, 42, 0.55)",
+                          border: isHigh ? "1px solid rgba(239, 68, 68, 0.35)" : "1px solid rgba(255, 255, 255, 0.08)",
+                          borderRadius: "10px",
+                          padding: "14px 16px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "10px",
+                          boxShadow: isHigh ? "0 4px 14px rgba(239, 68, 68, 0.08)" : "none",
+                          transition: "all 0.2s"
+                        }}>
+                          {/* Badges bar */}
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              <span style={{
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                background: categoryBadge.bg,
+                                border: `1px solid ${categoryBadge.border}`,
+                                color: categoryBadge.text,
+                                padding: "2px 7px",
+                                borderRadius: "4px"
+                              }}>
+                                {categoryBadge.label}
+                              </span>
+                              <span style={{
+                                fontSize: "11px",
+                                fontWeight: "700",
+                                background: severityBadge.bg,
+                                border: `1px solid ${severityBadge.border}`,
+                                color: severityBadge.text,
+                                padding: "2px 7px",
+                                borderRadius: "4px"
+                              }}>
+                                {severityBadge.label}
+                              </span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <span style={{ fontSize: "11px", color: "#eab308", fontWeight: "600" }}>🏷️ {ev.actual}</span>
+                              <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>⏰ {ev.time}</span>
+                            </div>
+                          </div>
+
+                          {/* News Title */}
+                          <h4 style={{ margin: 0, fontSize: "13.5px", fontWeight: "600", color: "#f8fafc", lineHeight: "1.5" }}>
+                            {ev.event}
+                          </h4>
+
+                          {/* Target Stock and Price Direction */}
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                            background: "rgba(10, 16, 30, 0.6)",
+                            padding: "8px 12px",
+                            borderRadius: "6px",
+                            border: "1px solid rgba(255, 255, 255, 0.05)"
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                              <span style={{ fontSize: "11.5px", color: "var(--text-secondary)" }}>
+                                เป้าหมาย: <strong style={{ color: "#f8fafc" }}>{ev.targetSymbol}</strong> {ev.targetName ? `(${ev.targetName})` : ""}
+                              </span>
+                              {ev.targetSymbol && ev.targetSymbol !== "SET" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenStockChart(ev.targetSymbol)}
+                                  style={{
+                                    background: "rgba(59, 130, 246, 0.15)",
+                                    border: "1px solid rgba(59, 130, 246, 0.35)",
+                                    borderRadius: "4px",
+                                    color: "#60a5fa",
+                                    padding: "2px 8px",
+                                    fontSize: "11px",
+                                    fontWeight: "600",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    transition: "all 0.15s"
+                                  }}
+                                  title={`คลิกเพื่อเปิดดูกราฟและผลวิเคราะห์ ${ev.targetSymbol}`}
+                                  onMouseOver={e => e.currentTarget.style.background = "rgba(59, 130, 246, 0.3)"}
+                                  onMouseOut={e => e.currentTarget.style.background = "rgba(59, 130, 246, 0.15)"}
+                                >
+                                  📊 เปิดกราฟ {ev.targetSymbol}
+                                </button>
+                              )}
+                            </div>
+
+                            <span style={{
                               fontSize: "11px",
-                              fontWeight: "bold",
-                              cursor: "pointer",
-                              transition: "all 0.2s"
-                            }}
-                            onMouseOver={e => e.currentTarget.style.background = "rgba(234, 179, 8, 0.3)"}
-                            onMouseOut={e => e.currentTarget.style.background = "rgba(234, 179, 8, 0.15)"}
-                          >
-                            อ่านเนื้อหาข่าวต้นฉบับ ↗
-                          </button>
+                              fontWeight: "600",
+                              background: directionBadge.bg,
+                              border: `1px solid ${directionBadge.border}`,
+                              color: directionBadge.text,
+                              padding: "2px 7px",
+                              borderRadius: "4px"
+                            }}>
+                              {directionBadge.label}
+                            </span>
+                          </div>
+
+                          {/* Read news button */}
+                          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                            <button
+                              type="button"
+                              onClick={() => window.open(ev.link || "https://www.settrade.com/th/news-and-articles/news/main", "_blank")}
+                              style={{
+                                background: "rgba(234, 179, 8, 0.12)",
+                                border: "1px solid rgba(234, 179, 8, 0.3)",
+                                borderRadius: "4px",
+                                color: "#eab308",
+                                padding: "5px 12px",
+                                fontSize: "11px",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                transition: "all 0.2s"
+                              }}
+                              onMouseOver={e => e.currentTarget.style.background = "rgba(234, 179, 8, 0.25)"}
+                              onMouseOut={e => e.currentTarget.style.background = "rgba(234, 179, 8, 0.12)"}
+                            >
+                              อ่านเนื้อหาข่าวต้นฉบับ ↗
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", flex: 1, minHeight: "400px", color: "var(--text-muted)", fontSize: "12.5px" }}>
-                    ไม่พบข่าวสารล่าสุดจาก Settrade ในขณะนี้
+                    ไม่พบข่าวสารในหมวดหมู่นี้ในขณะนี้
                   </div>
                 )}
               </div>
             </div>
+
             {/* Right: AI News Digest */}
-            {/* Column 2: Economic News & Impacts */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px", height: "auto" }}>
-                <div className="pane-header" style={{ 
-                  display: "flex", 
-                  justifyContent: "space-between", 
-                  alignItems: "center", 
-                  marginBottom: "12px",
-                  flexWrap: "wrap",
-                  gap: "12px"
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", height: "auto" }}>
+              <div className="pane-header" style={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                marginBottom: "4px",
+                flexWrap: "wrap",
+                gap: "12px"
+              }}>
+                <div className="pane-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Sparkles size={18} style={{ color: "var(--color-warning)" }} />
+                  <span>ผลวิเคราะห์อิมแพ็คข่าวสารเศรษฐกิจ (AI News Digest)</span>
+                </div>
+                <span style={{
+                  fontSize: "11px",
+                  padding: "3px 8px",
+                  borderRadius: "4px",
+                  background: "rgba(234, 179, 8, 0.12)",
+                  color: "#facc15",
+                  border: "1px solid rgba(234, 179, 8, 0.25)",
+                  fontWeight: "600"
                 }}>
-                  <div className="pane-title" style={{ margin: 0 }}>
-                    <Sparkles size={18} style={{ color: "var(--color-warning)" }} />
-                    <span>ผลวิเคราะห์อิมแพ็คข่าวสารเศรษฐกิจ (AI News Digest)</span>
+                  {newsFilterTab === "all" ? "🌐 ข่าวทั้งหมด" : newsFilterTab === "SET" ? "🇹🇭 ดัชนี SET" : newsFilterTab === "SET50" ? "🏆 หุ้น SET50" : newsFilterTab === "SET100" ? "💎 หุ้น SET100" : `🎯 หุ้น ${cleanSym}`} ({displayedNews.length} ข่าว)
+                </span>
+              </div>
+
+              {/* Sentiment Summary Breakdown */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "8px",
+                background: "rgba(15, 23, 42, 0.4)",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                border: "1px solid rgba(255, 255, 255, 0.05)"
+              }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>🟢 หนุนราคาขึ้น</div>
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#4ade80" }}>
+                    {displayedNews.filter(n => n.direction === "bullish").length}
                   </div>
                 </div>
-
-                {/* Volatility warning box */}
-                <div style={{
-                  background: newsAnalysis.volatilityWarning.includes("⚠️") ? "rgba(239, 68, 68, 0.12)" : "rgba(59, 130, 246, 0.12)",
-                  border: newsAnalysis.volatilityWarning.includes("⚠️") ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(59, 130, 246, 0.3)",
-                  padding: "12px 14px",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  color: newsAnalysis.volatilityWarning.includes("⚠️") ? "#fca5a5" : "#93c5fd",
-                  lineHeight: "1.45"
-                }}>
-                  {newsAnalysis.volatilityWarning}
-                </div>
-
-                {/* News summary box */}
-                <div style={{
-                  background: "rgba(15, 23, 42, 0.4)",
-                  padding: "14px 16px",
-                  borderRadius: "8px",
-                  border: "1px solid var(--border-color)",
-                  fontSize: "12.5px",
-                  color: "var(--text-secondary)",
-                  lineHeight: "1.5"
-                }}>
-                  <strong style={{ color: "#f8fafc", display: "block", marginBottom: "6px" }}>💡 สรุปสถานการณ์ข่าวโดย AI:</strong>
-                  {newsAnalysis.summary}
-                </div>
-
-                {newsAnalysis.loading ? (
-                  <div style={{ textAlign: "center", padding: "30px" }}>
-                    <div className="spinner" style={{ margin: "0 auto 10px" }}></div>
-                    <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>กำลังวิเคราะห์ผลกระทบข่าวด้วย AI...</span>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>🔴 กดดันราคาลง</div>
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#f87171" }}>
+                    {displayedNews.filter(n => n.direction === "bearish").length}
                   </div>
-                ) : newsAnalysis.impacts.length > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", height: "auto", paddingRight: "6px" }}>
-                    {newsAnalysis.impacts.map((ev, index) => (
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>🟡 เฝ้าระวังแกว่งตัว</div>
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#facc15" }}>
+                    {displayedNews.filter(n => n.direction === "neutral").length}
+                  </div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "10px", color: "var(--text-muted)" }}>🔥 รุนแรงระดับสูง</div>
+                  <div style={{ fontSize: "14px", fontWeight: "bold", color: "#ef4444" }}>
+                    {displayedNews.filter(n => n.severity === "high").length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Volatility warning box */}
+              <div style={{
+                background: newsAnalysis.volatilityWarning.includes("⚠️") ? "rgba(239, 68, 68, 0.12)" : "rgba(59, 130, 246, 0.12)",
+                border: newsAnalysis.volatilityWarning.includes("⚠️") ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(59, 130, 246, 0.3)",
+                padding: "12px 14px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                color: newsAnalysis.volatilityWarning.includes("⚠️") ? "#fca5a5" : "#93c5fd",
+                lineHeight: "1.45"
+              }}>
+                {newsAnalysis.volatilityWarning}
+              </div>
+
+              {/* News summary box */}
+              <div style={{
+                background: "rgba(15, 23, 42, 0.4)",
+                padding: "14px 16px",
+                borderRadius: "8px",
+                border: "1px solid var(--border-color)",
+                fontSize: "12.5px",
+                color: "var(--text-secondary)",
+                lineHeight: "1.5"
+              }}>
+                <strong style={{ color: "#f8fafc", display: "block", marginBottom: "6px" }}>💡 สรุปสถานการณ์ข่าวโดย AI:</strong>
+                {newsAnalysis.summary}
+              </div>
+
+              {newsAnalysis.loading ? (
+                <div style={{ textAlign: "center", padding: "30px" }}>
+                  <div className="spinner" style={{ margin: "0 auto 10px" }}></div>
+                  <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>กำลังวิเคราะห์ผลกระทบข่าวด้วย AI...</span>
+                </div>
+              ) : displayedNews.length > 0 ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", height: "auto", paddingRight: "6px" }}>
+                  {displayedNews.map((ev, index) => {
+                    const isHigh = ev.severity === "high";
+                    const isMedium = ev.severity === "medium";
+
+                    return (
                       <div key={index} style={{
-                        background: "rgba(15, 23, 42, 0.35)",
-                        padding: "12px",
+                        background: "rgba(15, 23, 42, 0.45)",
+                        padding: "14px",
                         borderRadius: "8px",
-                        border: "1px solid var(--border-color)",
-                        fontSize: "12px"
+                        border: isHigh ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid var(--border-color)",
+                        fontSize: "12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px"
                       }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", alignItems: "center" }}>
-                          <span style={{ fontWeight: "bold", color: "#f8fafc" }}>⏰ {ev.time} | {ev.event}</span>
-                          <span style={{
-                            fontSize: "10.5px",
-                            fontWeight: "bold",
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                            background: ev.importance === 3 ? "rgba(239, 68, 68, 0.15)" : "rgba(234, 179, 8, 0.15)",
-                            color: ev.importance === 3 ? "#ef4444" : "#eab308"
-                          }}>
-                            {ev.importance === 3 ? "🔥 High Impact" : "⚡ Medium Impact"}
-                          </span>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            <span style={{
+                              fontSize: "10.5px",
+                              fontWeight: "bold",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              background: ev.category === "SET" ? "rgba(56, 189, 248, 0.15)" : ev.category === "SET50" ? "rgba(245, 158, 11, 0.15)" : "rgba(168, 85, 247, 0.15)",
+                              color: ev.category === "SET" ? "#38bdf8" : ev.category === "SET50" ? "#fbbf24" : "#c084fc"
+                            }}>
+                              {ev.categoryLabel || ev.category}
+                            </span>
+                            <span style={{
+                              fontSize: "10.5px",
+                              fontWeight: "bold",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              background: isHigh ? "rgba(239, 68, 68, 0.15)" : isMedium ? "rgba(234, 179, 8, 0.15)" : "rgba(148, 163, 184, 0.15)",
+                              color: isHigh ? "#ef4444" : isMedium ? "#eab308" : "#94a3b8"
+                            }}>
+                              {isHigh ? "🔥 ระดับความรุนแรงสูง (High)" : isMedium ? "⚡ ระดับปานกลาง (Medium)" : "ℹ️ ระดับปกติ (Low)"}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>⏰ {ev.time}</span>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", color: "var(--text-muted)", fontSize: "11.5px", marginBottom: "8px", background: "rgba(15, 23, 42, 0.5)", padding: "6px 10px", borderRadius: "6px" }}>
-                          <div>แหล่งข่าว: <strong style={{ color: "#3b82f6" }}>{ev.actual}</strong></div>
-                          {ev.link && (
-                            <button
-                              type="button"
-                              onClick={() => window.open(ev.link, "_blank")}
-                              className="btn-quick-select active"
-                              style={{ margin: 0, padding: "3px 8px", fontSize: "10.5px", background: "rgba(59, 130, 246, 0.15)", border: "1px solid rgba(59, 130, 246, 0.3)", color: "var(--color-primary)", cursor: "pointer" }}
-                            >
-                              อ่านข่าวต้นฉบับ ↗
-                            </button>
-                          )}
+
+                        <div style={{ fontWeight: "600", color: "#f8fafc", fontSize: "12.5px", lineHeight: "1.4" }}>
+                          {ev.event}
                         </div>
+
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", color: "var(--text-muted)", fontSize: "11.5px", background: "rgba(15, 23, 42, 0.5)", padding: "6px 10px", borderRadius: "6px", flexWrap: "wrap" }}>
+                          <div>
+                            แหล่งข่าว: <strong style={{ color: "#3b82f6" }}>{ev.actual}</strong>
+                            {ev.targetSymbol && ev.targetSymbol !== "SET" && (
+                              <span style={{ marginLeft: "8px", color: "var(--text-secondary)" }}>
+                                | หุ้นเป้าหมาย: <strong style={{ color: "#facc15" }}>{ev.targetSymbol}</strong>
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            {ev.targetSymbol && ev.targetSymbol !== "SET" && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenStockChart(ev.targetSymbol)}
+                                style={{
+                                  margin: 0,
+                                  padding: "3px 8px",
+                                  fontSize: "10.5px",
+                                  background: "rgba(59, 130, 246, 0.15)",
+                                  border: "1px solid rgba(59, 130, 246, 0.3)",
+                                  borderRadius: "4px",
+                                  color: "var(--color-primary)",
+                                  cursor: "pointer",
+                                  fontWeight: "600"
+                                }}
+                                title={`สลับดูกราฟ ${ev.targetSymbol}`}
+                              >
+                                📊 ดูกราฟ {ev.targetSymbol}
+                              </button>
+                            )}
+                            {ev.link && (
+                              <button
+                                type="button"
+                                onClick={() => window.open(ev.link, "_blank")}
+                                style={{
+                                  margin: 0,
+                                  padding: "3px 8px",
+                                  fontSize: "10.5px",
+                                  background: "rgba(234, 179, 8, 0.15)",
+                                  border: "1px solid rgba(234, 179, 8, 0.3)",
+                                  borderRadius: "4px",
+                                  color: "#eab308",
+                                  cursor: "pointer"
+                                }}
+                              >
+                                อ่านข่าว ↗
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* AI impact rationale */}
                         <div style={{
                           background: ev.direction === "bullish" ? "rgba(34, 197, 94, 0.08)" : ev.direction === "bearish" ? "rgba(239, 68, 68, 0.08)" : "rgba(148, 163, 184, 0.08)",
-                          padding: "8px 10px",
+                          padding: "10px 12px",
                           borderRadius: "6px",
-                          fontSize: "11px",
-                          color: "var(--text-secondary)",
-                          lineHeight: "1.45",
+                          fontSize: "11.5px",
+                          color: "#e2e8f0",
+                          lineHeight: "1.5",
                           borderLeft: ev.direction === "bullish" ? "3px solid #22c55e" : ev.direction === "bearish" ? "3px solid #ef4444" : "3px solid #94a3b8"
                         }}>
-                          <strong>วิเคราะห์ราคาโดย AI:</strong> {ev.impact}
+                          <strong style={{ color: ev.direction === "bullish" ? "#4ade80" : ev.direction === "bearish" ? "#f87171" : "#cbd5e1" }}>
+                            🎯 การประเมินผลกระทบราคาโดย AI ({ev.direction === "bullish" ? "เชิงบวก / Bullish" : ev.direction === "bearish" ? "เชิงลบ / Bearish" : "เฝ้าระวัง / Neutral"}):
+                          </strong>{" "}
+                          {ev.impact}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)", fontSize: "12px" }}>
-                    ไม่มีข่าวสำคัญที่มีผลกระทบกับราคาสินทรัพย์ตัวนี้ในวันนี้
-                  </div>
-                )}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", padding: "30px", color: "var(--text-muted)", fontSize: "12px" }}>
+                  ไม่มีข่าวสำคัญที่มีผลกระทบกับราคาสินทรัพย์ตัวนี้ในขณะนี้
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
