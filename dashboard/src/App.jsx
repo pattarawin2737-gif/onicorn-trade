@@ -43,6 +43,501 @@ const logoSvg = CONFIG.logoSvg || "data:image/svg+xml,%3csvg%20xmlns='http://www
 const mockTrades = CONFIG.mockTrades || [];
 const defaultCompoundingPlan = CONFIG.defaultCompoundingPlan || { headerInfo: { initialCapital: 50, totalProfit: 145.5, profitTarget: 500 }, days: [] };
 
+const $getCandleCat = it => {
+  if (it.includes("ChoCh")) return { id: "choch", name: "⚡ ChoCh", desc: "Change of Character (กลับตัว)" };
+  if (it.includes("BOS")) return { id: "bos", name: "📈 BOS", desc: "Break of Structure (ไปต่อ)" };
+  if (it.includes("QM")) return { id: "qm", name: "👑 QM", desc: "Quasimodo Pattern" };
+  if (it.includes("ORDER BLOCK") || it.includes("Hidden Candle")) return { id: "ob_hc", name: "🧱 Order Block & Hidden Candle", desc: "โซนสถาบัน & แท่งเทียนซ่อน" };
+  if (it.includes("Demand") || it.includes("Supply")) return { id: "sd", name: "🛡️ Demand & Supply Zone", desc: "โซนอุปสงค์-อุปทาน (หลัก/ย่อย)" };
+  if (it.includes("Trend Line") || it.includes("Sideway")) return { id: "trend", name: "📐 Trend Line & Sideway", desc: "เส้นแนวโน้ม & กรอบไซด์เวย์" };
+  if (it.includes("Swing")) return { id: "swing", name: "🔄 Swing High / Low", desc: "จุดสวิงไฮ-สวิงโลว์" };
+  return { id: "pattern", name: "🕯️ แท่งเทียนมาตรฐาน", desc: "Pin Bar, Engulfing, Doji ฯลฯ" };
+};
+
+const $getIndicatorCat = it => {
+  if (it.includes("EMA")) return { id: "ema", name: "📉 EMA", desc: "Moving Average (9, 20, 50, 100, 200)" };
+  if (it.includes("RSI")) return { id: "rsi", name: "📊 RSI", desc: "RSI บนเส้น, ล่างเส้น, Divergence" };
+  if (it.includes("Stochastic")) return { id: "stoch", name: "⚡ Stochastic", desc: "Stochastic Oscillator ทุกรูปแบบ" };
+  if (it.includes("Fibonacci")) return { id: "fibo", name: "🌀 Fibonacci", desc: "Fibonacci Retracement" };
+  return { id: "other", name: "✨ อื่นๆ", desc: "MACD, Bollinger Bands ฯลฯ" };
+};
+
+const $getBaseConcept = it => {
+  return it.replace(/\s*\(?(1D|4H|1H|30M|15M|5M|1M|1W)\)?\s*$/i, "").replace(/\s+/g, " ").trim();
+};
+const $conceptOrder = {
+  "Demand": 1, "Demand ย่อย": 2, "Supply": 3, "Supply ย่อย": 4,
+  "ORDER BLOCK(OB)": 1, "ORDER BLOCK": 1, "Hidden Candle(HC)": 2, "Hidden Candle": 2,
+  "ChoCh (กลับตัวขึ้น)": 1, "ChoCh (กลับตัวลง)": 2,
+  "BOS (ไปต่อ)": 1, "BOS (ขึ้นต่อ)": 2, "BOS (ลงต่อ)": 3,
+  "QM (กลับตัว)": 1, "QM": 1,
+  "Trend Line ขาขึ้น": 1, "Trend Line ขาลง": 2, "Sideway บน": 3, "Sideway ล่าง": 4,
+  "Swing High": 1, "Swing Hight": 1, "Swing Low": 2,
+  "Pin Bar": 1, "Engulfing": 2, "Doji": 3, "Inside Bar": 4, "Morning Star": 5, "Three White Soldiers": 6,
+  "EMA 9": 1, "EMA 20": 2, "EMA 50": 3, "EMA 100": 4, "EMA 200": 5, "EMA 50/200 Cross": 6,
+  "RSI บนเส้น": 1, "RSI ล่างเส้น": 2, "RSI Divergence": 3, "RSI Overbought": 4, "RSI Oversold": 5,
+  "Stochastic ยกหัวขึ้น": 1, "Stochastic ปักหัวลง": 2, "Stochastic ตัดกัน": 3, "Stochastic บนเส้น": 4, "Stochastic ล่างเส้น": 5, "Stochastic Cross": 6,
+  "Fibonacci": 1, "MACD Golden Cross": 1, "Bollinger Bands Bounce": 2
+};
+const $getConceptRank = it => {
+  const base = $getBaseConcept(it);
+  return $conceptOrder[base] || 50;
+};
+const $getTfRank = it => {
+  if (it.includes("1D")) return 1;
+  if (it.includes("4H")) return 2;
+  if (it.includes("1H")) return 3;
+  if (it.includes("30M")) return 4;
+  if (it.includes("15M")) return 5;
+  if (it.includes("5M")) return 6;
+  if (it.includes("1M")) return 7;
+  return 8;
+};
+const $sortReasons = (a, b) => {
+  const rankA = $getConceptRank(a), rankB = $getConceptRank(b);
+  if (rankA !== rankB) return rankA - rankB;
+  const baseA = $getBaseConcept(a), baseB = $getBaseConcept(b);
+  const baseDiff = baseA.localeCompare(baseB);
+  if (baseDiff !== 0) return baseDiff;
+  return $getTfRank(a) - $getTfRank(b) || a.localeCompare(b);
+};
+
+const $reasonPicker = opt => {
+  if (!opt.isOpen) return null;
+  const selList = opt.selectedItems || [];
+  const getCat = opt.isCandle ? $getCandleCat : $getIndicatorCat;
+
+  // Filter by search
+  const filtered = opt.allItems.filter(it => {
+    if (!opt.searchVal) return true;
+    return it.toLowerCase().includes(opt.searchVal.toLowerCase().trim());
+  });
+
+  // Category counts for pill tabs
+  const catMap = new Map();
+  opt.allItems.forEach(it => {
+    const c = getCat(it);
+    if (!catMap.has(c.id)) catMap.set(c.id, { ...c, count: 0 });
+    catMap.get(c.id).count++;
+  });
+  const catList = Array.from(catMap.values());
+
+  // Groups of filtered items
+  const groupsMap = new Map();
+  filtered.forEach(it => {
+    const c = getCat(it);
+    if (!groupsMap.has(c.id)) groupsMap.set(c.id, { ...c, items: [] });
+    groupsMap.get(c.id).items.push(it);
+  });
+
+  // Sort within each group
+  groupsMap.forEach(g => {
+    g.items.sort($sortReasons);
+  });
+
+  const visibleGroups = opt.catVal === "ALL"
+    ? Array.from(groupsMap.values())
+    : (groupsMap.has(opt.catVal) ? [groupsMap.get(opt.catVal)] : []);
+
+  const currentlyVisible = [];
+  visibleGroups.forEach(g => g.items.forEach(it => currentlyVisible.push(it)));
+
+  return _jsx("div", {
+    style: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "rgba(11, 15, 25, 0.85)",
+      backdropFilter: "blur(8px)",
+      WebkitBackdropFilter: "blur(8px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 10005,
+      padding: "16px",
+      boxSizing: "border-box"
+    },
+    children: _jsxs("div", {
+      style: {
+        width: "100%",
+        maxWidth: "760px",
+        maxHeight: "90vh",
+        background: "linear-gradient(145deg, #131A2E, #0b101f)",
+        border: `1px solid ${opt.accentColor}66`,
+        borderRadius: "18px",
+        padding: "20px 24px",
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: `0 25px 50px -12px rgba(0,0,0,0.85), 0 0 35px ${opt.accentColor}33`,
+        boxSizing: "border-box"
+      },
+      children: [
+        // Header
+        _jsxs("div", {
+          style: {
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            paddingBottom: "12px",
+            gap: "10px"
+          },
+          children: [
+            _jsxs("div", {
+              children: [
+                _jsx("h3", {
+                  style: { margin: 0, fontSize: "17px", fontWeight: "700", color: "#fff", display: "flex", alignItems: "center", gap: "8px" },
+                  children: `${opt.icon} ${opt.title}`
+                }),
+                _jsx("p", {
+                  style: { margin: "3px 0 0", fontSize: "12px", color: "var(--text-muted)" },
+                  children: `เลือกแล้ว ${selList.length} / ${opt.allItems.length} รายการ • จัดเรียงตามหมวดหมู่ชัดเจน`
+                })
+              ]
+            }),
+            _jsxs("div", {
+              style: { display: "flex", alignItems: "center", gap: "8px" },
+              children: [
+                _jsx("button", {
+                  type: "button",
+                  onClick: opt.onOpenManager,
+                  style: {
+                    background: "rgba(59,130,246,0.12)",
+                    border: "1px solid rgba(59,130,246,0.35)",
+                    borderRadius: "8px",
+                    color: "#60A5FA",
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  },
+                  children: "⚙️ จัดการรายการ"
+                }),
+                _jsx("button", {
+                  type: "button",
+                  onClick: opt.onCloudSync,
+                  style: {
+                    background: "rgba(16,185,129,0.12)",
+                    border: "1px solid rgba(16,185,129,0.35)",
+                    borderRadius: "8px",
+                    color: "#34d399",
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  },
+                  children: "☁️ ซิงก์ Cloud"
+                }),
+                _jsx("button", {
+                  type: "button",
+                  onClick: opt.onClose,
+                  style: {
+                    background: "rgba(255,255,255,0.06)",
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "var(--text-muted)",
+                    width: "34px",
+                    height: "34px",
+                    fontSize: "15px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  },
+                  children: "✕"
+                })
+              ]
+            })
+          ]
+        }),
+
+        // Search Input
+        _jsxs("div", {
+          style: { display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" },
+          children: [
+            _jsx("input", {
+              type: "text",
+              value: opt.searchVal,
+              onChange: e => opt.setSearchVal(e.target.value),
+              placeholder: "🔍 พิมพ์เพื่อค้นหา เช่น 15M, ChoCh, EMA, Supply...",
+              style: {
+                flex: 1,
+                padding: "9px 14px",
+                background: "rgba(0,0,0,0.35)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "10px",
+                color: "#fff",
+                fontSize: "13px",
+                outline: "none"
+              }
+            }),
+            opt.searchVal && _jsx("button", {
+              type: "button",
+              onClick: () => opt.setSearchVal(""),
+              style: {
+                background: "rgba(255,255,255,0.08)",
+                border: "none",
+                borderRadius: "8px",
+                color: "var(--text-muted)",
+                padding: "8px 12px",
+                fontSize: "12px",
+                cursor: "pointer"
+              },
+              children: "ล้างค้นหา"
+            })
+          ]
+        }),
+
+        // Category Pills
+        _jsx("div", {
+          style: {
+            display: "flex",
+            gap: "6px",
+            overflowX: "auto",
+            padding: "8px 0 4px",
+            margin: "4px 0",
+            whiteSpace: "nowrap"
+          },
+          children: [
+            _jsx("button", {
+              type: "button",
+              onClick: () => opt.setCatVal("ALL"),
+              style: {
+                padding: "5px 12px",
+                borderRadius: "20px",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                border: opt.catVal === "ALL" ? `1.5px solid ${opt.accentColor}` : "1px solid rgba(255,255,255,0.1)",
+                background: opt.catVal === "ALL" ? `${opt.accentColor}25` : "rgba(255,255,255,0.03)",
+                color: opt.catVal === "ALL" ? "#fff" : "var(--text-secondary)",
+                transition: "all 0.15s ease"
+              },
+              children: `ทั้งหมด (${opt.allItems.length})`
+            }),
+            ...catList.map(cat => _jsx("button", {
+              type: "button",
+              onClick: () => opt.setCatVal(cat.id),
+              style: {
+                padding: "5px 12px",
+                borderRadius: "20px",
+                fontSize: "12px",
+                fontWeight: "600",
+                cursor: "pointer",
+                border: opt.catVal === cat.id ? `1.5px solid ${opt.accentColor}` : "1px solid rgba(255,255,255,0.1)",
+                background: opt.catVal === cat.id ? `${opt.accentColor}25` : "rgba(255,255,255,0.03)",
+                color: opt.catVal === cat.id ? "#fff" : "var(--text-secondary)",
+                transition: "all 0.15s ease"
+              },
+              children: `${cat.name} (${cat.count})`
+            }, cat.id))
+          ]
+        }),
+
+        // Quick Actions
+        _jsxs("div", {
+          style: {
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "6px 0",
+            borderBottom: "1px dashed rgba(255,255,255,0.08)",
+            fontSize: "12px"
+          },
+          children: [
+            _jsxs("span", {
+              style: { color: "#93c5fd", fontWeight: "600" },
+              children: [
+                `เลือกแล้ว: ${selList.length} รายการ`,
+                opt.catVal !== "ALL" ? ` (หมวด: ${catList.find(c => c.id === opt.catVal)?.name || ""})` : ""
+              ]
+            }),
+            _jsxs("div", {
+              style: { display: "flex", gap: "8px" },
+              children: [
+                _jsx("button", {
+                  type: "button",
+                  onClick: () => opt.onSelectAll(currentlyVisible),
+                  style: {
+                    background: "rgba(16,185,129,0.12)",
+                    border: "1px solid rgba(16,185,129,0.3)",
+                    borderRadius: "6px",
+                    color: "#34d399",
+                    padding: "4px 10px",
+                    fontSize: "11.5px",
+                    fontWeight: "600",
+                    cursor: "pointer"
+                  },
+                  children: opt.catVal === "ALL" ? "✅ เลือกทั้งหมด" : "✅ เลือกหมวดนี้ทั้งหมด"
+                }),
+                _jsx("button", {
+                  type: "button",
+                  onClick: opt.onClearAll,
+                  style: {
+                    background: "rgba(239,68,68,0.1)",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: "6px",
+                    color: "#f87171",
+                    padding: "4px 10px",
+                    fontSize: "11.5px",
+                    fontWeight: "600",
+                    cursor: "pointer"
+                  },
+                  children: "🔄 ล้างทั้งหมด"
+                })
+              ]
+            })
+          ]
+        }),
+
+        // Scrollable Groups
+        _jsx("div", {
+          style: {
+            flex: 1,
+            maxHeight: "52vh",
+            overflowY: "auto",
+            margin: "8px 0 14px",
+            paddingRight: "6px"
+          },
+          children: visibleGroups.length === 0
+            ? _jsx("div", {
+                style: { textAlign: "center", padding: "40px 0", color: "var(--text-muted)", fontSize: "14px" },
+                children: "🔍 ไม่พบเหตุผลที่ตรงกับคำค้นหา"
+              })
+            : visibleGroups.map(group => {
+                const grpSelCount = group.items.filter(it => selList.includes(it)).length;
+                return _jsxs("div", {
+                  style: { marginBottom: "16px" },
+                  children: [
+                    // Group Header
+                    _jsxs("div", {
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "7px 12px",
+                        background: "rgba(255,255,255,0.035)",
+                        borderLeft: `4px solid ${opt.accentColor}`,
+                        borderRadius: "8px",
+                        marginBottom: "8px"
+                      },
+                      children: [
+                        _jsxs("div", {
+                          style: { display: "flex", alignItems: "baseline", gap: "8px" },
+                          children: [
+                            _jsx("span", { style: { fontWeight: "700", fontSize: "13.5px", color: "#fff" }, children: group.name }),
+                            _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)" }, children: group.desc })
+                          ]
+                        }),
+                        _jsx("span", {
+                          style: {
+                            fontSize: "11px",
+                            fontWeight: "600",
+                            color: grpSelCount > 0 ? "#34d399" : "var(--text-muted)",
+                            background: grpSelCount > 0 ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.05)",
+                            padding: "2px 8px",
+                            borderRadius: "10px"
+                          },
+                          children: `${grpSelCount} / ${group.items.length}`
+                        })
+                      ]
+                    }),
+
+                    // Items Grid
+                    _jsx("div", {
+                      style: {
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(195px, 1fr))",
+                        gap: "7px"
+                      },
+                      children: group.items.map(it => {
+                        const isChecked = selList.includes(it);
+                        return _jsxs("label", {
+                          style: {
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "8px 11px",
+                            borderRadius: "9px",
+                            cursor: "pointer",
+                            fontSize: "12.5px",
+                            color: isChecked ? "#fff" : "var(--text-secondary)",
+                            background: isChecked ? `${opt.accentColor}25` : "rgba(255,255,255,0.025)",
+                            border: isChecked ? `1.5px solid ${opt.accentColor}` : "1px solid rgba(255,255,255,0.07)",
+                            transition: "all 0.12s ease",
+                            boxShadow: isChecked ? `0 4px 12px ${opt.accentColor}33` : "none"
+                          },
+                          children: [
+                            _jsx("input", {
+                              type: "checkbox",
+                              checked: isChecked,
+                              onChange: () => opt.onToggleItem(it),
+                              style: { accentColor: opt.accentColor, width: "15px", height: "15px", cursor: "pointer" }
+                            }),
+                            _jsx("span", { style: { fontWeight: isChecked ? "600" : "normal", flex: 1 }, children: it })
+                          ]
+                        }, it);
+                      })
+                    })
+                  ]
+                }, group.id);
+              })
+        }),
+
+        // Footer
+        _jsxs("div", {
+          style: {
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            paddingTop: "12px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          },
+          children: [
+            _jsxs("span", {
+              style: { fontSize: "12.5px", color: "var(--text-muted)" },
+              children: [
+                "เลือกแล้ว ",
+                _jsx("strong", { style: { color: "#fff" }, children: selList.length }),
+                " รายการ"
+              ]
+            }),
+            _jsx("button", {
+              type: "button",
+              onClick: opt.onClose,
+              style: {
+                background: opt.isCandle
+                  ? "linear-gradient(135deg, #3b82f6, #2563eb)"
+                  : "linear-gradient(135deg, #10b981, #059669)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "10px",
+                padding: "9px 26px",
+                fontSize: "13px",
+                fontWeight: "700",
+                cursor: "pointer",
+                boxShadow: opt.isCandle
+                  ? "0 4px 14px rgba(37,99,235,0.4)"
+                  : "0 4px 14px rgba(16,185,129,0.4)"
+              },
+              children: `🎯 ยืนยันการเลือก (${selList.length} รายการ)`
+            })
+          ]
+        })
+      ]
+    })
+  });
+};
+
+
 export default function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(!1), [currentUser, setCurrentUser] = useState(null), getUserKey = b => {
         let D = "guest";
@@ -352,7 +847,10 @@ export default function App() {
         slPoints: "150",
         candleReasons: [],
         indicatorReasons: []
-    }), [selectedClosedTrade, setSelectedClosedTrade] = useState(null), [activeTradesViewMode, setActiveTradesViewMode] = useState("cards"), [sidebarMenuExpanded, setSidebarMenuExpanded] = useState(!0), [mobileMenuOpen, setMobileMenuOpen] = useState(!1), [showImportModal, setShowImportModal] = useState(!1), [showExportModal, setShowExportModal] = useState(!1), [reasonPickerModal, setReasonPickerModal] = useState(null), [isLocalMode, setIsLocalMode] = useState(!1), [localTrades, setLocalTrades] = useState(!1), [deletedTradeIds, setDeletedTradeIds] = useState(!1), [isDemoModeLocal, setIsDemoModeLocal] = useState(!1), getMarketBadgeStyle = b => {
+    }), [selectedClosedTrade, setSelectedClosedTrade] = useState(null),
+    [qSearch, setQSearch] = useState(""), [qCat, setQCat] = useState("ALL"),
+    [qIndSearch, setQIndSearch] = useState(""), [qIndCat, setQIndCat] = useState("ALL"),
+    [goldCalcType, setGoldCalcType] = useState("bar"), [goldCalcGrams, setGoldCalcGrams] = useState(""), [activeTradesViewMode, setActiveTradesViewMode] = useState("cards"), [sidebarMenuExpanded, setSidebarMenuExpanded] = useState(!0), [mobileMenuOpen, setMobileMenuOpen] = useState(!1), [showImportModal, setShowImportModal] = useState(!1), [showExportModal, setShowExportModal] = useState(!1), [reasonPickerModal, setReasonPickerModal] = useState(null), [isLocalMode, setIsLocalMode] = useState(!1), [localTrades, setLocalTrades] = useState(!1), [deletedTradeIds, setDeletedTradeIds] = useState(!1), [isDemoModeLocal, setIsDemoModeLocal] = useState(!1), getMarketBadgeStyle = b => {
         switch (b) {
             case "analysis":
                 return {
@@ -664,17 +1162,48 @@ export default function App() {
     }, Zy = b => {
         if (b.preventDefault(), !newTrade.entryPrice || isNaN(parseFloat(newTrade.entryPrice))) {
             alert("กรุณากรอกราคาที่เข้าให้ถูกต้อง");
-            return
+            return;
         }
-        const D = `${newTrade.date} ${newTrade.time}`,
-            z = calculatePointsDistance(newTrade.entryPrice, newTrade.tpPrice, newTrade.pair) || 300,
-            V = calculatePointsDistance(newTrade.entryPrice, newTrade.slPrice, newTrade.pair) || 150,
-            W = {
+        const symKey = newTrade.pair.trim().toUpperCase();
+        const isStockOrGold = activeMarketType === "thai_stock" || activeMarketType === "inter_stock" || activeMarketType === "foreign_stock" || activeMarketType === "thai_gold";
+        const existingIdx = tradesData.findIndex(t => (t["ผลลัพธ์"] === "Active" || !t["ผลลัพธ์"]) && (t.marketType || activeMarketType) === activeMarketType && (t["คู่เงิน"] || "").trim().toUpperCase() === symKey && (t["ประเภทการเข้า"] || "Buy") === newTrade.type);
+        
+        let newTradeList = [], savedTradeObj = null;
+        if (isStockOrGold && existingIdx >= 0) {
+            const exTrade = tradesData[existingIdx];
+            const oldEntry = parseFloat(exTrade["ราคาที่เข้า"]) || 0;
+            const oldQty = parseFloat(exTrade["ความเสี่ยง"]) || 1;
+            const newEntry = parseFloat(newTrade.entryPrice) || 0;
+            const newQty = parseFloat(newTrade.risk) || 1;
+            const combinedQty = oldQty + newQty;
+            const totalCost = oldEntry * oldQty + newEntry * newQty;
+            const newAvgPrice = combinedQty > 0 ? totalCost / combinedQty : newEntry;
+            const unitLabel = activeMarketType === "thai_gold" ? "กรัม" : "หุ้น";
+            const curLabel = activeMarketType === "thai_stock" || activeMarketType === "thai_gold" ? "บาท" : "USD";
+            const mergedCandle = Array.from(new Set([...(exTrade["เหตุผลซัพพอร์ตออเดอร์\nแท่งเทียน"] || "").split(", ").filter(Boolean), ...(newTrade.candleReasons || [])])).join(", ");
+            const mergedInd = Array.from(new Set([...(exTrade["เหตุผลซัพพอร์ต Indicator"] || "").split(", ").filter(Boolean), ...(newTrade.indicatorReasons || [])])).join(", ");
+            
+            savedTradeObj = {
+                ...exTrade,
+                "วันที่เปิด": `${newTrade.date} ${newTrade.time}`,
+                "ช่วงเวลา": newTrade.time,
+                "ราคาที่เข้า": parseFloat(newAvgPrice.toFixed(2)),
+                "ความเสี่ยง": String(combinedQty),
+                "เหตุผลซัพพอร์ตออเดอร์\nแท่งเทียน": mergedCandle,
+                "เหตุผลซัพพอร์ต Indicator": mergedInd,
+                "หมายเหตุ": `ซื้อถัวเฉลี่ยสะสม ${combinedQty.toLocaleString()} ${unitLabel} (ทุนเฉลี่ย ${newAvgPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${curLabel}/${unitLabel})${newTrade.remarks ? " | " + newTrade.remarks : ""}`.trim()
+            };
+            newTradeList = tradesData.map((t, idx) => idx === existingIdx ? savedTradeObj : t);
+        } else {
+            const D = `${newTrade.date} ${newTrade.time}`,
+                z = calculatePointsDistance(newTrade.entryPrice, newTrade.tpPrice, newTrade.pair) || 300,
+                V = calculatePointsDistance(newTrade.entryPrice, newTrade.slPrice, newTrade.pair) || 150;
+            savedTradeObj = {
                 id: "trade-" + Date.now(),
                 marketType: activeMarketType,
                 "วันที่เปิด": D,
                 "ช่วงเวลา": newTrade.time,
-                "คู่เงิน": newTrade.pair.trim().toUpperCase(),
+                "คู่เงิน": symKey,
                 "ประเภทการเข้า": newTrade.type,
                 "ผลลัพธ์": "Active",
                 "ราคาที่เข้า": parseFloat(newTrade.entryPrice),
@@ -689,25 +1218,40 @@ export default function App() {
                 "บันทึกความเสี่ยงของแผนเทรด": newTrade.setup,
                 "บันทึกความรู้สึก": newTrade.feelings,
                 "หมายเหตุ": (() => {
-                    const amt = (parseFloat(newTrade.entryPrice) || 0) * (parseFloat(newTrade.risk) || 0);
-                    const txt = activeMarketType === "forex" ? "" : ` (จำนวนเงินที่ซื้อ: ${amt.toLocaleString()} ${activeMarketType === "thai_stock" ? "บาท" : "USD"})`;
+                    const amt = activeMarketType === "thai_gold" 
+                        ? (parseFloat(newTrade.totalMoneyInput) || 0)
+                        : (parseFloat(newTrade.entryPrice) || 0) * (parseFloat(newTrade.risk) || 0);
+                    const txt = activeMarketType === "forex" ? "" : ` (จำนวนเงินที่ซื้อ: ${amt.toLocaleString()} ${activeMarketType === "thai_stock" || activeMarketType === "thai_gold" ? "บาท" : "USD"})`;
                     return newTrade.remarks ? `${newTrade.remarks}${txt}` : (txt ? txt.trim() : "ถือออเดอร์เปล่า");
                 })(),
                 "ผู้ใช้งาน": (currentUser == null ? void 0 : currentUser.username) || "Guest"
-            },
-            T = JSON.parse(localStorage.getItem(getUserKey("forex_dashboard_local_trades")) || "[]"),
-            $ = [W, ...T];
-        localStorage.setItem(getUserKey("forex_dashboard_local_trades"), JSON.stringify($)), !isDemoMode && (currentUser != null && currentUser.username) && fetch("/api/trades", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                action: "save",
-                username: currentUser.username,
-                trade: W
-            })
-        }).catch(Z => console.error("D1 save failed:", Z)), setTradesData([W, ...tradesData]), setNewTrade({
+            };
+            newTradeList = [savedTradeObj, ...tradesData];
+        }
+        
+        const localList = JSON.parse(localStorage.getItem(getUserKey("forex_dashboard_local_trades")) || "[]");
+        let updatedLocal = [];
+        if (existingIdx >= 0 && isStockOrGold) {
+            const locIdx = localList.findIndex(t => t.id === savedTradeObj.id);
+            if (locIdx >= 0) {
+                updatedLocal = localList.map((t, idx) => idx === locIdx ? savedTradeObj : t);
+            } else {
+                updatedLocal = [savedTradeObj, ...localList];
+            }
+        } else {
+            updatedLocal = [savedTradeObj, ...localList];
+        }
+        
+        localStorage.setItem(getUserKey("forex_dashboard_local_trades"), JSON.stringify(updatedLocal));
+        if (!isDemoMode && currentUser != null && currentUser.username) {
+            fetch("/api/trades", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "save", username: currentUser.username, trade: savedTradeObj })
+            }).catch(err => console.error("D1 save failed:", err));
+        }
+        setTradesData(newTradeList);
+        setNewTrade({
             date: getTodayDateString(),
             time: getCurrentTimeString(),
             pair: assetList[0] || "XAUUSD",
@@ -722,8 +1266,41 @@ export default function App() {
             setup: "",
             feelings: "",
             remarks: ""
-        })
-    }, tb = b => {
+        });
+    }, reopenTrade = async tradeId => {
+        if (!window.confirm("คุณต้องการนำออเดอร์นี้กลับไปที่ 'ออเดอร์ที่กำลังถืออยู่' (Active Trades) ใช่หรือไม่?")) return;
+        const localTrades = JSON.parse(localStorage.getItem(getUserKey("forex_dashboard_local_trades")) || "[]");
+        let updated = localTrades.map(t => t.id === tradeId ? {
+            ...t,
+            "ผลลัพธ์": "Active",
+            "ผลลัพธ์ (จุด)": null,
+            "กำไร/ขาดทุน($)": null,
+            "ผลกำไร/ขาดทุน": null,
+            "ราคาที่ปิด": null
+        } : t);
+        const existing = tradesData.find(t => t.id === tradeId);
+        if (existing && !localTrades.some(t => t.id === tradeId)) {
+            updated = [{
+                ...existing,
+                "ผลลัพธ์": "Active",
+                "ผลลัพธ์ (จุด)": null,
+                "กำไร/ขาดทุน($)": null,
+                "ผลกำไร/ขาดทุน": null,
+                "ราคาที่ปิด": null,
+                "ผู้ใช้งาน": (currentUser == null ? void 0 : currentUser.username) || "Guest"
+            }, ...updated];
+        }
+        localStorage.setItem(getUserKey("forex_dashboard_local_trades"), JSON.stringify(updated));
+        const tradeToSave = updated.find(t => t.id === tradeId);
+        if (tradeToSave && !isDemoMode && currentUser != null && currentUser.username) {
+            fetch("/api/trades", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "save", username: currentUser.username, trade: tradeToSave })
+            }).catch(err => console.error("D1 reopen failed:", err));
+        }
+        await loadAllData();
+        alert("นำออเดอร์กลับไปที่ 'ออเดอร์ที่กำลังถืออยู่' เรียบร้อยแล้ว");}, tb = b => {
         const activeTradeObj = tradesData.find($ => $.id === b);
         const D = parseFloat(closeDetails.pips || 0),
             z = activeMarketType === "forex"
@@ -2434,6 +3011,18 @@ Indicator`] || "",
                             })]
                         }), activeTab === "journal_plan" && (() => {
                             const b = tradesData.filter(T => (T.marketType || "forex") === activeMarketType && (T["ผลลัพธ์"] === "Active" || !T["ผลลัพธ์"])),
+                                getTradeTs = t => {
+                                    if (!t) return 0;
+                                    const m = String(t.id || "").match(/trade-(\d+)/);
+                                    if (m) return parseInt(m[1], 10);
+                                    const dStr = (t["วันที่เปิด"] || "").replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$2-$1");
+                                    const parsed = Date.parse(dStr);
+                                    return isNaN(parsed) ? 0 : parsed;
+                                },
+                                sortedActiveTrades = [...b].sort((a, bTrade) => {
+                                    const diff = getTradeTs(a) - getTradeTs(bTrade);
+                                    return diff !== 0 ? diff : (tradesData.indexOf(bTrade) - tradesData.indexOf(a));
+                                }),
                                 D = tradesData.filter(T => (T.marketType || "forex") === activeMarketType && T["ผลลัพธ์"] && T["ผลลัพธ์"] !== "Active"),
                                 z = D.reduce((T, $) => {
                                     const Z = parseFloat($["กำไร/ขาดทุน($)"] || $["ผลกำไร/ขาดทุน"] || 0);
@@ -2516,6 +3105,221 @@ Indicator`] || "",
                                             children: T.label
                                         }, T.id)
                                     })
+                                }),
+                                activeMarketType === "thai_gold" && _jsxs("div", {
+                                    className: "glass-card",
+                                    style: {
+                                        padding: "20px 24px",
+                                        background: "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.98))",
+                                        border: "1px solid rgba(234, 179, 8, 0.35)",
+                                        boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
+                                    },
+                                    children: [
+                                        _jsxs("h3", {
+                                            className: "chart-title",
+                                            style: {
+                                                fontSize: "15px",
+                                                marginBottom: "16px",
+                                                borderBottom: "1px dashed var(--border-color)",
+                                                paddingBottom: "10px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "8px",
+                                                color: "#FBBF24"
+                                            },
+                                            children: [
+                                                _jsx("span", { children: "🪙" }),
+                                                _jsx("span", { children: "ตารางเปรียบเทียบน้ำหนักทองคำไทย (ทอง 96.5%)" })
+                                            ]
+                                        }),
+                                        _jsxs("div", {
+                                            style: {
+                                                display: "grid",
+                                                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                                                gap: "24px",
+                                                alignItems: "start"
+                                            },
+                                            children: [
+                                                _jsxs("div", {
+                                                    style: {
+                                                        background: "rgba(15, 23, 42, 0.4)",
+                                                        borderRadius: "8px",
+                                                        padding: "12px",
+                                                        border: "1px solid rgba(255, 255, 255, 0.05)"
+                                                    },
+                                                    children: [
+                                                        _jsx("div", {
+                                                            style: {
+                                                                fontSize: "11px",
+                                                                color: "var(--text-secondary)",
+                                                                marginBottom: "8px",
+                                                                textAlign: "center",
+                                                                fontWeight: "600"
+                                                            },
+                                                            children: "💡 มาตรฐานสมาคมค้าทองคำแห่งประเทศไทย"
+                                                        }),
+                                                        _jsxs("table", {
+                                                            style: { width: "100%", fontSize: "12px", borderCollapse: "collapse" },
+                                                            children: [
+                                                                _jsx("thead", {
+                                                                    children: _jsxs("tr", {
+                                                                        style: { borderBottom: "1px solid rgba(255,255,255,0.1)" },
+                                                                        children: [
+                                                                            _jsx("th", { style: { padding: "6px 4px", textAlign: "left", color: "var(--text-secondary)" }, children: "หน่วยทองไทย" }),
+                                                                            _jsx("th", { style: { padding: "6px 4px", textAlign: "right", color: "var(--text-secondary)" }, children: "ทองคำแท่ง (กรัม)" }),
+                                                                            _jsx("th", { style: { padding: "6px 4px", textAlign: "right", color: "var(--text-secondary)" }, children: "ทองรูปพรรณ (กรัม)" })
+                                                                        ]
+                                                                    })
+                                                                }),
+                                                                _jsxs("tbody", {
+                                                                    children: [
+                                                                        _jsxs("tr", {
+                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
+                                                                            children: [
+                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "ครึ่งสลึง (1/8 บาท)" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "1.905 กรัม" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "1.89 กรัม" })
+                                                                            ]
+                                                                        }),
+                                                                        _jsxs("tr", {
+                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
+                                                                            children: [
+                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "1 สลึง (1/4 บาท)" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "3.811 กรัม" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "3.79 กรัม" })
+                                                                            ]
+                                                                        }),
+                                                                        _jsxs("tr", {
+                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
+                                                                            children: [
+                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "2 สลึง (ครึ่งบาท)" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "7.622 กรัม" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "7.58 กรัม" })
+                                                                            ]
+                                                                        }),
+                                                                        _jsxs("tr", {
+                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
+                                                                            children: [
+                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "3 สลึง (3/4 บาท)" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "11.433 กรัม" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "11.37 กรัม" })
+                                                                            ]
+                                                                        }),
+                                                                        _jsxs("tr", {
+                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(251, 191, 36, 0.05)" },
+                                                                            children: [
+                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "700", color: "#FBBF24" }, children: "1 บาท (4 สลึง)" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", fontWeight: "700", color: "#FBBF24" }, children: "15.244 กรัม" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", fontWeight: "700", color: "#F59E0B" }, children: "15.16 กรัม" })
+                                                                            ]
+                                                                        }),
+                                                                        _jsxs("tr", {
+                                                                            children: [
+                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "5 บาท" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "76.220 กรัม" }),
+                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "75.80 กรัม" })
+                                                                            ]
+                                                                        })
+                                                                    ]
+                                                                })
+                                                            ]
+                                                        })
+                                                    ]
+                                                }),
+                                                _jsxs("div", {
+                                                    style: {
+                                                        background: "rgba(15, 23, 42, 0.4)",
+                                                        borderRadius: "8px",
+                                                        padding: "12px",
+                                                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        gap: "10px"
+                                                    },
+                                                    children: [
+                                                        _jsx("div", {
+                                                            style: { fontSize: "12px", color: "#FBBF24", fontWeight: "600", textAlign: "center" },
+                                                            children: "🧮 เครื่องคำนวณแปลงน้ำหนักทอง"
+                                                        }),
+                                                        _jsxs("div", {
+                                                            children: [
+                                                                _jsx("label", { className: "form-label", style: { fontSize: "10px", marginBottom: "2px" }, children: "เลือกประเภททองคำ" }),
+                                                                _jsxs("select", {
+                                                                    className: "calc-select",
+                                                                    style: { height: "30px", fontSize: "11px", padding: "0 8px" },
+                                                                    value: goldCalcType,
+                                                                    onChange: e => setGoldCalcType(e.target.value),
+                                                                    children: [
+                                                                        _jsx("option", { value: "bar", children: "ทองคำแท่ง (1 บาท = 15.244 กรัม)" }),
+                                                                        _jsx("option", { value: "jewelry", children: "ทองรูปพรรณ (1 บาท = 15.16 กรัม)" })
+                                                                    ]
+                                                                })
+                                                            ]
+                                                        }),
+                                                        _jsxs("div", {
+                                                            children: [
+                                                                _jsx("label", { className: "form-label", style: { fontSize: "10px", marginBottom: "2px" }, children: "ป้อนน้ำหนัก (กรัม)" }),
+                                                                _jsx("input", {
+                                                                    type: "number",
+                                                                    step: "any",
+                                                                    placeholder: "เช่น 7.622",
+                                                                    className: "calc-input",
+                                                                    style: { height: "30px", fontSize: "12px" },
+                                                                    value: goldCalcGrams,
+                                                                    onChange: e => setGoldCalcGrams(e.target.value)
+                                                                })
+                                                            ]
+                                                        }),
+                                                        _jsxs("div", {
+                                                            style: {
+                                                                marginTop: "6px",
+                                                                padding: "8px",
+                                                                background: "rgba(251, 191, 36, 0.05)",
+                                                                borderRadius: "6px",
+                                                                border: "1px dashed rgba(251, 191, 36, 0.15)",
+                                                                fontSize: "11px",
+                                                                display: "flex",
+                                                                flexDirection: "column",
+                                                                gap: "4px"
+                                                            },
+                                                            children: [
+                                                                _jsxs("div", {
+                                                                    style: { display: "flex", justifyContent: "space-between" },
+                                                                    children: [
+                                                                        _jsx("span", { style: { color: "var(--text-secondary)" }, children: "คิดเป็นน้ำหนักสลึง:" }),
+                                                                        _jsx("span", {
+                                                                            style: { fontWeight: "700", color: "#FBBF24" },
+                                                                            children: (() => {
+                                                                                const grams = parseFloat(goldCalcGrams) || 0;
+                                                                                if (grams <= 0) return "- สลึง";
+                                                                                const divisor = goldCalcType === "bar" ? 15.244 : 15.16;
+                                                                                return (grams / divisor * 4).toFixed(2) + " สลึง";
+                                                                            })()
+                                                                        })
+                                                                    ]
+                                                                }),
+                                                                _jsxs("div", {
+                                                                    style: { display: "flex", justifyContent: "space-between" },
+                                                                    children: [
+                                                                        _jsx("span", { style: { color: "var(--text-secondary)" }, children: "คิดเป็นน้ำหนักบาท:" }),
+                                                                        _jsx("span", {
+                                                                            style: { fontWeight: "700", color: "#FBBF24" },
+                                                                            children: (() => {
+                                                                                const grams = parseFloat(goldCalcGrams) || 0;
+                                                                                if (grams <= 0) return "- บาท";
+                                                                                const divisor = goldCalcType === "bar" ? 15.244 : 15.16;
+                                                                                return (grams / divisor).toFixed(4) + " บาท";
+                                                                            })()
+                                                                        })
+                                                                    ]
+                                                                })
+                                                            ]
+                                                        })
+                                                    ]
+                                                })
+                                            ]
+                                        })
+                                    ]
                                 }), _jsxs("div", {
                                     className: "glass-card",
                                     style: {
@@ -2882,7 +3686,58 @@ Indicator`] || "",
                                                         })]
                                                     })]
                                                 }), _jsxs("div", {
-                                                    style: activeMarketType !== "forex" ? { gridColumn: "span 2", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: 0, padding: 0 } : {}, children: [_jsxs("div", { children: [_jsx("label", { className: "form-label", style: { fontSize: "11px", marginBottom: "4px" }, children: "ราคาที่เปิดเข้า" }), _jsx("input", { type: "number", step: "any", className: "calc-input", placeholder: "เช่น 2368.50", value: newTrade.entryPrice, onChange: T => setNewTrade({ ...newTrade, entryPrice: T.target.value }), required: !0 })] }), activeMarketType !== "forex" && _jsxs("div", { children: [_jsx("label", { className: "form-label", style: { fontSize: "11px", marginBottom: "4px" }, children: "จำนวนหุ้นที่ซื้อ" }), _jsx("input", { type: "number", className: "calc-input", placeholder: "เช่น 100", value: newTrade.risk, onChange: T => setNewTrade({ ...newTrade, risk: T.target.value }), required: !0 })] }), activeMarketType !== "forex" && _jsxs("div", { style: { gridColumn: "span 2" }, children: [_jsx("label", { className: "form-label", style: { fontSize: "11px", marginBottom: "4px" }, children: activeMarketType === "thai_stock" ? "จำนวนเงินที่ซื้อ (บาท)" : "จำนวนเงินที่ซื้อ (USD)" }), _jsx("input", { type: "text", className: "calc-input", placeholder: "คำนวณอัตโนมัติ...", value: (() => { const amt = (parseFloat(newTrade.entryPrice) || 0) * (parseFloat(newTrade.risk) || 0); return amt > 0 ? amt.toLocaleString() : ""; })(), readOnly: !0, style: { background: "rgba(255, 255, 255, 0.05)", cursor: "not-allowed", opacity: 0.8 } })] })]
+                                                    style: activeMarketType !== "forex" ? { gridColumn: "span 2", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", margin: 0, padding: 0 } : {}, children: [_jsxs("div", { children: [_jsx("label", { className: "form-label", style: { fontSize: "11px", marginBottom: "4px" }, children: "ราคาที่เปิดเข้า" }), _jsx("input", { type: "number", step: "any", className: "calc-input", placeholder: "เช่น 2368.50", value: newTrade.entryPrice, onChange: T => setNewTrade({ ...newTrade, entryPrice: T.target.value }), required: !0 })] }), activeMarketType !== "forex" && _jsxs("div", { children: [_jsx("label", { className: "form-label", style: { fontSize: "11px", marginBottom: "4px" }, children: "จำนวนหุ้นที่ซื้อ" }), _jsx("input", { type: "number", className: "calc-input", placeholder: "เช่น 100", value: newTrade.risk, onChange: T => setNewTrade({ ...newTrade, risk: T.target.value }), required: !0 })] })
+                                                (activeMarketType === "thai_stock" || activeMarketType === "inter_stock" || activeMarketType === "foreign_stock" || activeMarketType === "thai_gold") && (() => {
+                                                    const sym = (newTrade.pair || "").trim().toUpperCase();
+                                                    const existingActive = tradesData.find(t => (t["ผลลัพธ์"] === "Active" || !t["ผลลัพธ์"]) && (t.marketType || activeMarketType) === activeMarketType && (t["คู่เงิน"] || "").trim().toUpperCase() === sym && (t["ประเภทการเข้า"] || "Buy") === newTrade.type);
+                                                    if (!existingActive) return null;
+                                                    const oldPrice = parseFloat(existingActive["ราคาที่เข้า"]) || 0;
+                                                    const oldQty = parseFloat(existingActive["ความเสี่ยง"]) || 1;
+                                                    const newPrice = parseFloat(newTrade.entryPrice) || 0;
+                                                    const newQty = parseFloat(newTrade.risk) || 0;
+                                                    const unitCur = activeMarketType === "thai_stock" || activeMarketType === "thai_gold" ? "บาท" : "USD";
+                                                    const unitLabel = activeMarketType === "thai_gold" ? "กรัม" : "หุ้น";
+                                                    if (newPrice > 0 && newQty > 0) {
+                                                        const combQty = oldQty + newQty;
+                                                        const newAvg = (oldPrice * oldQty + newPrice * newQty) / combQty;
+                                                        return _jsxs("div", {
+                                                            style: {
+                                                                gridColumn: "span 2",
+                                                                background: "rgba(59, 130, 246, 0.1)",
+                                                                border: "1px solid rgba(59, 130, 246, 0.3)",
+                                                                borderRadius: "6px",
+                                                                padding: "8px 12px",
+                                                                fontSize: "11.5px",
+                                                                margin: "4px 0",
+                                                                color: "#60A5FA"
+                                                            },
+                                                            children: [
+                                                                _jsxs("div", {
+                                                                    style: { fontWeight: "bold", marginBottom: "2px" },
+                                                                    children: ["📊 มีหุ้น ", sym, " ในพอร์ตเดิม: ", oldQty.toLocaleString(), " ", unitLabel, " @ ", oldPrice.toFixed(2), " ", unitCur]
+                                                                }),
+                                                                _jsxs("div", {
+                                                                    style: { color: "#93c5fd" },
+                                                                    children: ["✨ หลังรวมไม้ใหม่: รวม ", combQty.toLocaleString(), " ", unitLabel, " | ทุนถัวเฉลี่ยใหม่: ", newAvg.toFixed(2), " ", unitCur, "/", unitLabel]
+                                                                })
+                                                            ]
+                                                        });
+                                                    } else {
+                                                        return _jsxs("div", {
+                                                            style: {
+                                                                gridColumn: "span 2",
+                                                                background: "rgba(234, 179, 8, 0.08)",
+                                                                border: "1px dashed rgba(234, 179, 8, 0.3)",
+                                                                borderRadius: "6px",
+                                                                padding: "6px 10px",
+                                                                fontSize: "11px",
+                                                                margin: "2px 0",
+                                                                color: "#facc15"
+                                                            },
+                                                            children: ["💡 มีหุ้น ", sym, " ในพอร์ตค้างอยู่แล้ว (ระบบจะรวมไม้ถัวเฉลี่ยให้อัตโนมัติเมื่อระบุจำนวนและราคา)"]
+                                                        });
+                                                    }
+                                                })(),, activeMarketType !== "forex" && _jsxs("div", { style: { gridColumn: "span 2" }, children: [_jsx("label", { className: "form-label", style: { fontSize: "11px", marginBottom: "4px" }, children: activeMarketType === "thai_stock" ? "จำนวนเงินที่ซื้อ (บาท)" : "จำนวนเงินที่ซื้อ (USD)" }), _jsx("input", { type: "text", className: "calc-input", placeholder: "คำนวณอัตโนมัติ...", value: (() => { const amt = (parseFloat(newTrade.entryPrice) || 0) * (parseFloat(newTrade.risk) || 0); return amt > 0 ? amt.toLocaleString() : ""; })(), readOnly: !0, style: { background: "rgba(255, 255, 255, 0.05)", cursor: "not-allowed", opacity: 0.8 } })] })]
                                                 }), activeMarketType === "forex" && _jsxs("div", {
                                                     children: [_jsx("label", {
                                                         className: "form-label",
@@ -3181,7 +4036,7 @@ Indicator`] || "",
                                                     gap: "12px",
                                                     width: "100%"
                                                 },
-                                                children: b.map((T, idx) => {
+                                                children: sortedActiveTrades.map((T, idx) => {
                                                     const Z = T.id || `demo-${idx}`;
                                                     const lt = String(T["ประเภทการเข้า"]).includes("Buy");
                                                     const Dt = T["ช่วงเวลา"] || "";
@@ -3200,10 +4055,10 @@ Indicator`] || "",
                                                         key: Z,
                                                         style: {
                                                             background: "linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.85))",
-                                                            border: currentProfit >= 0 ? "1px solid rgba(34, 197, 94, 0.4)" : "1px solid rgba(239, 68, 68, 0.4)",
+                                                            border: lt ? "1.5px solid #22c55e" : "1.5px solid #ef4444",
+                                                            boxShadow: lt ? "0 4px 14px rgba(0,0,0,0.35), 0 0 10px rgba(34, 197, 94, 0.2)" : "0 4px 14px rgba(0,0,0,0.35), 0 0 10px rgba(239, 68, 68, 0.2)",
                                                             borderRadius: "10px",
                                                             padding: "14px 16px",
-                                                            boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
                                                             display: "flex",
                                                             flexDirection: "column",
                                                             gap: "10px"
@@ -3716,292 +4571,239 @@ Indicator`] || "",
                                                 width: "100%",
                                                 minWidth: "unset"
                                             },
-                                            children: [_jsxs("colgroup", {
-                                                children: [_jsx("col", {
-                                                    style: {
-                                                        width: "100px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "80px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "70px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "80px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "110px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "75px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "65px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "110px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "120px"
-                                                    }
-                                                }), _jsx("col", {
-                                                    style: {
-                                                        width: "80px"
-                                                    }
-                                                })]
-                                            }), _jsx("thead", {
-                                                children: _jsxs("tr", {
-                                                    children: [_jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "วันที่ / เวลา"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "คู่เงิน / หุ้น"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "ประเภท"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "ผลลัพธ์"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "จุด / กำไร"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "ราคาเข้า"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "ความเสี่ยง"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "เหตุผล"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "หมายเหตุ"
-                                                    }), _jsx("th", {
-                                                        style: {
-                                                            fontSize: "11px",
-                                                            padding: "8px 6px"
-                                                        },
-                                                        children: "จัดการ"
-                                                    })]
-                                                })
-                                            }), _jsx("tbody", {
-                                                children: W.length > 0 ? W.map((T, $) => {
-                                                    const Z = parseFloat(T["ผลลัพธ์ (จุด)"] || 0),
-                                                        lt = parseFloat(T["กำไร/ขาดทุน($)"] || T["ผลกำไร/ขาดทุน"] || 0),
-                                                        Dt = String(T["ผลลัพธ์"] || "").toLowerCase().includes("win") || String(T["ผลลัพธ์"] || "").includes("ชนะ") || Z > 0,
-                                                        Fe = String(T["ผลลัพธ์"] || "").toLowerCase().includes("loss") || String(T["ผลลัพธ์"] || "").includes("แพ้") || Z < 0;
-                                                    return _jsxs("tr", {
-                                                        children: [_jsxs("td", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                padding: "7px 6px"
-                                                            },
-                                                            children: [_jsx("div", {
-                                                                style: {
-                                                                    fontWeight: 600,
-                                                                    color: "var(--text-primary)"
-                                                                },
-                                                                children: T["วันที่เปิด"]
-                                                            }), T["ช่วงเวลา"] && _jsx("div", {
-                                                                style: {
-                                                                    fontSize: "10px",
-                                                                    color: "var(--text-muted)",
-                                                                    marginTop: "1px"
-                                                                },
-                                                                children: T["ช่วงเวลา"]
-                                                            })]
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                fontSize: "12px",
-                                                                padding: "7px 6px",
-                                                                fontWeight: 700,
-                                                                color: "var(--text-primary)"
-                                                            },
+                                            children: [
+                                                activeMarketType === "thai_gold" ? _jsxs("colgroup", {
+                                                    children: [
+                                                        _jsx("col", { style: { width: "95px" } }),
+                                                        _jsx("col", { style: { width: "75px" } }),
+                                                        _jsx("col", { style: { width: "105px" } }),
+                                                        _jsx("col", { style: { width: "95px" } }),
+                                                        _jsx("col", { style: { width: "80px" } }),
+                                                        _jsx("col", { style: { width: "80px" } }),
+                                                        _jsx("col", { style: { width: "95px" } }),
+                                                        _jsx("col", { style: { width: "110px" } }),
+                                                        _jsx("col", { style: { width: "70px" } })
+                                                    ]
+                                                }) : (activeMarketType === "thai_stock" || activeMarketType === "inter_stock") ? _jsxs("colgroup", {
+                                                    children: [
+                                                        _jsx("col", { style: { width: "95px" } }),
+                                                        _jsx("col", { style: { width: "75px" } }),
+                                                        _jsx("col", { style: { width: "85px" } }),
+                                                        _jsx("col", { style: { width: "105px" } }),
+                                                        _jsx("col", { style: { width: "80px" } }),
+                                                        _jsx("col", { style: { width: "80px" } }),
+                                                        _jsx("col", { style: { width: "95px" } }),
+                                                        _jsx("col", { style: { width: "110px" } }),
+                                                        _jsx("col", { style: { width: "70px" } })
+                                                    ]
+                                                }) : _jsxs("colgroup", {
+                                                    children: [
+                                                        _jsx("col", { style: { width: "95px" } }),
+                                                        _jsx("col", { style: { width: "75px" } }),
+                                                        _jsx("col", { style: { width: "65px" } }),
+                                                        _jsx("col", { style: { width: "75px" } }),
+                                                        _jsx("col", { style: { width: "100px" } }),
+                                                        _jsx("col", { style: { width: "80px" } }),
+                                                        _jsx("col", { style: { width: "80px" } }),
+                                                        _jsx("col", { style: { width: "80px" } }),
+                                                        _jsx("col", { style: { width: "115px" } }),
+                                                        _jsx("col", { style: { width: "70px" } })
+                                                    ]
+                                                }),
+                                                _jsx("thead", {
+                                                    children: activeMarketType === "thai_gold" ? _jsxs("tr", {
+                                                        children: [
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "เวลาเปิด" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "ทองคำ" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "จำนวนเงินที่ซื้อ" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "น้ำหนักทอง (กรัม)" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "ราคาเข้า" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "ราคาขาย" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "กำไร/ขาดทุน (฿)" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "หมายเหตุ" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "center" }, children: "จัดการ" })
+                                                        ]
+                                                    }) : (activeMarketType === "thai_stock" || activeMarketType === "inter_stock") ? _jsxs("tr", {
+                                                        children: [
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "เวลาเปิด" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: activeMarketType === "thai_stock" ? "หุ้นไทย" : "หุ้นนอก" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "จำนวนหุ้น" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: activeMarketType === "thai_stock" ? "เงินที่ซื้อ" : "เงินที่ซื้อ (USD)" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "ราคาเข้า" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "ราคาปิด" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: activeMarketType === "thai_stock" ? "กำไร/ขาดทุน (฿)" : "กำไร/ขาดทุน ($)" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "หมายเหตุ" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "center" }, children: "จัดการ" })
+                                                        ]
+                                                    }) : _jsxs("tr", {
+                                                        children: [
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "เวลาเปิด" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "คู่เงิน" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "ประเภท" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "ผลลัพธ์" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "จุด / กำไร" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "ราคาเข้า" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "ราคาปิด" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "right" }, children: "ความเสี่ยง" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px" }, children: "หมายเหตุ" }),
+                                                            _jsx("th", { style: { fontSize: "11px", padding: "8px 6px", textAlign: "center" }, children: "จัดการ" })
+                                                        ]
+                                                    })
+                                                }),
+                                                _jsx("tbody", {
+                                                    children: W.length > 0 ? W.map((T, $) => {
+                                                        const Z = parseFloat(T["ผลลัพธ์ (จุด)"] || 0),
+                                                            lt = parseFloat(T["กำไร/ขาดทุน($)"] || T["ผลกำไร/ขาดทุน"] || 0),
+                                                            Dt = String(T["ผลลัพธ์"] || "").toLowerCase().includes("win") || String(T["ผลลัพธ์"] || "").includes("ชนะ") || Z > 0 || lt > 0,
+                                                            Fe = String(T["ผลลัพธ์"] || "").toLowerCase().includes("loss") || String(T["ผลลัพธ์"] || "").includes("แพ้") || Z < 0 || lt < 0,
+                                                            currSym = (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$";
+                                                        const dateTd = _jsxs("td", {
+                                                            style: { fontSize: "11px", padding: "7px 6px" },
+                                                            children: [
+                                                                _jsx("div", { style: { fontWeight: 600, color: "var(--text-primary)" }, children: T["วันที่เปิด"] }),
+                                                                T["ช่วงเวลา"] && _jsx("div", { style: { fontSize: "10px", color: "var(--text-muted)", marginTop: "1px" }, children: T["ช่วงเวลา"] })
+                                                            ]
+                                                        });
+                                                        const pairTd = _jsx("td", {
+                                                            style: { fontSize: "12px", padding: "7px 6px", fontWeight: 700, color: "var(--text-primary)" },
                                                             children: T["คู่เงิน"]
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                padding: "7px 6px"
-                                                            },
-                                                            className: String(T["ประเภทการเข้า"]).toLowerCase().includes("buy") ? "type-buy" : "type-sell",
-                                                            children: T["ประเภทการเข้า"]
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                padding: "7px 6px"
-                                                            },
-                                                            children: _jsx("span", {
-                                                                className: `badge ${Dt?"badge-win":Fe?"badge-loss":"badge-be"}`,
-                                                                style: {
-                                                                    fontSize: "11px",
-                                                                    padding: "2px 7px"
-                                                                },
-                                                                children: T["ผลลัพธ์"] || (Z === 0 ? "BE" : Z > 0 ? "Win" : "Loss")
-                                                            })
-                                                        }), _jsxs("td", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                padding: "7px 6px"
-                                                            },
-                                                            children: [_jsxs("div", {
-                                                                className: Z > 0 ? "profit-text" : Z < 0 ? "loss-text" : "",
-                                                                style: {
-                                                                    fontWeight: 600
-                                                                },
-                                                                children: [Z > 0 ? `+${Z}` : Z || "-", " จุด"]
-                                                            }), lt !== 0 && _jsx("div", {
-                                                                className: lt > 0 ? "profit-text" : "loss-text",
-                                                                style: {
-                                                                    fontSize: "10px",
-                                                                    marginTop: "1px"
-                                                                },
-                                                                children: lt > 0 ? `+$${lt.toFixed(2)}` : `$${lt.toFixed(2)}`
-                                                            })]
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                padding: "7px 6px"
-                                                            },
-                                                            children: T["ราคาที่เข้า"]
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                padding: "7px 6px"
-                                                            },
-                                                            children: T["ความเสี่ยง"]
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                padding: "7px 6px",
-                                                                overflow: "hidden",
-                                                                textOverflow: "ellipsis",
-                                                                whiteSpace: "nowrap"
-                                                            },
-                                                            title: [T[`เหตุผลซัพพอร์ตออเดอร์
-แท่งเทียน`] ? `แท่งเทียน: ${T[`เหตุผลซัพพอร์ตออเดอร์
-แท่งเทียน`]}` : "", T["เหตุผลซัพพอร์ต Indicator"] || T[`เหตุผลซัพพอร์ตออเดอร์
-Indicator`] ? `Indicator: ${T["เหตุผลซัพพอร์ต Indicator"]||T[`เหตุผลซัพพอร์ตออเดอร์
-Indicator`]}` : ""].filter(Boolean).join(" | "),
-                                                            children: (() => {
-                                                                const Pi = T[`เหตุผลซัพพอร์ตออเดอร์
-แท่งเทียน`] || "",
-                                                                    Ui = Pi ? Pi.split(",").map(ke => ke.trim()).filter(Boolean).length : 0,
-                                                                    ta = T["เหตุผลซัพพอร์ต Indicator"] || T[`เหตุผลซัพพอร์ตออเดอร์
-Indicator`] || "",
-                                                                    Xc = ta ? ta.split(",").map(ke => ke.trim()).filter(Boolean).length : 0,
-                                                                    ge = Ui + Xc;
-                                                                return ge > 0 ? _jsxs("span", {
-                                                                    style: {
-                                                                        background: "rgba(99,102,241,0.15)",
-                                                                        color: "#a5b4fc",
-                                                                        padding: "2px 7px",
-                                                                        borderRadius: "10px",
-                                                                        fontSize: "10px",
-                                                                        whiteSpace: "nowrap"
-                                                                    },
-                                                                    children: ["🧠 ", ge, " รายการ"]
-                                                                }) : _jsx("span", {
-                                                                    style: {
-                                                                        color: "var(--text-muted)"
-                                                                    },
-                                                                    children: "-"
-                                                                })
-                                                            })()
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                padding: "7px 6px",
-                                                                overflow: "hidden",
-                                                                textOverflow: "ellipsis",
-                                                                whiteSpace: "nowrap"
-                                                            },
+                                                        });
+                                                        const remarksTd = _jsx("td", {
+                                                            style: { fontSize: "11px", padding: "7px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
                                                             title: T["หมายเหตุ"],
                                                             children: T["หมายเหตุ"] || "-"
-                                                        }), _jsx("td", {
-                                                            style: {
-                                                                padding: "7px 6px"
-                                                            },
+                                                        });
+                                                        const actionsTd = _jsx("td", {
+                                                            style: { padding: "7px 6px" },
                                                             children: _jsxs("div", {
-                                                                style: {
-                                                                    display: "flex",
-                                                                    gap: "4px"
-                                                                },
-                                                                children: [_jsx("button", {
-                                                                    onClick: () => handleEditClosedClick(T),
-                                                                    style: {
-                                                                        background: "rgba(59,130,246,0.15)",
-                                                                        color: "var(--color-primary)",
-                                                                        border: "none",
-                                                                        borderRadius: "4px",
-                                                                        padding: "4px 8px",
-                                                                        cursor: "pointer",
-                                                                        fontSize: "11px"
-                                                                    },
-                                                                    children: "✏️"
-                                                                }), _jsx("button", {
-                                                                    onClick: () => Dh(T.id),
-                                                                    style: {
-                                                                        background: "rgba(239,68,68,0.15)",
-                                                                        color: "#ef4444",
-                                                                        border: "none",
-                                                                        borderRadius: "4px",
-                                                                        padding: "4px 8px",
-                                                                        cursor: "pointer",
-                                                                        fontSize: "11px"
-                                                                    },
-                                                                    children: "🗑️"
-                                                                })]
+                                                                style: { display: "flex", gap: "4px", justifyContent: "center" },
+                                                                children: [
+                                                                    _jsx("button", {
+                                                                        type: "button",
+                                                                        onClick: () => reopenTrade(T.id),
+                                                                        title: "นำกลับไปออเดอร์ที่กำลังถืออยู่ (เผื่อกดปิดผิด)",
+                                                                        style: { background: "rgba(56,189,248,0.15)", color: "#38bdf8", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                                                                        children: "↩️"
+                                                                    }),
+                                                                    _jsx("button", {
+                                                                        onClick: () => handleEditClosedClick(T),
+                                                                        style: { background: "rgba(59,130,246,0.15)", color: "var(--color-primary)", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                                                                        children: "✏️"
+                                                                    }),
+                                                                    _jsx("button", {
+                                                                        onClick: () => Dh(T.id),
+                                                                        style: { background: "rgba(239,68,68,0.15)", color: "#ef4444", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "11px" },
+                                                                        children: "🗑️"
+                                                                    })
+                                                                ]
                                                             })
-                                                        })]
-                                                    }, T.id || $)
-                                                }) : _jsx("tr", {
-                                                    children: _jsx("td", {
-                                                        colSpan: "10",
-                                                        style: {
-                                                            textAlign: "center",
-                                                            padding: "40px"
-                                                        },
-                                                        children: "ไม่พบรายการบันทึกออเดอร์ประวัติการเทรดที่ปิดแล้วตามตัวกรอง"
+                                                        });
+
+                                                        if (activeMarketType === "thai_gold") {
+                                                            const entryP = parseFloat(T["ราคาที่เข้า"] || 0);
+                                                            const closeP = parseFloat(T["ราคาที่ปิด"] || 0);
+                                                            const goldRisk = parseFloat(T["ความเสี่ยง"] || 0);
+                                                            const buyAmt = entryP * (goldRisk / 15.244);
+                                                            return _jsxs("tr", {
+                                                                children: [
+                                                                    dateTd,
+                                                                    pairTd,
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" }, children: buyAmt > 0 ? (buyAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ฿") : "-" }),
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" }, children: goldRisk ? (goldRisk.toLocaleString() + " กรัม") : "-" }),
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" }, children: entryP ? entryP.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "-" }),
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right", color: "var(--color-primary)", fontWeight: "600" }, children: closeP ? closeP.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "-" }),
+                                                                    _jsx("td", {
+                                                                        style: { fontSize: "11px", padding: "7px 6px", textAlign: "right", fontWeight: "700" },
+                                                                        className: lt > 0 ? "profit-text" : lt < 0 ? "loss-text" : "",
+                                                                        children: lt !== 0 ? (lt > 0 ? `+฿${lt.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : `-฿${Math.abs(lt).toLocaleString(undefined, { minimumFractionDigits: 2 })}`) : "-"
+                                                                    }),
+                                                                    remarksTd,
+                                                                    actionsTd
+                                                                ]
+                                                            }, T.id || $);
+                                                        }
+
+                                                        if (activeMarketType === "thai_stock" || activeMarketType === "inter_stock") {
+                                                            const entryP = parseFloat(T["ราคาที่เข้า"] || 0);
+                                                            const closeP = parseFloat(T["ราคาที่ปิด"] || 0);
+                                                            const shareQty = parseFloat(T["ความเสี่ยง"] || 0);
+                                                            const totalBuy = entryP * shareQty;
+                                                            return _jsxs("tr", {
+                                                                children: [
+                                                                    dateTd,
+                                                                    pairTd,
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" }, children: shareQty ? shareQty.toLocaleString() : "-" }),
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" }, children: totalBuy > 0 ? (totalBuy.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ` ${currSym}`) : "-" }),
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" }, children: entryP ? entryP.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "-" }),
+                                                                    _jsx("td", { style: { fontSize: "11px", padding: "7px 6px", textAlign: "right", color: "var(--color-primary)", fontWeight: "600" }, children: closeP ? closeP.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "-" }),
+                                                                    _jsx("td", {
+                                                                        style: { fontSize: "11px", padding: "7px 6px", textAlign: "right", fontWeight: "700" },
+                                                                        className: lt > 0 ? "profit-text" : lt < 0 ? "loss-text" : "",
+                                                                        children: lt !== 0 ? (lt > 0 ? `+${currSym}${lt.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : `-${currSym}${Math.abs(lt).toLocaleString(undefined, { minimumFractionDigits: 2 })}`) : "-"
+                                                                    }),
+                                                                    remarksTd,
+                                                                    actionsTd
+                                                                ]
+                                                            }, T.id || $);
+                                                        }
+
+                                                        return _jsxs("tr", {
+                                                            children: [
+                                                                dateTd,
+                                                                pairTd,
+                                                                _jsx("td", {
+                                                                    style: { fontSize: "11px", padding: "7px 6px" },
+                                                                    className: String(T["ประเภทการเข้า"]).toLowerCase().includes("buy") ? "type-buy" : "type-sell",
+                                                                    children: T["ประเภทการเข้า"]
+                                                                }),
+                                                                _jsx("td", {
+                                                                    style: { padding: "7px 6px" },
+                                                                    children: _jsx("span", {
+                                                                        className: `badge ${Dt ? "badge-win" : Fe ? "badge-loss" : "badge-be"}`,
+                                                                        style: { fontSize: "11px", padding: "2px 7px" },
+                                                                        children: T["ผลลัพธ์"] || (Z === 0 ? "BE" : Z > 0 ? "Win" : "Loss")
+                                                                    })
+                                                                }),
+                                                                _jsxs("td", {
+                                                                    style: { fontSize: "11px", padding: "7px 6px" },
+                                                                    children: [
+                                                                        _jsxs("div", {
+                                                                            className: Z > 0 ? "profit-text" : Z < 0 ? "loss-text" : "",
+                                                                            style: { fontWeight: 600 },
+                                                                            children: [Z > 0 ? `+${Z}` : Z || "-", " จุด"]
+                                                                        }),
+                                                                        lt !== 0 && _jsx("div", {
+                                                                            className: lt > 0 ? "profit-text" : "loss-text",
+                                                                            style: { fontSize: "10px", marginTop: "1px" },
+                                                                            children: lt > 0 ? `+$${lt.toFixed(2)}` : `$${lt.toFixed(2)}`
+                                                                        })
+                                                                    ]
+                                                                }),
+                                                                _jsx("td", {
+                                                                    style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" },
+                                                                    children: T["ราคาที่เข้า"]
+                                                                }),
+                                                                _jsx("td", {
+                                                                    style: { fontSize: "11px", padding: "7px 6px", textAlign: "right", color: "var(--color-primary)", fontWeight: "600" },
+                                                                    children: T["ราคาที่ปิด"] || "-"
+                                                                }),
+                                                                _jsx("td", {
+                                                                    style: { fontSize: "11px", padding: "7px 6px", textAlign: "right" },
+                                                                    children: T["ความเสี่ยง"]
+                                                                }),
+                                                                remarksTd,
+                                                                actionsTd
+                                                            ]
+                                                        }, T.id || $);
+                                                    }) : _jsx("tr", {
+                                                        children: _jsx("td", {
+                                                            colSpan: (activeMarketType === "thai_gold" || activeMarketType === "thai_stock" || activeMarketType === "inter_stock") ? "9" : "10",
+                                                            style: { textAlign: "center", padding: "40px" },
+                                                            children: "ไม่พบรายการบันทึกออเดอร์ประวัติการเทรดที่ปิดแล้วตามตัวกรอง"
+                                                        })
                                                     })
                                                 })
-                                            })]
+                                            ]
                                         })
                                     })]
                                 })]
@@ -4615,36 +5417,24 @@ Indicator`] || "",
             }), reasonPickerModal && (() => {
                 const isCandle = reasonPickerModal.type === "candle";
                 const target = reasonPickerModal.target;
-                const list = isCandle ? candleList : indicatorList;
-                
-                let selected = [];
+                const allItems = isCandle ? candleList : indicatorList;
+                let selectedItems = [];
                 if (target === "newTrade") {
-                    selected = isCandle ? (newTrade.candleReasons || []) : (newTrade.indicatorReasons || []);
+                    selectedItems = isCandle ? (newTrade.candleReasons || []) : (newTrade.indicatorReasons || []);
                 } else if (target === "editTrade") {
-                    selected = isCandle ? (editTrade.candleReasons || []) : (editTrade.indicatorReasons || []);
+                    selectedItems = isCandle ? (editTrade.candleReasons || []) : (editTrade.indicatorReasons || []);
                 } else if (target === "closedTrade") {
-                    selected = isCandle ? (selectedClosedTrade?.candleReasons || []) : (selectedClosedTrade?.indicatorReasons || []);
+                    selectedItems = isCandle ? (selectedClosedTrade?.candleReasons || []) : (selectedClosedTrade?.indicatorReasons || []);
                 }
 
-                const handleToggle = item => {
-                    const isSelected = selected.includes(item);
-                    const updated = isSelected ? selected.filter(x => x !== item) : [...selected, item];
+                const handleSelectAll = (items) => {
+                    const toAdd = items || allItems;
                     if (target === "newTrade") {
-                        setNewTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: updated }));
+                        setNewTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: Array.from(new Set([...(prev[isCandle ? "candleReasons" : "indicatorReasons"] || []), ...toAdd])) }));
                     } else if (target === "editTrade") {
-                        setEditTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: updated }));
+                        setEditTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: Array.from(new Set([...(prev[isCandle ? "candleReasons" : "indicatorReasons"] || []), ...toAdd])) }));
                     } else if (target === "closedTrade") {
-                        setSelectedClosedTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: updated }));
-                    }
-                };
-
-                const handleSelectAll = () => {
-                    if (target === "newTrade") {
-                        setNewTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: [...list] }));
-                    } else if (target === "editTrade") {
-                        setEditTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: [...list] }));
-                    } else if (target === "closedTrade") {
-                        setSelectedClosedTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: [...list] }));
+                        setSelectedClosedTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: Array.from(new Set([...(prev[isCandle ? "candleReasons" : "indicatorReasons"] || []), ...toAdd])) }));
                     }
                 };
 
@@ -4658,216 +5448,66 @@ Indicator`] || "",
                     }
                 };
 
-                return _jsx("div", {
-                    style: {
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: "rgba(11, 15, 25, 0.8)",
-                        backdropFilter: "blur(8px)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 1100,
-                        padding: "16px"
-                    },
-                    children: _jsxs("div", {
-                        className: "glass-card",
-                        style: {
-                            width: "100%",
-                            maxWidth: "540px",
-                            maxHeight: "85vh",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "16px",
-                            background: "#131A2E",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "14px",
-                            padding: "22px",
-                            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)"
-                        },
-                        children: [
-                            _jsxs("div", {
-                                style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "12px" },
-                                children: [
-                                    _jsxs("div", {
-                                        children: [
-                                            _jsx("h3", {
-                                                style: { fontSize: "16px", fontWeight: "700", color: "#fff", margin: 0, display: "flex", alignItems: "center", gap: "8px" },
-                                                children: isCandle ? "🕯️ เลือกเหตุผลซัพพอร์ตแท่งเทียน" : "📊 เลือกเหตุผลซัพพอร์ต Indicator"
-                                            }),
-                                            _jsx("span", {
-                                                style: { fontSize: "12px", color: "var(--text-muted)", marginTop: "4px", display: "block" },
-                                                children: "ติ๊กเลือกเหตุผลที่สนับสนุนแผนเทรด (เลือกได้หลายข้อ)"
-                                            })
-                                        ]
-                                    }),
-                                    _jsxs("div", {
-                                        style: { display: "flex", alignItems: "center", gap: "6px" },
-                                        children: [
-                                            _jsx("button", {
-                                                type: "button",
-                                                onClick: () => {
-                                                    setReasonPickerModal(null);
-                                                    if (isCandle) setShowCandleModal(!0);
-                                                    else setShowIndicatorModal(!0);
-                                                },
-                                                style: {
-                                                    background: "rgba(59, 130, 246, 0.15)",
-                                                    color: "#60a5fa",
-                                                    border: "1px solid rgba(59, 130, 246, 0.3)",
-                                                    borderRadius: "6px",
-                                                    padding: "4px 8px",
-                                                    fontSize: "11px",
-                                                    cursor: "pointer",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: "4px"
-                                                },
-                                                title: "จัดการ/เพิ่ม/แก้ไขรายการ",
-                                                children: "⚙️ จัดการรายการ"
-                                            }),
-                                            _jsx("button", {
-                                                type: "button",
-                                                onClick: () => setReasonPickerModal(null),
-                                                style: {
-                                                    background: "rgba(255, 255, 255, 0.08)",
-                                                    border: "none",
-                                                    color: "var(--text-secondary)",
-                                                    borderRadius: "6px",
-                                                    width: "28px",
-                                                    height: "28px",
-                                                    cursor: "pointer",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    fontSize: "14px"
-                                                },
-                                                children: "✕"
-                                            })
-                                        ]
-                                    })
-                                ]
-                            }),
-                            _jsxs("div", {
-                                style: { display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.25)", padding: "8px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" },
-                                children: [
-                                    _jsxs("span", {
-                                        style: { fontSize: "12.5px", color: selected.length > 0 ? "#60a5fa" : "var(--text-muted)", fontWeight: "600" },
-                                        children: ["เลือกแล้ว: ", _jsx("strong", { style: { color: "#fff" }, children: selected.length }), " / ", list.length, " รายการ"]
-                                    }),
-                                    _jsxs("div", {
-                                        style: { display: "flex", gap: "6px" },
-                                        children: [
-                                            _jsx("button", {
-                                                type: "button",
-                                                onClick: handleSelectAll,
-                                                style: { background: "rgba(59, 130, 246, 0.12)", border: "1px solid rgba(59, 130, 246, 0.25)", color: "#93c5fd", borderRadius: "4px", padding: "3px 8px", fontSize: "11px", cursor: "pointer" },
-                                                children: "✅ เลือกทั้งหมด"
-                                            }),
-                                            _jsx("button", {
-                                                type: "button",
-                                                onClick: handleClearAll,
-                                                style: { background: "rgba(239, 68, 68, 0.12)", border: "1px solid rgba(239, 68, 68, 0.25)", color: "#fca5a5", borderRadius: "4px", padding: "3px 8px", fontSize: "11px", cursor: "pointer" },
-                                                children: "🔄 ล้างทั้งหมด"
-                                            })
-                                        ]
-                                    })
-                                ]
-                            }),
-                            _jsx("div", {
-                                style: {
-                                    display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-                                    gap: "8px",
-                                    maxHeight: "360px",
-                                    overflowY: "auto",
-                                    padding: "4px 2px"
-                                },
-                                children: [...list].sort((a, b) => {
-                                    const getBase = it => it.replace(/\s*\(?(1D|4H|1H|30M|15M|5M|1M|1W)\)?\s*$/i, "").replace(/\s+/g, " ").trim();
-                                    const cOrder = {
-                                        "Demand": 1, "Demand ย่อย": 2, "Supply": 3, "Supply ย่อย": 4,
-                                        "ORDER BLOCK(OB)": 1, "ORDER BLOCK": 1, "Hidden Candle(HC)": 2, "Hidden Candle": 2,
-                                        "ChoCh (กลับตัวขึ้น)": 1, "ChoCh (กลับตัวลง)": 2,
-                                        "BOS (ไปต่อ)": 1, "BOS (ขึ้นต่อ)": 2, "BOS (ลงต่อ)": 3,
-                                        "QM (กลับตัว)": 1, "QM": 1,
-                                        "Trend Line ขาขึ้น": 1, "Trend Line ขาลง": 2, "Sideway บน": 3, "Sideway ล่าง": 4,
-                                        "Swing High": 1, "Swing Hight": 1, "Swing Low": 2,
-                                        "Pin Bar": 1, "Engulfing": 2, "Doji": 3, "Inside Bar": 4, "Morning Star": 5, "Three White Soldiers": 6,
-                                        "EMA 9": 1, "EMA 20": 2, "EMA 50": 3, "EMA 100": 4, "EMA 200": 5, "EMA 50/200 Cross": 6,
-                                        "RSI บนเส้น": 1, "RSI ล่างเส้น": 2, "RSI Divergence": 3, "RSI Overbought": 4, "RSI Oversold": 5,
-                                        "Stochastic ยกหัวขึ้น": 1, "Stochastic ปักหัวลง": 2, "Stochastic ตัดกัน": 3, "Stochastic บนเส้น": 4, "Stochastic ล่างเส้น": 5, "Stochastic Cross": 6,
-                                        "Fibonacci": 1, "MACD Golden Cross": 1, "Bollinger Bands Bounce": 2
-                                    };
-                                    const rA = cOrder[getBase(a)] || 50, rB = cOrder[getBase(b)] || 50;
-                                    if (rA !== rB) return rA - rB;
-                                    const bDiff = getBase(a).localeCompare(getBase(b));
-                                    if (bDiff !== 0) return bDiff;
-                                    const getTf = it => {
-                                        if (it.includes("1D")) return 1;
-                                        if (it.includes("4H")) return 2;
-                                        if (it.includes("1H")) return 3;
-                                        if (it.includes("30M")) return 4;
-                                        if (it.includes("15M")) return 5;
-                                        if (it.includes("5M")) return 6;
-                                        if (it.includes("1M")) return 7;
-                                        return 8;
-                                    };
-                                    return getTf(a) - getTf(b) || a.localeCompare(b);
-                                }).map(item => {
-                                    const isChecked = selected.includes(item);
-                                    return _jsxs("div", {
-                                        key: item,
-                                        onClick: () => handleToggle(item),
-                                        style: {
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "10px",
-                                            padding: "10px 12px",
-                                            borderRadius: "8px",
-                                            cursor: "pointer",
-                                            border: isChecked ? "1.5px solid #3b82f6" : "1px solid rgba(255,255,255,0.08)",
-                                            background: isChecked ? "rgba(59, 130, 246, 0.15)" : "rgba(255, 255, 255, 0.03)",
-                                            color: isChecked ? "#fff" : "var(--text-secondary)",
-                                            transition: "all 0.15s ease",
-                                            boxShadow: isChecked ? "0 0 10px rgba(59, 130, 246, 0.2)" : "none"
-                                        },
-                                        children: [
-                                            _jsx("input", {
-                                                type: "checkbox",
-                                                checked: isChecked,
-                                                onChange: () => {},
-                                                style: { cursor: "pointer", accentColor: "#3b82f6", transform: "scale(1.15)" }
-                                            }),
-                                            _jsx("span", {
-                                                style: { fontSize: "13px", fontWeight: isChecked ? "600" : "normal", flex: 1, wordBreak: "break-word" },
-                                                children: item
-                                            })
-                                        ]
-                                    });
-                                })
-                            }),
-                            _jsx("button", {
-                                type: "button",
-                                onClick: () => setReasonPickerModal(null),
-                                className: "btn-primary",
-                                style: {
-                                    margin: 0,
-                                    padding: "10px",
-                                    width: "100%",
-                                    height: "44px",
-                                    fontSize: "14px",
-                                    fontWeight: "700",
-                                    background: "linear-gradient(135deg, #3b82f6, #1d4ed8)",
-                                    boxShadow: "0 4px 14px rgba(59, 130, 246, 0.4)"
-                                },
-                                children: `🎯 ยืนยันการเลือก (${selected.length} รายการ)`
-                            })
-                        ]
-                    })
+                const handleToggleItem = (it) => {
+                    const cur = selectedItems || [];
+                    const updated = cur.includes(it) ? cur.filter(x => x !== it) : [...cur, it];
+                    if (target === "newTrade") {
+                        setNewTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: updated }));
+                    } else if (target === "editTrade") {
+                        setEditTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: updated }));
+                    } else if (target === "closedTrade") {
+                        setSelectedClosedTrade(prev => ({ ...prev, [isCandle ? "candleReasons" : "indicatorReasons"]: updated }));
+                    }
+                };
+
+                const handleOpenManager = () => {
+                    setReasonPickerModal(null);
+                    if (isCandle) setShowCandleModal(!0);
+                    else setShowIndicatorModal(!0);
+                };
+
+                const handleCloudSync = async () => {
+                    try {
+                        const uname = currentUser?.username || "pattarawin";
+                        const res = await fetch(`/api/trades?username=${encodeURIComponent(uname)}`);
+                        if (res.ok) {
+                            const dt = await res.json();
+                            if (isCandle && dt.candleReasons) {
+                                const s = new Set([...candleList, ...dt.candleReasons]);
+                                const arr = Array.from(s);
+                                setCandleList(arr);
+                                alert(`☁️ ซิงก์ข้อมูล Cloud สำเร็จ! มีเหตุผลแท่งเทียนทั้งหมด ${arr.length} รายการ`);
+                                return;
+                            } else if (!isCandle && dt.indicatorReasons) {
+                                const s = new Set([...indicatorList, ...dt.indicatorReasons]);
+                                const arr = Array.from(s);
+                                setIndicatorList(arr);
+                                alert(`☁️ ซิงก์ข้อมูล Cloud สำเร็จ! มีเหตุผล Indicator ทั้งหมด ${arr.length} รายการ`);
+                                return;
+                            }
+                        }
+                    } catch(e) {}
+                    alert(`☁️ ข้อมูลซิงก์เรียบร้อยแล้ว (${allItems.length} รายการ)`);
+                };
+
+                return $reasonPicker({
+                    isOpen: true,
+                    onClose: () => setReasonPickerModal(null),
+                    title: (target === "editTrade" ? "แก้ไข" : "เลือก") + (isCandle ? "เหตุผลซัพพอร์ตแท่งเทียน" : "เหตุผลซัพพอร์ต Indicator"),
+                    icon: isCandle ? "🕯️" : "📊",
+                    isCandle: isCandle,
+                    allItems: allItems,
+                    selectedItems: selectedItems,
+                    onSelectAll: handleSelectAll,
+                    onClearAll: handleClearAll,
+                    onToggleItem: handleToggleItem,
+                    onOpenManager: handleOpenManager,
+                    onCloudSync: handleCloudSync,
+                    searchVal: isCandle ? qSearch : qIndSearch,
+                    setSearchVal: isCandle ? setQSearch : setQIndSearch,
+                    catVal: isCandle ? qCat : qIndCat,
+                    setCatVal: isCandle ? setQCat : setQIndCat,
+                    accentColor: isCandle ? "#3b82f6" : "#10b981"
                 });
             })(), showAssetModal && _jsx("div", {
                 style: {
@@ -6443,6 +7083,25 @@ Indicator`] || "",
                             borderTop: "1px solid rgba(255,255,255,0.06)"
                         },
                         children: [_jsx("button", {
+                            type: "button",
+                            onClick: () => {
+                                const trId = selectedClosedTrade.uniqueId || selectedClosedTrade.id;
+                                setSelectedClosedTrade(null);
+                                reopenTrade(trId);
+                            },
+                            style: {
+                                padding: "10px 16px",
+                                background: "rgba(56,189,248,0.15)",
+                                border: "1px solid rgba(56,189,248,0.4)",
+                                borderRadius: "10px",
+                                color: "#38bdf8",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                fontSize: "13px",
+                                marginRight: "auto"
+                            },
+                            children: "↩️ ย้ายกลับไปออเดอร์ที่กำลังถืออยู่"
+                        }), _jsx("button", {
                             onClick: () => setSelectedClosedTrade(null),
                             style: {
                                 padding: "10px 22px",
