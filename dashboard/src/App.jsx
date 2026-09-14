@@ -382,6 +382,14 @@ export default function App() {
                 return {
                     color: "#94A3B8", bg: "rgba(148, 163, 184, 0.15)", gradient: "linear-gradient(135deg, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05))"
                 };
+            case "oil_analysis":
+                return {
+                    color: "#EC4899", bg: "rgba(236, 72, 153, 0.15)", gradient: "linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(236, 72, 153, 0.05))"
+                };
+            case "admin_users":
+                return {
+                    color: "#EF4444", bg: "rgba(239, 68, 68, 0.15)", gradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.05))"
+                };
             default:
                 return {
                     color: "#3B82F6", bg: "rgba(59, 130, 246, 0.15)", gradient: "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.05))"
@@ -1334,13 +1342,6 @@ Indicator`] || "",
                             size: 18
                         })
                     }, {
-                        id: "admin_users",
-                        label: "จัดการผู้ดูแลระบบ",
-                        icon: _jsx(ShieldAlert, {
-                            size: 18
-                        }),
-                        adminOnly: true
-                    }, {
                         id: "overview",
                         label: "ภาพรวมพอร์ต",
                         icon: _jsx(Activity, {
@@ -1350,12 +1351,6 @@ Indicator`] || "",
                         id: "journal_plan",
                         label: "แผนปั้นพอร์ต 100%",
                         icon: _jsx(BookOpen, {
-                            size: 18
-                        })
-                    }, {
-                        id: "settings",
-                        label: "ตั้งค่าระบบ",
-                        icon: _jsx(Settings, {
                             size: 18
                         })
                     }].filter(b => {
@@ -1452,7 +1447,48 @@ Indicator`] || "",
                             },
                             children: "ตั้งค่าระบบ"
                         })]
-                    }), sidebarMenuExpanded ? _jsxs("div", {
+                    }), (() => {
+                        const role = String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim();
+                        const isUserAdmin = role === "admin" || role === "administrator";
+                        if (!isUserAdmin) return null;
+                        const isAct = activeTab === "admin_users";
+                        return _jsxs("button", {
+                            onClick: () => {
+                                setActiveTab("admin_users");
+                                setMobileMenuOpen(!1);
+                            },
+                            style: {
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: sidebarMenuExpanded ? "flex-start" : "center",
+                                gap: sidebarMenuExpanded ? "12px" : "0",
+                                padding: "10px",
+                                borderRadius: "6px",
+                                background: isAct ? "rgba(239, 68, 68, 0.18)" : "rgba(255, 255, 255, 0.04)",
+                                color: isAct ? "#f87171" : "var(--text-primary)",
+                                border: isAct ? "1px solid #ef4444" : "1px solid var(--border-color)",
+                                cursor: "pointer",
+                                textAlign: "left",
+                                transition: "all 0.2s",
+                                width: "100%",
+                                fontWeight: isAct ? "600" : "500",
+                                boxShadow: isAct ? "0 0 10px rgba(239, 68, 68, 0.2)" : "none"
+                            },
+                            title: sidebarMenuExpanded ? "" : "จัดการผู้ดูแลระบบ",
+                            children: [_jsx(ShieldAlert, {
+                                size: 16,
+                                style: {
+                                    color: isAct ? "#f87171" : "var(--text-muted)",
+                                    filter: isAct ? "drop-shadow(0 0 6px #ef4444)" : "none"
+                                }
+                            }), sidebarMenuExpanded && _jsx("span", {
+                                style: {
+                                    fontSize: "13px"
+                                },
+                                children: "จัดการผู้ดูแลระบบ"
+                            })]
+                        });
+                    })(), sidebarMenuExpanded ? _jsxs("div", {
                         style: {
                             padding: "10px",
                             borderRadius: "6px",
