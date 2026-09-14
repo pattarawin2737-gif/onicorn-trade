@@ -913,7 +913,7 @@ export default function App() {
         }
     }, [activeTab]);
     useEffect(() => {
-        if (activeTab === "journal_plan" && activeMarketType === "thai_gold") {
+        if ((activeTab === "journal_plan" || activeTab === "overview") && activeMarketType === "thai_gold") {
             setActiveMarketType("forex");
         }
     }, [activeTab, activeMarketType]);
@@ -2338,12 +2338,6 @@ Indicator`] || "",
                                     gradient: "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15))",
                                     border: "1.5px solid #3b82f6",
                                     color: "#60a5fa"
-                                }, {
-                                    id: "thai_gold",
-                                    label: "🪙 ทองไทย (Thai Gold)",
-                                    gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.15))",
-                                    border: "1.5px solid #f59e0b",
-                                    color: "#fbbf24"
                                 }, {
                                     id: "thai_stock",
                                     label: "🇹🇭 หุ้นไทย (Thai Stocks)",
