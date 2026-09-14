@@ -1002,36 +1002,6 @@ export default function AnalysisView({ username }) {
           indicators={{ RSI: 54.2, MA20: "Neutral", MACD: "Consolidation" }}
         />
       </div>
-      {/* Gemini AI Smart Analysis Header */}
-      <div style={{ marginBottom: 18 }}>
-        <GeminiAiAnalysisCard
-          assetType={symbol.includes("BTC") || symbol.includes("ETH") ? "crypto" : "forex"}
-          symbol={symbol.split(":")[1] || symbol}
-          price={livePrice ? String(livePrice) : ""}
-          change="+0.25%"
-          indicators={{ RSI: 54.2, MA20: "Neutral", MACD: "Consolidation" }}
-        />
-      </div>
-      {/* Gemini AI Smart Analysis Header */}
-      <div style={{ marginBottom: 18 }}>
-        <GeminiAiAnalysisCard
-          assetType={symbol.includes("BTC") || symbol.includes("ETH") ? "crypto" : "forex"}
-          symbol={symbol.split(":")[1] || symbol}
-          price={livePrice ? String(livePrice) : ""}
-          change="+0.25%"
-          indicators={{ RSI: 54.2, MA20: "Neutral", MACD: "Consolidation" }}
-        />
-      </div>
-      {/* Gemini AI Smart Analysis Header */}
-      <div style={{ marginBottom: 18 }}>
-        <GeminiAiAnalysisCard
-          assetType={symbol.includes("BTC") || symbol.includes("ETH") ? "crypto" : "forex"}
-          symbol={symbol.split(":")[1] || symbol}
-          price={livePrice ? String(livePrice) : ""}
-          change="+0.25%"
-          indicators={{ RSI: 54.2, MA20: "Neutral", MACD: "Consolidation" }}
-        />
-      </div>
       {/* Split layout: Left (70% width) and Right (30% width) */}
       <div className="analysis-split-layout full-chart-mode">
         
