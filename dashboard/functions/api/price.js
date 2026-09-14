@@ -37,11 +37,11 @@ export async function onRequest(context) {
 
   // Top US Stocks & World Indices Benchmark Dictionary
   const usStockFallback = {
-    "AAPL": 315.50, "TSLA": 364.00, "NVDA": 219.80, "MSFT": 511.00, "AMZN": 261.00,
-    "GOOGL": 338.00, "GOOG": 338.50, "META": 571.50, "NFLX": 81.30, "AMD": 469.00,
+    "AAPL": 332.27, "TSLA": 359.99, "NVDA": 218.29, "MSFT": 494.77, "AMZN": 256.76,
+    "GOOGL": 340.68, "GOOG": 340.50, "META": 647.58, "NFLX": 77.28, "AMD": 516.13,
     "PLTR": 185.70, "COIN": 182.00, "BABA": 114.80, "DIS": 107.60, "SPY": 766.20,
-    "QQQ": 715.00, "DJI": 53243.00, "US30": 53243.00, "SPX": 7680.00, "SPX500": 7680.00,
-    "SP500": 7680.00, "IXIC": 26310.00, "NAS100": 26310.00, "NASDAQ": 26310.00,
+    "QQQ": 715.00, "DJI": 52573.29, "US30": 52573.29, "SPX": 7656.98, "SPX500": 7656.98,
+    "SP500": 7656.98, "IXIC": 26333.04, "NAS100": 26333.04, "NASDAQ": 26333.04,
     "INTC": 21.50, "QCOM": 172.00, "XOM": 118.00, "CVX": 148.00, "AVGO": 168.00
   };
 
@@ -302,7 +302,15 @@ export async function onRequest(context) {
       })
     );
 
-    return new Response(JSON.stringify({ ...results, results, success: true }), {
+    const pricesMap = {};
+    for (const [k, v] of Object.entries(results)) {
+      if (v && typeof v.price === "number") {
+        pricesMap[k] = v.price;
+        pricesMap[k.toUpperCase()] = v.price;
+      }
+    }
+
+    return new Response(JSON.stringify({ ...results, results, prices: pricesMap, success: true }), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
     });
   }
@@ -316,7 +324,13 @@ export async function onRequest(context) {
 
   // 2. SINGLE SYMBOL HANDLING
   const singleQuote = await resolveAssetQuote(rawSymbol, marketType === "thai_stock" || marketType === "thai_stock_analysis");
-  return new Response(JSON.stringify({ ...singleQuote, symbol: rawSymbol, success: true }), {
+  const p = singleQuote?.price || 0;
+  const cleanSym = rawSymbol.trim();
+  const pricesMap = {
+    [cleanSym]: p,
+    [cleanSym.toUpperCase()]: p
+  };
+  return new Response(JSON.stringify({ ...singleQuote, symbol: rawSymbol, prices: pricesMap, success: true }), {
     headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
   });
 }

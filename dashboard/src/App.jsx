@@ -913,6 +913,12 @@ export default function App() {
         }
     }, [activeTab]);
     useEffect(() => {
+        if (activeTab === "journal_plan" && (activeMarketType === "thai_gold" || activeMarketType === "thai_stock")) {
+            setActiveMarketType("forex");
+        }
+    }, [activeTab, activeMarketType]);
+    useEffect(() => {
+        if (!isDemoMode) return;
         const interval = setInterval(() => {
             setCurrentPrices(prev => {
                 const next = { ...prev };
@@ -922,7 +928,7 @@ export default function App() {
                         const entryPrice = parseFloat(trade["ราคาที่เข้า"] || 0);
                         if (entryPrice > 0) {
                             const current = next[id] !== undefined ? next[id] : entryPrice;
-                            const changePercent = (Math.random() - 0.5) * 0.001; // max 0.05% fluctuation
+                            const changePercent = (Math.random() - 0.5) * 0.001;
                             next[id] = current * (1 + changePercent);
                         }
                     }
@@ -931,7 +937,7 @@ export default function App() {
             });
         }, 3000);
         return () => clearInterval(interval);
-    }, [tradesData]);
+    }, [tradesData, isDemoMode]);
 
     useEffect(() => {
         const fetchLivePrices = async () => {
@@ -942,15 +948,40 @@ export default function App() {
             try {
                 const res = await fetch(`/api/price?symbol=${encodeURIComponent(symbols)}&marketType=${activeMarketType}`);
                 const data = await res.json();
-                if (data && data.prices) {
+                const prices = { ...(data?.prices || {}) };
+                if (data && typeof data.price === "number") {
+                    symbols.split(",").forEach(s => {
+                        const sTrim = s.trim();
+                        prices[sTrim] = data.price;
+                        prices[sTrim.toUpperCase()] = data.price;
+                    });
+                }
+                if (data && data.results) {
+                    Object.entries(data.results).forEach(([k, v]) => {
+                        if (v && typeof v.price === "number") {
+                            prices[k] = v.price;
+                            prices[k.toUpperCase()] = v.price;
+                        }
+                    });
+                }
+                if (data) {
+                    Object.entries(data).forEach(([k, v]) => {
+                        if (v && typeof v.price === "number") {
+                            prices[k] = v.price;
+                            prices[k.toUpperCase()] = v.price;
+                        }
+                    });
+                }
+                if (Object.keys(prices).length > 0) {
                     setCurrentPrices((prev) => {
                         const next = { ...prev };
                         activeTrades.forEach((t) => {
                             const symKey = (t["คู่เงิน"] || t.pair || "").trim();
-                            if (data.prices[symKey] !== undefined) {
-                                next[t.id] = data.prices[symKey];
-                                next[symKey] = data.prices[symKey];
-                                next[symKey.toUpperCase()] = data.prices[symKey];
+                            const p = prices[symKey] ?? prices[symKey.toUpperCase()];
+                            if (p !== undefined) {
+                                next[t.id] = p;
+                                next[symKey] = p;
+                                next[symKey.toUpperCase()] = p;
                             }
                         });
                         return next;
@@ -992,13 +1023,22 @@ export default function App() {
         let Fe = 500;
         activeMarketType === "thai_stock" ? Fe = 5e4 : activeMarketType === "inter_stock" && (Fe = 5e3), setProfitTarget(Dt ? parseFloat(Dt) : Fe);
         const Pi = localStorage.getItem(`${b}_${activeMarketType}_dashboard_hide_sheet_trades`);
-        setHideSheetTrades(Pi === "true"), setNewTrade(Ui => ({
+        setHideSheetTrades(Pi === "true");
+        const defaultInitPair = V[0] || (activeMarketType === "forex" ? "XAUUSD" : activeMarketType === "thai_stock" ? "PTT" : "AAPL");
+        setNewTrade(Ui => ({
             ...Ui,
-            pair: V[0] || (activeMarketType === "forex" ? "XAUUSD" : activeMarketType === "thai_stock" ? "PTT" : "AAPL"),
+            pair: defaultInitPair,
             type: entryTypesList[0] || "Buy",
             candleReasons: [],
             indicatorReasons: []
-        }))
+        }));
+        fetch(`/api/price?symbol=${encodeURIComponent(defaultInitPair)}&marketType=${encodeURIComponent(activeMarketType)}`)
+            .then(r => r.json())
+            .then(d => {
+                if (d && typeof d.price === "number" && d.price > 0) {
+                    setNewTrade(prev => ({ ...prev, entryPrice: String(d.price) }));
+                }
+            }).catch(() => {});
     }, [currentUser, isLoggedIn, activeMarketType]), useEffect(() => {
         isLoggedIn && loadAllData()
     }, [isLoggedIn, selectedPlanSheet, isDemoMode]), useEffect(() => {
@@ -3073,18 +3113,6 @@ Indicator`] || "",
                                         border: "1.5px solid #3b82f6",
                                         color: "#60a5fa"
                                     }, {
-                                        id: "thai_gold",
-                                        label: "🪙 ทองไทย (Thai Gold)",
-                                        gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.15))",
-                                        border: "1.5px solid #f59e0b",
-                                        color: "#fbbf24"
-                                    }, {
-                                        id: "thai_stock",
-                                        label: "🇹🇭 หุ้นไทย (Thai Stocks)",
-                                        gradient: "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.15))",
-                                        border: "1.5px solid #eab308",
-                                        color: "#facc15"
-                                    }, {
                                         id: "inter_stock",
                                         label: "🌎 หุ้นต่างประเทศ (Foreign Stocks)",
                                         gradient: "linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(168, 85, 247, 0.15))",
@@ -3112,221 +3140,7 @@ Indicator`] || "",
                                         }, T.id)
                                     })
                                 }),
-                                activeMarketType === "thai_gold" && _jsxs("div", {
-                                    className: "glass-card",
-                                    style: {
-                                        padding: "20px 24px",
-                                        background: "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.98))",
-                                        border: "1px solid rgba(234, 179, 8, 0.35)",
-                                        boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
-                                    },
-                                    children: [
-                                        _jsxs("h3", {
-                                            className: "chart-title",
-                                            style: {
-                                                fontSize: "15px",
-                                                marginBottom: "16px",
-                                                borderBottom: "1px dashed var(--border-color)",
-                                                paddingBottom: "10px",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: "8px",
-                                                color: "#FBBF24"
-                                            },
-                                            children: [
-                                                _jsx("span", { children: "🪙" }),
-                                                _jsx("span", { children: "ตารางเปรียบเทียบน้ำหนักทองคำไทย (ทอง 96.5%)" })
-                                            ]
-                                        }),
-                                        _jsxs("div", {
-                                            style: {
-                                                display: "grid",
-                                                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                                                gap: "24px",
-                                                alignItems: "start"
-                                            },
-                                            children: [
-                                                _jsxs("div", {
-                                                    style: {
-                                                        background: "rgba(15, 23, 42, 0.4)",
-                                                        borderRadius: "8px",
-                                                        padding: "12px",
-                                                        border: "1px solid rgba(255, 255, 255, 0.05)"
-                                                    },
-                                                    children: [
-                                                        _jsx("div", {
-                                                            style: {
-                                                                fontSize: "11px",
-                                                                color: "var(--text-secondary)",
-                                                                marginBottom: "8px",
-                                                                textAlign: "center",
-                                                                fontWeight: "600"
-                                                            },
-                                                            children: "💡 มาตรฐานสมาคมค้าทองคำแห่งประเทศไทย"
-                                                        }),
-                                                        _jsxs("table", {
-                                                            style: { width: "100%", fontSize: "12px", borderCollapse: "collapse" },
-                                                            children: [
-                                                                _jsx("thead", {
-                                                                    children: _jsxs("tr", {
-                                                                        style: { borderBottom: "1px solid rgba(255,255,255,0.1)" },
-                                                                        children: [
-                                                                            _jsx("th", { style: { padding: "6px 4px", textAlign: "left", color: "var(--text-secondary)" }, children: "หน่วยทองไทย" }),
-                                                                            _jsx("th", { style: { padding: "6px 4px", textAlign: "right", color: "var(--text-secondary)" }, children: "ทองคำแท่ง (กรัม)" }),
-                                                                            _jsx("th", { style: { padding: "6px 4px", textAlign: "right", color: "var(--text-secondary)" }, children: "ทองรูปพรรณ (กรัม)" })
-                                                                        ]
-                                                                    })
-                                                                }),
-                                                                _jsxs("tbody", {
-                                                                    children: [
-                                                                        _jsxs("tr", {
-                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
-                                                                            children: [
-                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "ครึ่งสลึง (1/8 บาท)" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "1.905 กรัม" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "1.89 กรัม" })
-                                                                            ]
-                                                                        }),
-                                                                        _jsxs("tr", {
-                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
-                                                                            children: [
-                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "1 สลึง (1/4 บาท)" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "3.811 กรัม" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "3.79 กรัม" })
-                                                                            ]
-                                                                        }),
-                                                                        _jsxs("tr", {
-                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
-                                                                            children: [
-                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "2 สลึง (ครึ่งบาท)" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "7.622 กรัม" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "7.58 กรัม" })
-                                                                            ]
-                                                                        }),
-                                                                        _jsxs("tr", {
-                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)" },
-                                                                            children: [
-                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "3 สลึง (3/4 บาท)" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "11.433 กรัม" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "11.37 กรัม" })
-                                                                            ]
-                                                                        }),
-                                                                        _jsxs("tr", {
-                                                                            style: { borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(251, 191, 36, 0.05)" },
-                                                                            children: [
-                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "700", color: "#FBBF24" }, children: "1 บาท (4 สลึง)" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", fontWeight: "700", color: "#FBBF24" }, children: "15.244 กรัม" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", fontWeight: "700", color: "#F59E0B" }, children: "15.16 กรัม" })
-                                                                            ]
-                                                                        }),
-                                                                        _jsxs("tr", {
-                                                                            children: [
-                                                                                _jsx("td", { style: { padding: "6px 4px", fontWeight: "600" }, children: "5 บาท" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#FBBF24" }, children: "76.220 กรัม" }),
-                                                                                _jsx("td", { style: { padding: "6px 4px", textAlign: "right", color: "#F59E0B" }, children: "75.80 กรัม" })
-                                                                            ]
-                                                                        })
-                                                                    ]
-                                                                })
-                                                            ]
-                                                        })
-                                                    ]
-                                                }),
-                                                _jsxs("div", {
-                                                    style: {
-                                                        background: "rgba(15, 23, 42, 0.4)",
-                                                        borderRadius: "8px",
-                                                        padding: "12px",
-                                                        border: "1px solid rgba(255, 255, 255, 0.05)",
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        gap: "10px"
-                                                    },
-                                                    children: [
-                                                        _jsx("div", {
-                                                            style: { fontSize: "12px", color: "#FBBF24", fontWeight: "600", textAlign: "center" },
-                                                            children: "🧮 เครื่องคำนวณแปลงน้ำหนักทอง"
-                                                        }),
-                                                        _jsxs("div", {
-                                                            children: [
-                                                                _jsx("label", { className: "form-label", style: { fontSize: "10px", marginBottom: "2px" }, children: "เลือกประเภททองคำ" }),
-                                                                _jsxs("select", {
-                                                                    className: "calc-select",
-                                                                    style: { height: "30px", fontSize: "11px", padding: "0 8px" },
-                                                                    value: goldCalcType,
-                                                                    onChange: e => setGoldCalcType(e.target.value),
-                                                                    children: [
-                                                                        _jsx("option", { value: "bar", children: "ทองคำแท่ง (1 บาท = 15.244 กรัม)" }),
-                                                                        _jsx("option", { value: "jewelry", children: "ทองรูปพรรณ (1 บาท = 15.16 กรัม)" })
-                                                                    ]
-                                                                })
-                                                            ]
-                                                        }),
-                                                        _jsxs("div", {
-                                                            children: [
-                                                                _jsx("label", { className: "form-label", style: { fontSize: "10px", marginBottom: "2px" }, children: "ป้อนน้ำหนัก (กรัม)" }),
-                                                                _jsx("input", {
-                                                                    type: "number",
-                                                                    step: "any",
-                                                                    placeholder: "เช่น 7.622",
-                                                                    className: "calc-input",
-                                                                    style: { height: "30px", fontSize: "12px" },
-                                                                    value: goldCalcGrams,
-                                                                    onChange: e => setGoldCalcGrams(e.target.value)
-                                                                })
-                                                            ]
-                                                        }),
-                                                        _jsxs("div", {
-                                                            style: {
-                                                                marginTop: "6px",
-                                                                padding: "8px",
-                                                                background: "rgba(251, 191, 36, 0.05)",
-                                                                borderRadius: "6px",
-                                                                border: "1px dashed rgba(251, 191, 36, 0.15)",
-                                                                fontSize: "11px",
-                                                                display: "flex",
-                                                                flexDirection: "column",
-                                                                gap: "4px"
-                                                            },
-                                                            children: [
-                                                                _jsxs("div", {
-                                                                    style: { display: "flex", justifyContent: "space-between" },
-                                                                    children: [
-                                                                        _jsx("span", { style: { color: "var(--text-secondary)" }, children: "คิดเป็นน้ำหนักสลึง:" }),
-                                                                        _jsx("span", {
-                                                                            style: { fontWeight: "700", color: "#FBBF24" },
-                                                                            children: (() => {
-                                                                                const grams = parseFloat(goldCalcGrams) || 0;
-                                                                                if (grams <= 0) return "- สลึง";
-                                                                                const divisor = goldCalcType === "bar" ? 15.244 : 15.16;
-                                                                                return (grams / divisor * 4).toFixed(2) + " สลึง";
-                                                                            })()
-                                                                        })
-                                                                    ]
-                                                                }),
-                                                                _jsxs("div", {
-                                                                    style: { display: "flex", justifyContent: "space-between" },
-                                                                    children: [
-                                                                        _jsx("span", { style: { color: "var(--text-secondary)" }, children: "คิดเป็นน้ำหนักบาท:" }),
-                                                                        _jsx("span", {
-                                                                            style: { fontWeight: "700", color: "#FBBF24" },
-                                                                            children: (() => {
-                                                                                const grams = parseFloat(goldCalcGrams) || 0;
-                                                                                if (grams <= 0) return "- บาท";
-                                                                                const divisor = goldCalcType === "bar" ? 15.244 : 15.16;
-                                                                                return (grams / divisor).toFixed(4) + " บาท";
-                                                                            })()
-                                                                        })
-                                                                    ]
-                                                                })
-                                                            ]
-                                                        })
-                                                    ]
-                                                })
-                                            ]
-                                        })
-                                    ]
-                                }), _jsxs("div", {
+                                 _jsxs("div", {
                                     className: "glass-card",
                                     style: {
                                         padding: "20px 24px",
@@ -4209,14 +4023,19 @@ Indicator`] || "",
                                                                             _jsx("strong", { style: { color: "#fff", fontSize: "15px" }, children: entryPrice ? entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: decimals }) : "-" })
                                                                         ]
                                                                     }),
-                                                                    _jsxs("div", {
+                                                                    activeMarketType === "forex" ? _jsxs("div", {
                                                                         children: [
-                                                                            _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: "ราคาปัจจุบัน" }),
-                                                                            _jsx("strong", { style: { color: "#60a5fa", fontSize: "15px" }, children: currentPrice ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: Math.max(decimals, 3) }) : "-" })
+                                                                            _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: "ขนาด Lot" }),
+                                                                            _jsx("strong", { style: { color: "#38bdf8", fontSize: "15px" }, children: `${qty || T["ความเสี่ยง"] || "0.01"} Lot` })
                                                                         ]
-                                                                    }),
-                                                                    activeMarketType !== "forex" && _jsxs(_Fragment, {
+                                                                    }) : _jsxs(_Fragment, {
                                                                         children: [
+                                                                            _jsxs("div", {
+                                                                                children: [
+                                                                                    _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: "ราคาปัจจุบัน" }),
+                                                                                    _jsx("strong", { style: { color: "#60a5fa", fontSize: "15px" }, children: currentPrice ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: Math.max(decimals, 2) }) : "-" })
+                                                                                ]
+                                                                            }),
                                                                             _jsxs("div", {
                                                                                 children: [
                                                                                     _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: isGold ? "น้ำหนักทอง" : "จำนวนหุ้น" }),
@@ -4302,19 +4121,10 @@ Indicator`] || "",
                                                                 style: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px dashed rgba(255,255,255,0.12)", paddingTop: "8px" },
                                                                 children: [
                                                                     _jsxs("span", { style: { fontSize: "12px", color: "var(--text-muted)" }, children: ["🕒 ", Pi] }),
-                                                                    _jsxs("div", {
+                                                                    activeMarketType !== "forex" ? _jsxs("div", {
                                                                         style: { display: "flex", alignItems: "center" },
                                                                         children: [
                                                                             _jsx("span", { style: { fontSize: "12px", color: "var(--text-muted)", marginRight: "6px" }, children: "กำไร/ขาดทุน:" }),
-                                                                            activeMarketType === "forex" && pointsProfit !== 0 && _jsxs("span", {
-                                                                                style: {
-                                                                                    fontSize: "13px",
-                                                                                    color: pointsProfit >= 0 ? "#34d399" : "#f87171",
-                                                                                    marginRight: "8px",
-                                                                                    fontWeight: "700"
-                                                                                },
-                                                                                children: [(pointsProfit > 0 ? "+" : "") + pointsProfit.toLocaleString(), " จุด"]
-                                                                            }),
                                                                             _jsx("strong", {
                                                                                 style: {
                                                                                     fontSize: "15px",
@@ -4324,6 +4134,17 @@ Indicator`] || "",
                                                                                 children: (currentProfit > 0 ? "+" : "") + currPrefix + currentProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                                                             })
                                                                         ]
+                                                                    }) : _jsx("span", {
+                                                                        style: {
+                                                                            fontSize: "11px",
+                                                                            color: "#38bdf8",
+                                                                            background: "rgba(56, 189, 248, 0.12)",
+                                                                            border: "1px solid rgba(56, 189, 248, 0.3)",
+                                                                            padding: "2px 8px",
+                                                                            borderRadius: "6px",
+                                                                            fontWeight: "600"
+                                                                        },
+                                                                        children: "สถานะ: กำลังถือครอง"
                                                                     })
                                                                 ]
                                                             })

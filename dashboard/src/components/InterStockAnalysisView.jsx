@@ -38,30 +38,33 @@ const getSimulatedMarketData = (sym, tf, dynamicLivePrice) => {
   let decimals = 2;
   let prefix = "$";
 
-  if (dynamicLivePrice && typeof dynamicLivePrice === "number" && dynamicLivePrice > 0) {
-    basePrice = dynamicLivePrice;
+  const numLivePrice = typeof dynamicLivePrice === "number" ? dynamicLivePrice : (dynamicLivePrice?.price ? parseFloat(dynamicLivePrice.price) : 0);
+  if (numLivePrice && numLivePrice > 0) {
+    basePrice = numLivePrice;
   } else if (cleanSym === "US30" || cleanSym === "DJI") {
-    basePrice = 53243.00;
+    basePrice = 52573.29;
   } else if (cleanSym === "SPX500" || cleanSym === "SPX") {
-    basePrice = 7680.00;
+    basePrice = 7656.98;
   } else if (cleanSym === "NAS100" || cleanSym === "IXIC") {
-    basePrice = 26310.00;
+    basePrice = 26333.04;
   } else if (cleanSym === "AAPL") {
-    basePrice = 315.50;
+    basePrice = 332.27;
   } else if (cleanSym === "TSLA") {
-    basePrice = 364.00;
+    basePrice = 359.99;
   } else if (cleanSym === "NVDA") {
-    basePrice = 219.80;
+    basePrice = 218.29;
   } else if (cleanSym === "MSFT") {
-    basePrice = 511.00;
+    basePrice = 494.77;
   } else if (cleanSym === "AMZN") {
-    basePrice = 261.00;
+    basePrice = 256.76;
   } else if (cleanSym === "GOOGL") {
-    basePrice = 338.00;
+    basePrice = 340.68;
   } else if (cleanSym === "META") {
-    basePrice = 571.50;
+    basePrice = 647.58;
   } else if (cleanSym === "AMD") {
-    basePrice = 469.00;
+    basePrice = 516.13;
+  } else if (cleanSym === "NFLX") {
+    basePrice = 77.28;
   } else {
     let hash = 0;
     const str = cleanSym.toUpperCase();
@@ -173,9 +176,9 @@ export default function InterStockAnalysisView({ username }) {
         "ราคายืนหยัดประคองตำแหน่งเหนือแนวรับของเส้นค่าเฉลี่ยหลัก EMA 200 รายชั่วโมงได้อย่างสมบูรณ์",
         "เกิดโครงสร้าง BOS (Break of Structure) สะท้อนทิศทางแรงซื้อสะสมสถาบันหนาตา"
       ],
-      entry: "$125.00",
-      tp: "$145.00",
-      sl: "$117.00"
+      entry: "$218.00",
+      tp: "$245.00",
+      sl: "$202.00"
     },
     {
       symbol: "NASDAQ:AAPL",
@@ -190,9 +193,9 @@ export default function InterStockAnalysisView({ username }) {
         "ดัชนี RSI ย่อตัวเข้าเขตสะสมแรงสะท้อนความเสี่ยงค่อนข้างต่ำและคุ้มค่าที่จะเปิดไม้สะสม",
         "ราคาพิกัดทับซ้อนแนวรับแข็งแกร่งบริเวณ Order Block รายสัปดาห์ช่วยต้านแรงขาย"
       ],
-      entry: "$207.00",
-      tp: "$225.00",
-      sl: "$199.00"
+      entry: "$332.00",
+      tp: "$365.00",
+      sl: "$315.00"
     },
     {
       symbol: "NASDAQ:TSLA",
@@ -207,9 +210,9 @@ export default function InterStockAnalysisView({ username }) {
         "รายงานยอดส่งมอบรถยนต์ไฟฟ้าดีกว่าคาดการณ์ประกอบกับกระแสเปิดตัวหุ่นยนต์แท็กซี่เด่น",
         "ปิด Gap โซนราคาเรียบร้อยและเริ่มประคองตัวสะสมพลังเพื่อเคลื่อนที่ขึ้นรอบใหญ่"
       ],
-      entry: "$180.00",
-      tp: "$210.00",
-      sl: "$168.00"
+      entry: "$360.00",
+      tp: "$398.00",
+      sl: "$338.00"
     }
   ]);
   
@@ -371,7 +374,7 @@ export default function InterStockAnalysisView({ username }) {
         const res = await fetch(`/api/price?symbol=${symbol}`);
         const data = await res.json();
         if (isMounted && data && typeof data.price === "number") {
-          setLivePrice(data.price);
+          setLivePrice(data);
         }
       } catch (err) {
         console.warn("Failed to fetch live price:", err);
@@ -661,8 +664,8 @@ export default function InterStockAnalysisView({ username }) {
         <GeminiAiAnalysisCard
           assetType="foreign_stock"
           symbol={symbol.split(":")[1] || symbol}
-          price={livePrice?.price ? `$${livePrice.price.toFixed(2)}` : "$225.50"}
-          change={livePrice?.change != null ? `${livePrice.change >= 0 ? "+" : ""}${livePrice.change.toFixed(2)}%` : "+1.20%"}
+          price={livePrice?.price != null ? `$${parseFloat(livePrice.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : (typeof livePrice === "number" ? `$${livePrice.toFixed(2)}` : "$225.50")}
+          change={livePrice?.changePct != null ? `${livePrice.changePct >= 0 ? "+" : ""}${Number(livePrice.changePct).toFixed(2)}%` : (livePrice?.change != null ? `${livePrice.change >= 0 ? "+" : ""}${Number(livePrice.change).toFixed(2)}%` : "+1.20%")}
           indicators={{ RSI: 62.1, MA50: "Support Held", Trend: "Strong Bullish" }}
         />
       </div>
