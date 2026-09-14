@@ -426,37 +426,6 @@ export default function OilAnalysisView({ username, onNavigateTab }) {
               📌 คาดการณ์น้ำมัน: โครงสร้างความตึงเครียดทางทหารจะเป็นตัวพยุง (Floor) ไม่ให้ราคาน้ำมันดิบโลกร่วงต่ำกว่า $72 ในระยะยาว
             </div>
           </div>
-
-          {/* War & Geopolitical Risk Impact on Oil */}
-          <div style={{ background:"rgba(239,68,68,0.07)", borderRadius:12, padding:"16px 18px", borderLeft:"4px solid #ef4444" }}>
-            <div style={{ fontWeight:700, color:"#ef4444", fontSize:13, marginBottom:10, display:"flex", alignItems:"center", gap:6 }}>
-              <ShieldAlert size={14} /> ⚔️ ผลกระทบภัยสงครามต่อราคาน้ำมัน
-            </div>
-
-            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
-              <span style={{ fontSize:12, color:"var(--text-secondary)" }}>ความตึงเครียด:</span>
-              <span style={{ fontWeight:700, fontSize:14, color:"#ef4444" }}>
-                🔴 CRITICAL (เสี่ยงสูง)
-              </span>
-            </div>
-            <div style={{ fontSize:11, color:"var(--text-muted)", marginBottom:2 }}>
-              ความเสี่ยงอุปทานขัดข้อง:
-            </div>
-            <ProbBar pct={92} color="#ef4444" />
-
-            <div style={{ marginTop:12, fontSize:12 }}>
-              <div style={{ color:"#fb7185", fontWeight:600, marginBottom:4 }}>📌 ผลกระทบต่อราคาน้ำมันดิบ:</div>
-              <ul style={{ margin:0, paddingLeft:16, color:"var(--text-secondary)", lineHeight:1.8 }}>
-                <li>การปะทะบริเวณเส้นทางขนส่งน้ำมันทางทะเล เช่น ช่องแคบฮอร์มุซ เพิ่มค่าเบี้ยประกันภัยสงครามเรือสินค้าและหนุนราคา Brent โดยตรง</li>
-                <li>วิกฤตความปลอดภัยในทะเลแดงทำให้เรือบรรทุกน้ำมันต้องแล่นอ้อมแอฟริกาใต้ ดันค่าระวางเรือและหนุนระดับฐานราคาตลาดโลก</li>
-                <li>มาตรการจำกัดการส่งออกน้ำมันดิบกายภาพของฝั่งคู่สงคราม ทำให้สต็อกสินค้าของโรงกลั่นทั่วโลกอยู่ในสภาวะตึงตัวยิ่งขึ้น</li>
-              </ul>
-            </div>
-
-            <div style={{ marginTop:10, padding:"8px 12px", background:"rgba(239,68,68,0.08)", borderRadius:8, fontSize:11, color:"var(--text-muted)" }}>
-              📌 คาดการณ์น้ำมัน: โครงสร้างความตึงเครียดทางทหารจะเป็นตัวพยุง (Floor) ไม่ให้ราคาน้ำมันดิบโลกร่วงต่ำกว่า $72 ในระยะยาว
-            </div>
-          </div>
         </div>
 
         {/* Gemini AI Analysis Section */}

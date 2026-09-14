@@ -87,6 +87,7 @@ export function calculateTradingStats(trades) {
   let losses = 0;
   let breakEvens = 0; // SL หน้าทุน
   let totalPips = 0;
+  let totalProfit = 0;
   
   const winLossRatioHistory = [];
   const monthlyStats = {};
@@ -95,10 +96,12 @@ export function calculateTradingStats(trades) {
   validTrades.forEach(trade => {
     const result = String(trade["ผลลัพธ์"] || "").trim().toLowerCase();
     const pips = parseFloat(trade["ผลลัพธ์ (จุด)"] || trade["ผลลัพธ์\n(จุด)"] || 0);
+    const profitVal = parseFloat(trade["กำไร/ขาดทุน($)"] || trade["ผลกำไร/ขาดทุน"] || trade["กำไร/ขาดทุน"] || 0);
     const dateStr = String(trade["วันที่เปิด"] || "");
     const pair = String(trade["คู่เงิน"] || "").toUpperCase().trim();
     
     totalPips += pips;
+    if (!isNaN(profitVal)) totalProfit += profitVal;
     
     // นับสถิติแพ้ชนะ
     if (result.includes("win") || result.includes("ชนะ") || result.includes("tp") || pips > 0) {
@@ -161,6 +164,7 @@ export function calculateTradingStats(trades) {
     losses,
     breakEvens,
     totalPips,
+    totalProfit: Math.round(totalProfit * 100) / 100,
     winRate,
     monthlyStats: Object.values(monthlyStats).sort((a, b) => a.month.localeCompare(b.month)),
     pairStats: Object.values(pairStats).sort((a, b) => b.trades - a.trades)

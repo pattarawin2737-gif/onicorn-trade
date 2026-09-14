@@ -1740,7 +1740,7 @@ Indicator`] || "",
     const ub = () => {
             switch (activeTab) {
                 case "analysis":
-                    return "วิเคราะห์กราฟหุ้น Forex";
+                    return "วิเคราะห์กราฟ Forex & Crypto";
                 case "thai_stock_analysis":
                     return "วิเคราะห์กราฟหุ้นไทย";
                 case "inter_stock_analysis":
@@ -1896,7 +1896,7 @@ Indicator`] || "",
                         })
                     }, {
                         id: "analysis",
-                        label: "บันทึก & วิเคราะห์หุ้น Forex",
+                        label: "วิเคราะห์กราฟ Forex & Crypto",
                         icon: _jsx(LineChart, {
                             size: 18
                         })
@@ -2380,9 +2380,15 @@ Indicator`] || "",
                                         children: [_jsx("span", {
                                             className: "stat-label",
                                             children: "กำไรรวมสะสม"
-                                        }), _jsxs("span", {
+                                        }), _jsx("span", {
                                             className: "stat-value",
-                                            children: [pe != null && pe.totalPips ? pe.totalPips > 0 ? `+${pe.totalPips}` : pe.totalPips : 0, " pips"]
+                                            children: (activeMarketType === "thai_stock" || activeMarketType === "thai_gold")
+                                                ? (pe != null && pe.totalProfit !== undefined
+                                                    ? (pe.totalProfit >= 0 ? `+฿${pe.totalProfit.toLocaleString()}` : `-฿${Math.abs(pe.totalProfit).toLocaleString()}`)
+                                                    : "฿0")
+                                                : (pe != null && pe.totalProfit !== undefined && pe.totalProfit !== 0
+                                                    ? `${pe.totalProfit >= 0 ? `+$${pe.totalProfit.toLocaleString()}` : `-$${Math.abs(pe.totalProfit).toLocaleString()}`} (${pe.totalPips >= 0 ? `+${pe.totalPips}` : pe.totalPips} pips)`
+                                                    : `${pe != null && pe.totalPips ? pe.totalPips > 0 ? `+${pe.totalPips}` : pe.totalPips : 0} pips`)
                                         })]
                                     }), _jsx("div", {
                                         className: "stat-icon",

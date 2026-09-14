@@ -125,9 +125,9 @@ export default function GoldAnalysisView({ username }) {
 
   // Thai Gold calculations:
   // 1 บาทหนัก = 15.244 กรัม = 15.244/31.1035 troy oz ≈ 0.49012 troy oz. Purity is 96.5% for Thai Gold.
-  const baseThaiGold = liveXauThb || ((goldSpot * usdThb) * (15.244 / 31.1035) * 0.965);
+  const baseThaiGold = ((goldSpot * usdThb) * (15.244 / 31.1035) * 0.965);
   const thaiGoldSell = Math.round(baseThaiGold + premium);
-  const thaiGoldBuy = Math.round(baseThaiGold - premium);
+  const thaiGoldBuy = Math.round(thaiGoldSell - 100);
 
   // Stable Anchor Base Price for D1, W1, MN AI Calculations (Fixed to 50-Baht blocks, preventing per-tick price jitter)
   // Stable Daily Anchor for Thai Gold (Fixed ONCE PER DAY to prevent per-tick price jitter)
@@ -423,7 +423,7 @@ export default function GoldAnalysisView({ username }) {
           <GeminiAiAnalysisCard
             assetType="gold_thai"
             symbol="ทองคำแท่ง (Thai Gold)"
-            price={thaiGoldBuy ? `฿${thaiGoldBuy.toLocaleString()}` : "฿44,500"}
+            price={thaiGoldSell ? `฿${thaiGoldSell.toLocaleString()}` : "฿46,500"}
             change="+0.45%"
             indicators={{ Inflation: "Moderate", USDTHB: "33.50", BahtTrend: "Stable" }}
           />

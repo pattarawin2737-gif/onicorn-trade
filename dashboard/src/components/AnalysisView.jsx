@@ -1002,9 +1002,8 @@ export default function AnalysisView({ username }) {
           indicators={{ RSI: 54.2, MA20: "Neutral", MACD: "Consolidation" }}
         />
       </div>
-      {/* Split layout: Left (70% width) and Right (30% width) */}
+
       <div className="analysis-split-layout full-chart-mode">
-        
         {/* Left Column: Live Chart (height: 600px) and Economic Calendar (height: 400px) */}
         <div className="chart-pane glass-card">
           <div className="pane-header">
@@ -1181,6 +1180,148 @@ export default function AnalysisView({ username }) {
             </div>
           )}
 
+          {/* Prominent Full-Width Live TradingView Chart and Forex Market Hours */}
+          <style>{`
+                @keyframes pulseDot {
+                  0%, 100% { opacity: 1; box-shadow: 0 0 6px #22c55e; }
+                  50% { opacity: 0.4; box-shadow: 0 0 14px #22c55e; }
+                }
+              `}</style>
+              
+              {/* TradingView Chart Container */}
+              <div className="tradingview-container-wrapper" style={{ height: "670px", minHeight: "670px", margin: 0, position: "relative", borderRadius: "12px", overflow: "hidden" }}>
+                <div id="tradingview_chart_container" className="tradingview-chart-box" style={{ height: "100%" }}></div>
+                {symbol.startsWith("SET:") && (
+                  <div style={{
+                    position: "absolute",
+                    bottom: "20px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "rgba(15, 23, 42, 0.95)",
+                    border: "1px solid rgba(59, 130, 246, 0.4)",
+                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
+                    borderRadius: "8px",
+                    padding: "12px 20px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    zIndex: 10,
+                    maxWidth: "90%",
+                    width: "max-content",
+                    backdropFilter: "blur(10px)"
+                  }}>
+                    <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: "500" }}>
+                      🔒 ข้อมูลตระกูล SET จำกัดสิทธิ์บน Widget ภายนอก
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => window.open(`https://th.tradingview.com/chart/?symbol=${symbol}`, "_blank")}
+                      className="btn-quick-select active"
+                      style={{ margin: 0, padding: "6px 12px", fontSize: "11.5px", background: "var(--color-primary)", color: "#fff", border: "none" }}
+                    >
+                      🚀 เปิดดูกราฟสดบน TradingView
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Forex Market Hours Widget */}
+              <div className="glass-card" style={{ 
+                padding: "20px", 
+                borderRadius: "12px", 
+                border: "1px solid var(--border-color)", 
+                background: "linear-gradient(135deg, rgba(30, 41, 59, 0.45), rgba(15, 23, 42, 0.75))" 
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px dashed var(--border-color)", paddingBottom: "12px", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Globe size={18} style={{ color: "var(--color-primary)" }} />
+                    <h3 style={{ fontSize: "15px", fontWeight: "bold", margin: 0 }}>🕒 โซนเวลาเปิด-ปิดตลาด Forex (เวลาไทย GMT+7)</h3>
+                  </div>
+                  <div style={{ background: "rgba(15, 23, 42, 0.6)", padding: "6px 12px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.05)", fontSize: "12.5px", fontWeight: "600", color: "#fff", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#22c55e", animation: "pulseDot 1.5s infinite" }}></span>
+                    เวลาไทยปัจจุบัน: <strong style={{ color: "var(--color-primary)" }}>{currentTime.toLocaleTimeString("th-TH")} น.</strong>
+                  </div>
+                </div>
+
+                {/* Golden Hours Alert Banner */}
+                {(() => {
+                  const month = currentTime.getMonth();
+                  const isSummer = (month >= 3 && month <= 9);
+                  const currentHour = currentTime.getHours();
+                  const isGolden = isSummer 
+                    ? (currentHour >= 19 && currentHour < 23)
+                    : (currentHour >= 20 || currentHour < 0);
+                  
+                  return (
+                    <div style={{ 
+                      background: isGolden ? "linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(249, 115, 22, 0.05))" : "rgba(255,255,255,0.02)",
+                      border: isGolden ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
+                      marginBottom: "16px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      fontSize: "12px",
+                      lineHeight: "1.5"
+                    }}>
+                      <span style={{ fontSize: "16px" }}>{isGolden ? "🔥" : "💡"}</span>
+                      <div>
+                        {isGolden ? (
+                          <span style={{ fontWeight: "700", color: "#F59E0B" }}>
+                            ขณะนี้อยู่ในช่วงเวลาทอง (Golden Hours - London & NY Overlap) ตลาดมีความผันผวนและสภาพคล่องสูงสุดในวัน! เหมาะสำหรับการเทรดคู่เงินหลักและทองคำ
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--text-secondary)" }}>
+                            ช่วงเวลาทอง (London-NY Overlap) คือ <strong>{isSummer ? "19:00 - 23:00 น." : "20:00 - 00:00 น."} (เวลาไทย)</strong> ซึ่งเป็นช่วงที่กราฟขยับตัวแรงและวิ่งเป็นเทรนชัดเจนที่สุด
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Session Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
+                  {getSessionsInfo(currentTime).map((session, index) => (
+                    <div key={index} style={{
+                      background: session.open ? `linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))` : "rgba(15, 15, 25, 0.2)",
+                      border: session.open ? `1px solid ${session.color}50` : "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: "10px",
+                      padding: "14px 16px",
+                      position: "relative",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                      boxShadow: session.open ? `0 4px 12px ${session.color}15` : "none",
+                      transition: "all 0.3s ease"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <strong style={{ fontSize: "13px", color: "#fff" }}>{session.name}</strong>
+                        <span style={{
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                          background: session.open ? `${session.color}25` : "rgba(255,255,255,0.05)",
+                          color: session.open ? session.color : "var(--text-muted)",
+                          border: session.open ? `1px solid ${session.color}40` : "1px solid rgba(255,255,255,0.05)"
+                        }}>
+                          {session.open ? "● OPEN (เปิด)" : "○ CLOSED (ปิด)"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "var(--text-primary)", fontWeight: "600" }}>
+                        ⏰ เวลาทำการ: {session.hoursText}
+                      </div>
+                      <div style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.4", marginTop: "2px" }}>
+                        {session.desc}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+          {/* AI Trading Bias & Guidelines (AI Analyst Report) */}
           {/* AI Trading Bias & Guidelines (Top Header Centerpiece) */}
           <div className="glass-card ai-analyst-section" style={{ 
             padding: "20px 24px", 
@@ -1546,157 +1687,14 @@ export default function AnalysisView({ username }) {
             })()}
           </div>
 
-          {/* Row 1: TradingView Chart & Column 1 (Technical & SMC) side-by-side */}
+          {/* Row 1: Technical & SMC (Left) + Pre-Trade Checklist & Lot Calculator (Right) */}
           <div className="layout-row-50-50" style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 480px), 1fr))",
             gap: "24px",
             marginBottom: "24px",
             alignItems: "stretch"
           }}>
-            {/* Left: TradingView Live Chart & Forex Session Times */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "24px", height: "100%" }}>
-              <style>{`
-                @keyframes pulseDot {
-                  0%, 100% { opacity: 1; box-shadow: 0 0 6px #22c55e; }
-                  50% { opacity: 0.4; box-shadow: 0 0 14px #22c55e; }
-                }
-              `}</style>
-              
-              {/* TradingView Chart Container */}
-              <div className="tradingview-container-wrapper" style={{ height: "670px", minHeight: "670px", margin: 0, position: "relative", borderRadius: "12px", overflow: "hidden" }}>
-                <div id="tradingview_chart_container" className="tradingview-chart-box" style={{ height: "100%" }}></div>
-                {symbol.startsWith("SET:") && (
-                  <div style={{
-                    position: "absolute",
-                    bottom: "20px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "rgba(15, 23, 42, 0.95)",
-                    border: "1px solid rgba(59, 130, 246, 0.4)",
-                    boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
-                    borderRadius: "8px",
-                    padding: "12px 20px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "16px",
-                    zIndex: 10,
-                    maxWidth: "90%",
-                    width: "max-content",
-                    backdropFilter: "blur(10px)"
-                  }}>
-                    <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: "500" }}>
-                      🔒 ข้อมูลตระกูล SET จำกัดสิทธิ์บน Widget ภายนอก
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => window.open(`https://th.tradingview.com/chart/?symbol=${symbol}`, "_blank")}
-                      className="btn-quick-select active"
-                      style={{ margin: 0, padding: "6px 12px", fontSize: "11.5px", background: "var(--color-primary)", color: "#fff", border: "none" }}
-                    >
-                      🚀 เปิดดูกราฟสดบน TradingView
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Forex Market Hours Widget */}
-              <div className="glass-card" style={{ 
-                padding: "20px", 
-                borderRadius: "12px", 
-                border: "1px solid var(--border-color)", 
-                background: "linear-gradient(135deg, rgba(30, 41, 59, 0.45), rgba(15, 23, 42, 0.75))" 
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px dashed var(--border-color)", paddingBottom: "12px", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Globe size={18} style={{ color: "var(--color-primary)" }} />
-                    <h3 style={{ fontSize: "15px", fontWeight: "bold", margin: 0 }}>🕒 โซนเวลาเปิด-ปิดตลาด Forex (เวลาไทย GMT+7)</h3>
-                  </div>
-                  <div style={{ background: "rgba(15, 23, 42, 0.6)", padding: "6px 12px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.05)", fontSize: "12.5px", fontWeight: "600", color: "#fff", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#22c55e", animation: "pulseDot 1.5s infinite" }}></span>
-                    เวลาไทยปัจจุบัน: <strong style={{ color: "var(--color-primary)" }}>{currentTime.toLocaleTimeString("th-TH")} น.</strong>
-                  </div>
-                </div>
-
-                {/* Golden Hours Alert Banner */}
-                {(() => {
-                  const month = currentTime.getMonth();
-                  const isSummer = (month >= 3 && month <= 9);
-                  const currentHour = currentTime.getHours();
-                  const isGolden = isSummer 
-                    ? (currentHour >= 19 && currentHour < 23)
-                    : (currentHour >= 20 || currentHour < 0);
-                  
-                  return (
-                    <div style={{ 
-                      background: isGolden ? "linear-gradient(90deg, rgba(245, 158, 11, 0.15), rgba(249, 115, 22, 0.05))" : "rgba(255,255,255,0.02)",
-                      border: isGolden ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(255,255,255,0.05)",
-                      borderRadius: "8px",
-                      padding: "12px 16px",
-                      marginBottom: "16px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      fontSize: "12px",
-                      lineHeight: "1.5"
-                    }}>
-                      <span style={{ fontSize: "16px" }}>{isGolden ? "🔥" : "💡"}</span>
-                      <div>
-                        {isGolden ? (
-                          <span style={{ fontWeight: "700", color: "#F59E0B" }}>
-                            ขณะนี้อยู่ในช่วงเวลาทอง (Golden Hours - London & NY Overlap) ตลาดมีความผันผวนและสภาพคล่องสูงสุดในวัน! เหมาะสำหรับการเทรดคู่เงินหลักและทองคำ
-                          </span>
-                        ) : (
-                          <span style={{ color: "var(--text-secondary)" }}>
-                            ช่วงเวลาทอง (London-NY Overlap) คือ <strong>{isSummer ? "19:00 - 23:00 น." : "20:00 - 00:00 น."} (เวลาไทย)</strong> ซึ่งเป็นช่วงที่กราฟขยับตัวแรงและวิ่งเป็นเทรนชัดเจนที่สุด
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Session Grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
-                  {getSessionsInfo(currentTime).map((session, index) => (
-                    <div key={index} style={{
-                      background: session.open ? `linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))` : "rgba(15, 15, 25, 0.2)",
-                      border: session.open ? `1px solid ${session.color}50` : "1px solid rgba(255,255,255,0.05)",
-                      borderRadius: "10px",
-                      padding: "14px 16px",
-                      position: "relative",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "8px",
-                      boxShadow: session.open ? `0 4px 12px ${session.color}15` : "none",
-                      transition: "all 0.3s ease"
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <strong style={{ fontSize: "13px", color: "#fff" }}>{session.name}</strong>
-                        <span style={{
-                          fontSize: "10px",
-                          fontWeight: "bold",
-                          padding: "2px 6px",
-                          borderRadius: "4px",
-                          background: session.open ? `${session.color}25` : "rgba(255,255,255,0.05)",
-                          color: session.open ? session.color : "var(--text-muted)",
-                          border: session.open ? `1px solid ${session.color}40` : "1px solid rgba(255,255,255,0.05)"
-                        }}>
-                          {session.open ? "● OPEN (เปิด)" : "○ CLOSED (ปิด)"}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: "12px", color: "var(--text-primary)", fontWeight: "600" }}>
-                        ⏰ เวลาทำการ: {session.hoursText}
-                      </div>
-                      <div style={{ fontSize: "10.5px", color: "var(--text-muted)", lineHeight: "1.4", marginTop: "2px" }}>
-                        {session.desc}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             {/* Right: โครงสร้างเทคนิค (Technical & SMC) */}
             <div className="glass-card" style={{ 
               padding: "20px 24px", 
@@ -1913,7 +1911,235 @@ export default function AnalysisView({ username }) {
               })()}
             </div>
           </div>
+            {/* Right: เช็คลิสต์ก่อนเข้าออเดอร์ & คำนวณ Lot Size (Pre-Trade Checklist & Lot Size Calculator) */}
+            <div className="glass-card" style={{ 
+              padding: "20px 24px", 
+              background: "linear-gradient(135deg, rgba(30, 41, 59, 0.65), rgba(15, 23, 42, 0.85))", 
+              border: "1px solid rgba(59, 130, 246, 0.35)",
+              borderRadius: "10px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              boxSizing: "border-box"
+            }}>
+              {/* Header */}
+              <div style={{ borderBottom: "1px solid var(--border-color)", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                <span style={{ fontSize: "15px", fontWeight: "bold", color: "#60a5fa", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Calculator size={18} />
+                  <span>📋 เช็คลิสต์ก่อนเข้าออเดอร์ & คำนวณ Lot Size</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyAnalysis}
+                  className="btn-quick-select"
+                  style={{
+                    margin: 0,
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                    background: copied ? "rgba(34, 197, 94, 0.2)" : "rgba(59, 130, 246, 0.2)",
+                    borderColor: copied ? "#22c55e" : "#3b82f6",
+                    color: copied ? "#22c55e" : "#60a5fa",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    cursor: "pointer"
+                  }}
+                >
+                  {copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+                  <span>{copied ? "คัดลอกสำเร็จ!" : "คัดลอกสรุปแผน"}</span>
+                </button>
+              </div>
 
+              {/* AI Confluence Score Banner */}
+              <div style={{
+                background: "rgba(15, 23, 42, 0.5)",
+                padding: "12px 14px",
+                borderRadius: "8px",
+                border: `1px solid ${aiSummary.verdictColor}50`
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <span style={{ fontSize: "12px", color: "var(--text-secondary)", fontWeight: "600" }}>คะแนนความน่าจะเป็น (Confluence Score):</span>
+                  <span style={{ fontSize: "14px", fontWeight: "bold", color: aiSummary.verdictColor }}>{aiSummary.score}%</span>
+                </div>
+                <div style={{ height: "6px", background: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden", marginBottom: "8px" }}>
+                  <div style={{ height: "100%", width: `${aiSummary.score}%`, background: aiSummary.score >= 60 ? "#22c55e" : aiSummary.score >= 40 ? "#eab308" : "#ef4444", borderRadius: "3px", transition: "width 0.3s ease" }} />
+                </div>
+                <div style={{ fontSize: "12.5px", fontWeight: "bold", color: aiSummary.verdictColor }}>
+                  {aiSummary.verdictText}
+                </div>
+              </div>
+
+              {/* Checklist Grid */}
+              <div>
+                <div style={{ fontSize: "12.5px", fontWeight: "700", color: "#f8fafc", marginBottom: "8px" }}>
+                  ✅ เงื่อนไขและสัญญาณคอนเฟิร์ม (Confluence Checklist)
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: "8px" }}>
+                  {[
+                    { key: "supportResistance", label: "แนวรับ-แนวต้านหลัก" },
+                    { key: "orderBlock", label: "Order Block (OB)" },
+                    { key: "imbalance", label: "Imbalance / FVG" },
+                    { key: "hiddenBase", label: "Hidden Base (Base ในเทรนด์)" },
+                    { key: "fibonacci", label: "Fibonacci Retracement" },
+                    { key: "qmPattern", label: "QM Pattern (Quasimodo)" },
+                    { key: "liquiditySweep", label: "Liquidity Sweep (กวาด SL)" },
+                    { key: "candlePattern", label: "แท่งเทียนกลับตัว" },
+                    { key: "divergence", label: "RSI/MACD Divergence" },
+                    { key: "noHighImpactNews", label: "ไม่มีข่าวกล่องแดงปะทะ" }
+                  ].map(item => (
+                    <label
+                      key={item.key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontSize: "11.5px",
+                        color: checklist[item.key] ? "#fff" : "var(--text-secondary)",
+                        background: checklist[item.key] ? "rgba(59, 130, 246, 0.15)" : "rgba(15, 23, 42, 0.3)",
+                        border: checklist[item.key] ? "1px solid rgba(59, 130, 246, 0.4)" : "1px solid rgba(255,255,255,0.05)",
+                        padding: "6px 10px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        transition: "all 0.15s"
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!checklist[item.key]}
+                        onChange={e => setChecklist(prev => ({ ...prev, [item.key]: e.target.checked }))}
+                        style={{ accentColor: "var(--color-primary)", cursor: "pointer" }}
+                      />
+                      <span>{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Trend & Structure Selectors */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>แนวโน้มหลัก (Major Trend)</label>
+                  <select
+                    value={checklist.trend}
+                    onChange={e => setChecklist(prev => ({ ...prev, trend: e.target.value }))}
+                    className="calc-select"
+                    style={{ width: "100%", height: "34px", fontSize: "12px" }}
+                  >
+                    <option value="uptrend">📈 ขาขึ้น (Uptrend)</option>
+                    <option value="downtrend">📉 ขาลง (Downtrend)</option>
+                    <option value="sideway">↔️ ไซด์เวย์ (Sideway)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "4px" }}>โครงสร้าง SMC ล่าสุด</label>
+                  <select
+                    value={checklist.structure}
+                    onChange={e => setChecklist(prev => ({ ...prev, structure: e.target.value }))}
+                    className="calc-select"
+                    style={{ width: "100%", height: "34px", fontSize: "12px" }}
+                  >
+                    <option value="">-- เลือกโครงสร้าง --</option>
+                    <option value="BOS">BOS (Break of Structure - ตามเทรนด์)</option>
+                    <option value="CHoCH">CHoCH (Change of Character - กลับตัว)</option>
+                    <option value="Range">Range (พักตัวในกรอบ)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Lot Size & Risk Management Calculator */}
+              <div style={{ background: "rgba(15, 23, 42, 0.4)", padding: "14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize: "12px", fontWeight: "700", color: "#60a5fa", marginBottom: "10px" }}>
+                  🎚️ คำนวณความเสี่ยงและขนาด Lot (Position Sizing)
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px", marginBottom: "12px" }}>
+                  <div>
+                    <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>ยอดพอร์ต ($)</label>
+                    <input
+                      type="number"
+                      className="calc-input"
+                      value={calcBalance}
+                      onChange={e => setCalcBalance(parseFloat(e.target.value) || 0)}
+                      style={{ height: "32px", fontSize: "12px" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>ความเสี่ยง (%)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="calc-input"
+                      value={calcRiskPct}
+                      onChange={e => setCalcRiskPct(parseFloat(e.target.value) || 0)}
+                      style={{ height: "32px", fontSize: "12px" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>ราคาเข้า (Entry)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      className="calc-input"
+                      value={calcEntry}
+                      onChange={e => setCalcEntry(parseFloat(e.target.value) || 0)}
+                      style={{ height: "32px", fontSize: "12px" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>จุดตัดขาดทุน (SL)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      className="calc-input"
+                      value={calcSL}
+                      onChange={e => setCalcSL(parseFloat(e.target.value) || 0)}
+                      style={{ height: "32px", fontSize: "12px" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "3px" }}>จุดทำกำไร (TP)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      className="calc-input"
+                      value={calcTP}
+                      onChange={e => setCalcTP(parseFloat(e.target.value) || 0)}
+                      style={{ height: "32px", fontSize: "12px" }}
+                    />
+                  </div>
+                </div>
+
+                {/* Badges Summary */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px", background: "rgba(15, 23, 42, 0.6)", padding: "10px", borderRadius: "6px", textAlign: "center" }}>
+                  <div>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)", display: "block" }}>ขนาด Lot แนะนำ:</span>
+                    <strong style={{ fontSize: "14px", color: "#22c55e" }}>{lotSize > 0 && isFinite(lotSize) ? lotSize.toFixed(2) : "0.01"} Lot</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)", display: "block" }}>ระยะ SL (จุด):</span>
+                    <strong style={{ fontSize: "14px", color: "#f87171" }}>{slPoints} จุด</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)", display: "block" }}>อัตรา R:R:</span>
+                    <strong style={{ fontSize: "14px", color: "#facc15" }}>1 : {rrRatio}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)", display: "block" }}>ความเสี่ยง ($):</span>
+                    <strong style={{ fontSize: "14px", color: "#ef4444" }}>${riskAmount}</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "10px", color: "var(--text-muted)", display: "block" }}>กำไรคาดหวัง ($):</span>
+                    <strong style={{ fontSize: "14px", color: "#34d399" }}>${potentialReward}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Specialist Tips */}
+              {getAIAssetSpecialistTips()}
+            </div>
+          </div>
+
+          {/* Row 2: Economic Calendar & AI News Digest */}
           {/* Row 2: Column 2 (AI News Digest) & Economic Calendar side-by-side */}
           <div className="layout-row-50-50" style={{
             display: "grid",
@@ -2081,7 +2307,81 @@ export default function AnalysisView({ username }) {
                   </div>
                 )}
               </div>
+
+          {/* Row 3: Trading Knowledge & SMC Lessons Accordion */}
+          {/* Trading Knowledge & SMC Lessons (EP.1 - EP.14) Accordion */}
+          <div className="glass-card" style={{ 
+            padding: "20px 24px", 
+            marginBottom: "24px",
+            background: "linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9))",
+            border: "1px solid var(--border-color)",
+            borderRadius: "12px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px dashed var(--border-color)", paddingBottom: "12px", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <BookOpen size={20} style={{ color: "var(--color-primary)" }} />
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "bold" }}>
+                  📚 คลังความรู้ & กลยุทธ์การเทรดขั้นสูง (Trading Mastery & SMC Course)
+                </h3>
+              </div>
+              <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                คู่มือ 14 บทเรียนสำหรับเทรดเดอร์ (คลิกเพื่ออ่านสรุป)
+              </span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              {EP_LESSONS.map(ep => {
+                const isOpen = activeEP === ep.id;
+                return (
+                  <div
+                    key={ep.id}
+                    style={{
+                      background: isOpen ? "rgba(59, 130, 246, 0.08)" : "rgba(15, 23, 42, 0.4)",
+                      border: isOpen ? "1px solid rgba(59, 130, 246, 0.3)" : "1px solid rgba(255, 255, 255, 0.05)",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActiveEP(isOpen ? null : ep.id)}
+                      style={{
+                        width: "100%",
+                        padding: "12px 16px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        background: "transparent",
+                        border: "none",
+                        color: isOpen ? "#60a5fa" : "var(--text-primary)",
+                        fontWeight: "600",
+                        fontSize: "13px",
+                        cursor: "pointer",
+                        textAlign: "left"
+                      }}
+                    >
+                      <span>{ep.title}</span>
+                      {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
+                    {isOpen && (
+                      <div style={{
+                        padding: "0 16px 14px 16px",
+                        fontSize: "12.5px",
+                        color: "var(--text-secondary)",
+                        lineHeight: "1.6",
+                        borderTop: "1px dashed rgba(255, 255, 255, 0.05)",
+                        paddingTop: "10px"
+                      }}>
+                        {ep.content}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
+
         </div>
       </div>
     </div>

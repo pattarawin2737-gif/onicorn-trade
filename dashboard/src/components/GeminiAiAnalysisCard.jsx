@@ -39,7 +39,7 @@ export default function GeminiAiAnalysisCard({ assetType = "stock", symbol = "AS
 
   useEffect(() => {
     fetchAiAnalysis();
-  }, [symbol, price]);
+  }, [symbol]);
 
   const signal = data?.signal || "BULLISH";
   const isBull = signal === "BULLISH";
