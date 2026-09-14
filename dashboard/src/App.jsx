@@ -913,7 +913,7 @@ export default function App() {
         }
     }, [activeTab]);
     useEffect(() => {
-        if (activeTab === "journal_plan" && (activeMarketType === "thai_gold" || activeMarketType === "thai_stock")) {
+        if (activeTab === "journal_plan" && activeMarketType === "thai_gold") {
             setActiveMarketType("forex");
         }
     }, [activeTab, activeMarketType]);
@@ -3112,6 +3112,12 @@ Indicator`] || "",
                                         gradient: "linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(59, 130, 246, 0.15))",
                                         border: "1.5px solid #3b82f6",
                                         color: "#60a5fa"
+                                    }, {
+                                        id: "thai_stock",
+                                        label: "🇹🇭 หุ้นไทย (Thai Stocks)",
+                                        gradient: "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.15))",
+                                        border: "1.5px solid #eab308",
+                                        color: "#facc15"
                                     }, {
                                         id: "inter_stock",
                                         label: "🌎 หุ้นต่างประเทศ (Foreign Stocks)",
