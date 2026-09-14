@@ -1,5 +1,5 @@
 import GeminiAiAnalysisCard from "./GeminiAiAnalysisCard";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -804,11 +804,12 @@ export default function ThaiStockAnalysisView({ username }) {
   const [screenerData, setScreenerData] = useState(sectorScreenerData);
   const [bestPicks, setBestPicks] = useState([]);
   const [loadingScreener, setLoadingScreener] = useState(false);
+  const [lastScreenerUpdated, setLastScreenerUpdated] = useState(null);
 
   useEffect(() => {
     let mounted = true;
-    const fetchScreenerPrices = async () => {
-      if (loadingScreener) return;
+    const fetchScreenerPrices = async (forced = false) => {
+      if (loadingScreener && !forced) return;
       setLoadingScreener(true);
 
       const uniqueSymbols = [];
@@ -921,6 +922,8 @@ export default function ThaiStockAnalysisView({ username }) {
 
           allPicks.sort((a, b) => b.probVal - a.probVal);
           setBestPicks(allPicks.slice(0, 3));
+          const nowStr = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+          setLastScreenerUpdated(nowStr);
         }
       } catch (err) {
         console.error("Error in screener pool fetch:", err);
@@ -930,10 +933,15 @@ export default function ThaiStockAnalysisView({ username }) {
     };
 
     fetchScreenerPrices();
-    const interval = setInterval(fetchScreenerPrices, 60000);
+    const interval = setInterval(() => fetchScreenerPrices(), 60000);
+    
+    const handleScanEvent = () => fetchScreenerPrices(true);
+    window.addEventListener("triggerScreenerScan", handleScanEvent);
+
     return () => {
       mounted = false;
       clearInterval(interval);
+      window.removeEventListener("triggerScreenerScan", handleScanEvent);
     };
   }, []);
 
@@ -1903,9 +1911,44 @@ export default function ThaiStockAnalysisView({ username }) {
                 <span style={{ fontSize: "14px", fontWeight: "700", color: "#fff" }}>
                   หุ้นเด่นที่สุดในตลาดวันนี้ (AI Best Picks of the Day)
                 </span>
-                <span style={{ fontSize: "11px", color: "var(--text-muted)", marginLeft: "auto", background: "rgba(255, 255, 255, 0.05)", padding: "2px 6px", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                  {loadingScreener ? "⏳ กำลังวิเคราะห์..." : "🟢 อัปเดตเรียลไทม์"}
-                </span>
+                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  {lastScreenerUpdated && (
+                    <span style={{ fontSize: "11px", color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      🕒 อัปเดตล่าสุด: <strong style={{ color: "#f8fafc" }}>{lastScreenerUpdated} น.</strong>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Trigger immediate scan
+                      const event = new CustomEvent("triggerScreenerScan");
+                      window.dispatchEvent(event);
+                    }}
+                    disabled={loadingScreener}
+                    className="btn-quick-select"
+                    style={{
+                      margin: 0,
+                      padding: "3px 10px",
+                      fontSize: "11px",
+                      background: "rgba(234, 179, 8, 0.15)",
+                      border: "1px solid rgba(234, 179, 8, 0.4)",
+                      color: "#eab308",
+                      cursor: loadingScreener ? "not-allowed" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      borderRadius: "4px",
+                      fontWeight: "bold"
+                    }}
+                    title="คลิกเพื่อสแกนราคาและจัดอันดับหุ้นเด่นใหม่ทันที"
+                  >
+                    {loadingScreener ? "⏳ กำลังสแกน..." : "🔄 สแกนสดใหม่ทันที"}
+                  </button>
+                  <span style={{ fontSize: "11px", color: "#22c55e", background: "rgba(34, 197, 94, 0.1)", padding: "3px 8px", borderRadius: "4px", border: "1px solid rgba(34, 197, 94, 0.25)", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                    <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e" }} />
+                    อัปเดตอัตโนมัติทุก 1 นาที
+                  </span>
+                </div>
               </div>
 
               <div style={{
