@@ -70,7 +70,8 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
   const [forecastTab, setForecastTab] = useState("daily");
   
   // Live market price states
-  const [goldSpot, setGoldSpot] = useState(2735.0);
+  const [goldSpot, setGoldSpot] = useState(4300.0);
+  const [goldChangePct, setGoldChangePct] = useState(0.65);
   const [usdThb, setUsdThb] = useState(33.50);
   const [dxyIndex, setDxyIndex] = useState(103.40);
   const [loading, setLoading] = useState(true);
@@ -78,8 +79,8 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
   // Position Lot Calculator states
   const [accountBalance, setAccountBalance] = useState(1000);
   const [riskPercent, setRiskPercent] = useState(1.5);
-  const [calcEntry, setCalcEntry] = useState(2735.0);
-  const [calcSL, setCalcSL] = useState(2640.0);
+  const [calcEntry, setCalcEntry] = useState(4300.0);
+  const [calcSL, setCalcSL] = useState(4270.0);
 
   // Economic Calendar & AI News Digest states
   const [calendarTab, setCalendarTab] = useState("today");
@@ -348,6 +349,12 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
         const data = await res.json();
         if (isMounted && data && typeof data.price === "number" && data.price > 500) {
           setGoldSpot(data.price);
+          if (typeof data.changePct === "number") {
+            setGoldChangePct(data.changePct);
+          }
+          // Auto-sync calculator inputs if they are at initial defaults or legacy values
+          setCalcEntry(prev => (prev === 2735.0 || prev === 4300.0 ? Number(data.price.toFixed(2)) : prev));
+          setCalcSL(prev => (prev === 2640.0 || prev === 4270.0 ? Number((data.price - 30.0).toFixed(2)) : prev));
         }
 
         const thbRes = await fetch("/api/price?symbol=USDTHB");
@@ -443,23 +450,24 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
     const savedDate = localStorage.getItem("xauusd_daily_anchor_date");
     const savedPrice = localStorage.getItem("xauusd_daily_anchor_price");
 
-    if (savedDate === todayStr && savedPrice && parseFloat(savedPrice) > 1000) {
-      return parseFloat(savedPrice);
-    } else {
-      const initialAnchor = 2735.00;
-      localStorage.setItem("xauusd_daily_anchor_date", todayStr);
-      localStorage.setItem("xauusd_daily_anchor_price", String(initialAnchor));
-      return initialAnchor;
+    if (savedDate === todayStr && savedPrice) {
+      const parsed = parseFloat(savedPrice);
+      if (!isNaN(parsed) && parsed > 3500) {
+        return parsed;
+      }
     }
+    return 4300.00;
   });
 
-  // Update daily anchor when live prices arrive for a new day or initial load
+  // Update daily anchor when live prices arrive or if stale (< 3500)
   useEffect(() => {
-    if (goldSpot && goldSpot > 500) {
+    if (goldSpot && goldSpot > 1000) {
       const todayStr = new Date().toISOString().split("T")[0];
       const savedDate = localStorage.getItem("xauusd_daily_anchor_date");
       const savedPrice = localStorage.getItem("xauusd_daily_anchor_price");
-      if (savedDate !== todayStr || !savedPrice || savedPrice === "2650") {
+      const parsed = parseFloat(savedPrice);
+
+      if (savedDate !== todayStr || !savedPrice || isNaN(parsed) || parsed < 3500 || Math.abs(parsed - goldSpot) > 80) {
         localStorage.setItem("xauusd_daily_anchor_date", todayStr);
         localStorage.setItem("xauusd_daily_anchor_price", String(goldSpot));
         setDailyAnchorPrice(goldSpot);
@@ -468,7 +476,7 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
   }, [goldSpot]);
 
   // 2. Dynamic Real-Time Timeframe Scenario Targets (Always synchronized with live gold spot)
-  const activeSpot = (goldSpot && goldSpot > 500) ? goldSpot : 2735.0;
+  const activeSpot = (goldSpot && goldSpot > 500) ? goldSpot : 4300.0;
   const scenarioTargets = {
     t24h: {
       base: activeSpot.toFixed(2),
@@ -489,12 +497,13 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
 
   const currentTfData = timeframeDataMap[timeframe] || timeframeDataMap["240"];
 
-  const support1 = (dailyAnchorPrice - currentTfData.s1Offset).toFixed(2);
-  const support2 = (dailyAnchorPrice - currentTfData.s2Offset).toFixed(2);
-  const resistance1 = (dailyAnchorPrice + currentTfData.r1Offset).toFixed(2);
-  const resistance2 = (dailyAnchorPrice + currentTfData.r2Offset).toFixed(2);
+  // Use activeSpot so intraday support & resistance dynamically reflect real-time live market price
+  const support1 = (activeSpot - currentTfData.s1Offset).toFixed(2);
+  const support2 = (activeSpot - currentTfData.s2Offset).toFixed(2);
+  const resistance1 = (activeSpot + currentTfData.r1Offset).toFixed(2);
+  const resistance2 = (activeSpot + currentTfData.r2Offset).toFixed(2);
 
-  const isBullish = goldSpot >= 2500;
+  const isBullish = goldSpot >= 3000;
   const sessions = getGoldSessionsInfo(currentTime);
 
   // Lot Size Calculation
@@ -519,9 +528,34 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
           </div>
         </div>
 
-        <span style={{ fontSize: "12px", background: "rgba(245, 158, 11, 0.15)", color: "#F59E0B", padding: "6px 14px", borderRadius: "20px", fontWeight: "600" }}>
-          🥇 XAU/USD (Spot Gold)
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "8px", 
+            background: "rgba(245, 158, 11, 0.12)", 
+            border: "1px solid rgba(245, 158, 11, 0.3)", 
+            padding: "6px 14px", 
+            borderRadius: "20px" 
+          }}>
+            <span style={{ fontSize: "12px", color: "#F59E0B", fontWeight: "600" }}>
+              🥇 XAU/USD Spot:
+            </span>
+            <span style={{ fontSize: "15px", fontWeight: "800", color: "#fff" }}>
+              ${activeSpot.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span style={{ 
+              fontSize: "11px", 
+              fontWeight: "700", 
+              color: goldChangePct >= 0 ? "#22c55e" : "#ef4444",
+              background: goldChangePct >= 0 ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+              padding: "2px 6px",
+              borderRadius: "4px"
+            }}>
+              {goldChangePct >= 0 ? `+${goldChangePct.toFixed(2)}%` : `${goldChangePct.toFixed(2)}%`}
+            </span>
+          </div>
+        </div>
       </div>
 
 
@@ -530,8 +564,8 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
         <GeminiAiAnalysisCard
           assetType="xauusd"
           symbol="XAUUSD (Spot Gold)"
-          price={goldSpot ? `$${goldSpot.toFixed(2)}` : "$2735.00"}
-          change="+0.75%"
+          price={goldSpot ? `$${goldSpot.toFixed(2)}` : "$4,300.00"}
+          change={goldChangePct ? `${goldChangePct >= 0 ? "+" : ""}${goldChangePct.toFixed(2)}%` : "+0.65%"}
           indicators={{ RSI: 64.2, DXY: "103.20", FedCutRateProb: "85%" }}
         />
       </div>
@@ -754,7 +788,7 @@ export default function InterGoldAnalysisView({ username, onNavigateTab }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "12px" }}>
               <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "6px" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: "11px", display: "block" }}>โซนเข้าซื้อ (Buy Entry)</span>
-                <strong style={{ color: "#60a5fa", fontSize: "12.5px" }}>${support1} - ${(dailyAnchorPrice - 5.0).toFixed(2)}</strong>
+                <strong style={{ color: "#60a5fa", fontSize: "12.5px" }}>${support1} - ${(activeSpot - 5.0).toFixed(2)}</strong>
               </div>
               <div style={{ background: "rgba(255,255,255,0.03)", padding: "8px 10px", borderRadius: "6px" }}>
                 <span style={{ color: "var(--text-muted)", fontSize: "11px", display: "block" }}>ตัดขาดทุน (Stop Loss)</span>

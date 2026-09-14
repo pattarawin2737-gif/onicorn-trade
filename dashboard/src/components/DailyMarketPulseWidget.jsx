@@ -7,7 +7,7 @@ export default function DailyMarketPulseWidget({ onSelectTab }) {
   const [marketData, setMarketData] = useState({
     thaiStock: { price: "1,452.20", change: "+0.45%", isUp: true, sentiment: "🟢 แรงซื้อกลุ่ม ICT & พลังงานหนุน", targetTab: "thai_stock_analysis" },
     usStock: { price: "5,648.40", change: "+0.82%", isUp: true, sentiment: "🟢 เทคฯ สหรัฐฯ ปรับขึ้นตอบรับงบ", targetTab: "inter_stock_analysis" },
-    gold: { price: "$2,735.80", subPrice: "฿44,550", change: "+0.65%", isUp: true, sentiment: "🟢 เงินเฟ้อ & ดอกเบี้ยหนุน Spot Gold", targetTab: "inter_gold_analysis" },
+    gold: { price: "$4,300.00", subPrice: "฿68,500", change: "+0.65%", isUp: true, sentiment: "🟢 เงินเฟ้อ & ดอกเบี้ยหนุน Spot Gold", targetTab: "inter_gold_analysis" },
     oil: { price: "$78.40", subPrice: "฿37.69 (G95)", change: "-0.20%", isUp: false, sentiment: "🟡 ทรงตัวในกรอบ โซนน่าตุนตู้", targetTab: "oil_analysis" },
     forex: { price: "฿33.52", subPrice: "DXY 103.4", change: "-0.15%", isUp: false, sentiment: "🟢 บาทแข็งค่าปานกลาง หนุนต้นทุนนำเข้า", targetTab: "analysis" }
   });
