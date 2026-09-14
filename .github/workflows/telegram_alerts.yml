@@ -1,10 +1,12 @@
-name: Automated Telegram Alerts (Gold & Oil)
+name: Automated Telegram Alerts (Gold, Oil, Thai Stocks & Sectors)
 
 on:
   schedule:
     # 08:00 AM Bangkok Time (UTC+7) = 01:00 AM UTC
     # Runs Monday to Friday (1-5)
     - cron: '0 1 * * 1-5'
+    # 08:00 AM Bangkok Time on the 1st of every month (for Monthly Sector Outlook)
+    - cron: '0 1 1 * *'
   workflow_dispatch:
     inputs:
       task:
@@ -14,9 +16,12 @@ on:
         type: choice
         options:
           - auto
+          - thai_stocks
+          - weekly_sector
+          - monthly_sector
           - gold_news
           - oil_chart
-          - both
+          - all
 
 jobs:
   telegram_alerts:
@@ -32,9 +37,11 @@ jobs:
         id: check_day
         run: |
           DAY_OF_WEEK=$(TZ=Asia/Bangkok date +%u)
+          DAY_OF_MONTH=$(TZ=Asia/Bangkok date +%-d)
           TODAY_DATE=$(TZ=Asia/Bangkok date '+%Y-%m-%d %H:%M:%S')
           echo "Bangkok Time: $TODAY_DATE"
           echo "Bangkok Day of Week (1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri): $DAY_OF_WEEK"
+          echo "Bangkok Day of Month: $DAY_OF_MONTH"
           if [ "$DAY_OF_WEEK" = "2" ]; then
             echo "is_tuesday=true" >> $GITHUB_OUTPUT
           else
@@ -57,7 +64,7 @@ jobs:
         if: |
           (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'auto')) ||
           github.event.inputs.task == 'oil_chart' ||
-          github.event.inputs.task == 'both'
+          github.event.inputs.task == 'all'
         run: |
           playwright install --with-deps chromium
 
@@ -67,7 +74,7 @@ jobs:
           github.event_name == 'schedule' ||
           github.event.inputs.task == 'auto' ||
           github.event.inputs.task == 'gold_news' ||
-          github.event.inputs.task == 'both'
+          github.event.inputs.task == 'all'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -79,9 +86,24 @@ jobs:
         if: |
           (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'auto')) ||
           github.event.inputs.task == 'oil_chart' ||
-          github.event.inputs.task == 'both'
+          github.event.inputs.task == 'all'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python scripts/send_oil_chart.py
+
+      - name: 📈 Send Thai Stock & Sector Alerts
+        # Runs Monday-Friday for Top Stocks, Monday for Weekly Sector, 1st of Month for Monthly Sector
+        if: |
+          github.event_name == 'schedule' ||
+          github.event.inputs.task == 'auto' ||
+          github.event.inputs.task == 'thai_stocks' ||
+          github.event.inputs.task == 'weekly_sector' ||
+          github.event.inputs.task == 'monthly_sector' ||
+          github.event.inputs.task == 'all'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/send_thai_stock_alerts.py --type ${{ github.event.inputs.task || 'auto' }}
