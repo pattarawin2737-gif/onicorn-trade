@@ -1492,14 +1492,14 @@ Indicator`] || "",
                 pair: b["คู่เงิน"] || "",
                 type: b["ประเภทการเข้า"] || "Buy",
                 entryPrice: b["ราคาที่เข้า"] || "",
-                risk: b["ความเสี่ยง"] || "profitTarget/hideSheetTrades",
+                risk: b["ความเสี่ยง"] || "0.01",
                 setup: b["บันทึกความเสี่ยงของแผนเทรด"] || "",
                 feelings: b["บันทึกความรู้สึก"] || "",
                 remarks: b["หมายเหตุ"] || "",
                 tpPrice: b["ราคา TP"] || "",
                 slPrice: b["ราคา SL"] || "",
-                tpPoints: b[`"TP(จุด)\nที่ตั้งใว้"`] || "300",
-                slPoints: b[`"SL(จุด)\nที่ตั้งใว้"`] || "150",
+                tpPoints: b["TP(จุด)\nที่ตั้งใว้"] || b["TP(จุด) ที่ตั้งใว้"] || b["TP (จุด)"] || b.tpPoints || "300",
+                slPoints: b["SL(จุด)\nที่ตั้งใว้"] || b["SL(จุด) ที่ตั้งใว้"] || b["SL (จุด)"] || b.slPoints || "150",
                 candleReasons: T,
                 indicatorReasons: Z
             })
@@ -3511,14 +3511,9 @@ Indicator`] || "",
                                         })
                                     })]
                                 }), _jsxs("div", {
-                                    style: {
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                                        gap: "24px",
-                                        alignItems: "stretch"
-                                    },
+                                    className: "form-and-active-trades-split",
                                     children: [_jsxs("div", {
-                                        className: "glass-card",
+                                        className: "glass-card form-left-card",
                                         style: {
                                             padding: "20px 24px",
                                             display: "flex",
@@ -3954,7 +3949,7 @@ Indicator`] || "",
                                             }))
                                         })]
                                     }), _jsxs("div", {
-                                        className: "glass-card",
+                                        className: "glass-card active-trades-right-card",
                                         style: {
                                             padding: "20px 24px",
                                             display: "flex",
@@ -4038,18 +4033,57 @@ Indicator`] || "",
                                                 },
                                                 children: sortedActiveTrades.map((T, idx) => {
                                                     const Z = T.id || `demo-${idx}`;
-                                                    const lt = String(T["ประเภทการเข้า"]).includes("Buy");
+                                                    const isBuy = String(T["ประเภทการเข้า"] || "").toLowerCase().includes("buy");
+                                                    const lt = isBuy;
                                                     const Dt = T["ช่วงเวลา"] || "";
-                                                    const Pi = `${T["วันที่เปิด"] ? T["วันที่เปิด"].split(" ")[0] : ""} ${Dt}`;
+                                                    const Pi = `${T["วันที่เปิด"] ? T["วันที่เปิด"].split(" ")[0] : ""} ${Dt}`.trim();
+                                                    const isGold = (T.marketType || activeMarketType) === "thai_gold";
                                                     const entryPrice = parseFloat(T["ราคาที่เข้า"] || 0);
                                                     const qty = parseFloat(T["ความเสี่ยง"] || 0);
-                                                    const totalPurchase = entryPrice * qty;
+                                                    const totalPurchase = isGold ? (entryPrice * (qty / 15.244)) : (entryPrice * qty);
                                                     const symKey = (T["คู่เงิน"] || T.pair || "").trim();
                                                     const currentPrice = currentPrices[Z] || currentPrices[symKey] || currentPrices[symKey.toUpperCase()] || entryPrice;
-                                                    const isBuy = String(T["ประเภทการเข้า"]).includes("Buy") || String(T["ประเภทการเข้า"]).includes("Limit") || true;
-                                                    const currentProfit = isBuy 
-                                                        ? (currentPrice - entryPrice) * qty 
-                                                        : (entryPrice - currentPrice) * qty;
+                                                    const mult = getPairMultiplier(symKey);
+
+                                                    // TP and SL points and prices
+                                                    let tpPrice = parseFloat(T["ราคา TP"] || T.tpPrice || 0);
+                                                    let slPrice = parseFloat(T["ราคา SL"] || T.slPrice || 0);
+                                                    let tpPts = parseInt(T["TP(จุด)\nที่ตั้งใว้"] || T["TP(จุด) ที่ตั้งใว้"] || T["TP (จุด)"] || T.tpPoints || 0);
+                                                    let slPts = parseInt(T["SL(จุด)\nที่ตั้งใว้"] || T["SL(จุด) ที่ตั้งใว้"] || T["SL (จุด)"] || T.slPoints || 0);
+
+                                                    if (!tpPts && entryPrice > 0 && tpPrice > 0) {
+                                                        tpPts = Math.round(Math.abs(tpPrice - entryPrice) * mult);
+                                                    }
+                                                    if (!slPts && entryPrice > 0 && slPrice > 0) {
+                                                        slPts = Math.round(Math.abs(slPrice - entryPrice) * mult);
+                                                    }
+                                                    if (!tpPrice && entryPrice > 0 && tpPts > 0) {
+                                                        tpPrice = isBuy ? entryPrice + (tpPts / mult) : entryPrice - (tpPts / mult);
+                                                    }
+                                                    if (!slPrice && entryPrice > 0 && slPts > 0) {
+                                                        slPrice = isBuy ? entryPrice - (slPts / mult) : entryPrice + (slPts / mult);
+                                                    }
+
+                                                    // Profit calculation
+                                                    let currentProfit = 0;
+                                                    let pointsProfit = 0;
+                                                    if (activeMarketType === "forex") {
+                                                        pointsProfit = isBuy ? Math.round((currentPrice - entryPrice) * mult) : Math.round((entryPrice - currentPrice) * mult);
+                                                        const lotSize = qty || 0.01;
+                                                        const isXAU = symKey.toUpperCase().includes("XAU");
+                                                        currentProfit = isXAU 
+                                                            ? (isBuy ? (currentPrice - entryPrice) : (entryPrice - currentPrice)) * (lotSize * 100)
+                                                            : pointsProfit * (lotSize * 0.1);
+                                                    } else {
+                                                        const pnlMultiplier = isGold ? (qty / 15.244) : qty;
+                                                        currentProfit = isBuy 
+                                                            ? (currentPrice - entryPrice) * pnlMultiplier 
+                                                            : (entryPrice - currentPrice) * pnlMultiplier;
+                                                    }
+                                                    if (isNaN(currentProfit)) currentProfit = 0;
+
+                                                    const decimals = symKey.toUpperCase().includes("JPY") ? 3 : symKey.toUpperCase().includes("XAU") ? 2 : (activeMarketType === "forex" ? 5 : 2);
+                                                    const currPrefix = (activeMarketType === "forex" || activeMarketType === "foreign_stock") ? "$" : "฿";
 
                                                     return _jsxs("div", {
                                                         key: Z,
@@ -4057,7 +4091,7 @@ Indicator`] || "",
                                                             background: "linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.85))",
                                                             border: lt ? "1.5px solid #22c55e" : "1.5px solid #ef4444",
                                                             boxShadow: lt ? "0 4px 14px rgba(0,0,0,0.35), 0 0 10px rgba(34, 197, 94, 0.2)" : "0 4px 14px rgba(0,0,0,0.35), 0 0 10px rgba(239, 68, 68, 0.2)",
-                                                            borderRadius: "10px",
+                                                            borderRadius: "12px",
                                                             padding: "14px 16px",
                                                             display: "flex",
                                                             flexDirection: "column",
@@ -4070,17 +4104,17 @@ Indicator`] || "",
                                                                     _jsxs("div", {
                                                                         style: { display: "flex", alignItems: "center", gap: "8px" },
                                                                         children: [
-                                                                            _jsx("span", { style: { fontSize: "16px", fontWeight: "800", color: "#fff" }, children: T["คู่เงิน"] }),
+                                                                            _jsx("span", { style: { fontSize: "17px", fontWeight: "800", color: "#fff" }, children: T["คู่เงิน"] }),
                                                                             _jsx("span", {
                                                                                 style: {
-                                                                                    fontSize: "11px",
+                                                                                    fontSize: "12px",
                                                                                     background: lt ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
                                                                                     color: lt ? "#22c55e" : "#ef4444",
                                                                                     padding: "2px 8px",
-                                                                                    borderRadius: "4px",
+                                                                                    borderRadius: "6px",
                                                                                     fontWeight: "bold"
                                                                                 },
-                                                                                children: T["ประเภทการเข้า"] || "Buy"
+                                                                                children: T["ประเภทการเข้า"] || (lt ? "Buy" : "Sell")
                                                                             })
                                                                         ]
                                                                     }),
@@ -4102,21 +4136,49 @@ Indicator`] || "",
                                                                                         withholdingTax: "7"
                                                                                     });
                                                                                 },
-                                                                                className: "btn-quick-select active",
-                                                                                style: { margin: 0, padding: "4px 10px", fontSize: "11px", whiteSpace: "nowrap", fontWeight: "bold" },
+                                                                                style: {
+                                                                                    background: "rgba(59, 130, 246, 0.15)",
+                                                                                    border: "1px solid #3b82f6",
+                                                                                    color: "#60a5fa",
+                                                                                    margin: 0,
+                                                                                    padding: "4px 10px",
+                                                                                    borderRadius: "8px",
+                                                                                    fontSize: "12px",
+                                                                                    fontWeight: "bold",
+                                                                                    cursor: "pointer",
+                                                                                    display: "flex",
+                                                                                    alignItems: "center",
+                                                                                    gap: "4px",
+                                                                                    whiteSpace: "nowrap"
+                                                                                },
                                                                                 children: "🎯 ปิดไม้"
                                                                             }),
                                                                             _jsx("button", {
                                                                                 onClick: () => handleEditActiveClick(T),
-                                                                                className: "btn-quick-select",
-                                                                                style: { margin: 0, padding: "4px 8px", fontSize: "11px" },
+                                                                                style: {
+                                                                                    background: "rgba(255, 255, 255, 0.05)",
+                                                                                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                                                                                    margin: 0,
+                                                                                    padding: "4px 8px",
+                                                                                    borderRadius: "8px",
+                                                                                    fontSize: "12px",
+                                                                                    cursor: "pointer"
+                                                                                },
                                                                                 title: "แก้ไข",
                                                                                 children: "✏️"
                                                                             }),
                                                                             _jsx("button", {
                                                                                 onClick: () => Dh(T.id),
-                                                                                className: "btn-quick-select",
-                                                                                style: { border: "1px solid rgba(239, 68, 68, 0.4)", color: "#ef4444", padding: "4px 8px", fontSize: "11px" },
+                                                                                style: {
+                                                                                    background: "rgba(239, 68, 68, 0.1)",
+                                                                                    border: "1px solid rgba(239, 68, 68, 0.4)",
+                                                                                    color: "#ef4444",
+                                                                                    margin: 0,
+                                                                                    padding: "4px 8px",
+                                                                                    borderRadius: "8px",
+                                                                                    fontSize: "12px",
+                                                                                    cursor: "pointer"
+                                                                                },
                                                                                 title: "ลบ",
                                                                                 children: "✕"
                                                                             })
@@ -4125,28 +4187,135 @@ Indicator`] || "",
                                                                 ]
                                                             }),
                                                             _jsxs("div", {
-                                                                style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "12px", background: "rgba(0,0,0,0.3)", padding: "10px 12px", borderRadius: "8px" },
+                                                                style: {
+                                                                    display: "grid",
+                                                                    gridTemplateColumns: activeMarketType !== "forex" ? "1fr 1fr 1fr 1fr" : "1fr 1fr",
+                                                                    gap: "8px",
+                                                                    fontSize: "12px",
+                                                                    background: "rgba(0,0,0,0.3)",
+                                                                    padding: "10px 12px",
+                                                                    borderRadius: "10px"
+                                                                },
                                                                 children: [
-                                                                    _jsxs("div", { children: [_jsx("span", { style: { fontSize: "10.5px", color: "var(--text-muted)", display: "block" }, children: "ราคาเปิดเข้า" }), _jsx("strong", { style: { color: "#fff" }, children: entryPrice ? entryPrice.toLocaleString() : "-" })] }),
-                                                                    _jsxs("div", { children: [_jsx("span", { style: { fontSize: "10.5px", color: "var(--text-muted)", display: "block" }, children: "ราคาปัจจุบัน" }), _jsx("strong", { style: { color: "#60a5fa" }, children: currentPrice ? currentPrice.toFixed(2) : "-" })] }),
+                                                                    _jsxs("div", {
+                                                                        children: [
+                                                                            _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: "ราคาเปิดเข้า" }),
+                                                                            _jsx("strong", { style: { color: "#fff", fontSize: "15px" }, children: entryPrice ? entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: decimals }) : "-" })
+                                                                        ]
+                                                                    }),
+                                                                    _jsxs("div", {
+                                                                        children: [
+                                                                            _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: "ราคาปัจจุบัน" }),
+                                                                            _jsx("strong", { style: { color: "#60a5fa", fontSize: "15px" }, children: currentPrice ? currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: Math.max(decimals, 3) }) : "-" })
+                                                                        ]
+                                                                    }),
                                                                     activeMarketType !== "forex" && _jsxs(_Fragment, {
                                                                         children: [
-                                                                            _jsxs("div", { children: [_jsx("span", { style: { fontSize: "10.5px", color: "var(--text-muted)", display: "block" }, children: "จำนวนหุ้น" }), _jsx("strong", { style: { color: "#fff" }, children: qty ? qty.toLocaleString() : "-" })] }),
-                                                                            _jsxs("div", { children: [_jsx("span", { style: { fontSize: "10.5px", color: "var(--text-muted)", display: "block" }, children: "จำนวนเงินที่ซื้อ" }), _jsx("strong", { style: { color: "#fff" }, children: `฿${totalPurchase ? totalPurchase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-"}` })] })
+                                                                            _jsxs("div", {
+                                                                                children: [
+                                                                                    _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: isGold ? "น้ำหนักทอง" : "จำนวนหุ้น" }),
+                                                                                    _jsx("strong", { style: { color: "#fff", fontSize: "15px" }, children: qty ? (isGold ? `${qty} กรัม` : qty.toLocaleString()) : "-" })
+                                                                                ]
+                                                                            }),
+                                                                            _jsxs("div", {
+                                                                                children: [
+                                                                                    _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", display: "block", marginBottom: "2px" }, children: "จำนวนเงินที่ซื้อ" }),
+                                                                                    _jsx("strong", { style: { color: "#fff", fontSize: "15px" }, children: currPrefix + (totalPurchase ? totalPurchase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "-") })
+                                                                                ]
+                                                                            })
+                                                                        ]
+                                                                    })
+                                                                ]
+                                                            }),
+                                                            (tpPrice > 0 || slPrice > 0 || tpPts > 0 || slPts > 0) && _jsxs("div", {
+                                                                style: {
+                                                                    display: "grid",
+                                                                    gridTemplateColumns: "1fr 1fr",
+                                                                    gap: "8px",
+                                                                    background: "rgba(0, 0, 0, 0.25)",
+                                                                    padding: "10px 12px",
+                                                                    borderRadius: "10px",
+                                                                    border: "1px solid rgba(255, 255, 255, 0.06)"
+                                                                },
+                                                                children: [
+                                                                    _jsxs("div", {
+                                                                        style: { display: "flex", flexDirection: "column", gap: "3px" },
+                                                                        children: [
+                                                                            _jsxs("div", {
+                                                                                style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+                                                                                children: [
+                                                                                    _jsx("span", { style: { fontSize: "11px", color: "#34d399", fontWeight: "700" }, children: "🎯 TP (เป้าหมาย)" }),
+                                                                                    tpPts > 0 ? _jsxs("span", {
+                                                                                        style: {
+                                                                                            fontSize: "10px",
+                                                                                            color: "#34d399",
+                                                                                            background: "rgba(16, 185, 129, 0.18)",
+                                                                                            padding: "1px 6px",
+                                                                                            borderRadius: "4px",
+                                                                                            fontWeight: "600"
+                                                                                        },
+                                                                                        children: [tpPts.toLocaleString(), " จุด"]
+                                                                                    }) : null
+                                                                                ]
+                                                                            }),
+                                                                            _jsx("strong", {
+                                                                                style: { fontSize: "15px", color: "#34d399" },
+                                                                                children: tpPrice > 0 ? tpPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: decimals }) : (tpPts > 0 ? `${tpPts} จุด` : "-")
+                                                                            })
+                                                                        ]
+                                                                    }),
+                                                                    _jsxs("div", {
+                                                                        style: { display: "flex", flexDirection: "column", gap: "3px" },
+                                                                        children: [
+                                                                            _jsxs("div", {
+                                                                                style: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+                                                                                children: [
+                                                                                    _jsx("span", { style: { fontSize: "11px", color: "#f87171", fontWeight: "700" }, children: "🛑 SL (ตัดขาดทุน)" }),
+                                                                                    slPts > 0 ? _jsxs("span", {
+                                                                                        style: {
+                                                                                            fontSize: "10px",
+                                                                                            color: "#f87171",
+                                                                                            background: "rgba(239, 68, 68, 0.18)",
+                                                                                            padding: "1px 6px",
+                                                                                            borderRadius: "4px",
+                                                                                            fontWeight: "600"
+                                                                                        },
+                                                                                        children: [slPts.toLocaleString(), " จุด"]
+                                                                                    }) : null
+                                                                                ]
+                                                                            }),
+                                                                            _jsx("strong", {
+                                                                                style: { fontSize: "15px", color: "#f87171" },
+                                                                                children: slPrice > 0 ? slPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: decimals }) : (slPts > 0 ? `${slPts} จุด` : "-")
+                                                                            })
                                                                         ]
                                                                     })
                                                                 ]
                                                             }),
                                                             _jsxs("div", {
-                                                                style: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px dashed rgba(255,255,255,0.1)", paddingTop: "8px" },
+                                                                style: { display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px dashed rgba(255,255,255,0.12)", paddingTop: "8px" },
                                                                 children: [
-                                                                    _jsxs("span", { style: { fontSize: "11px", color: "var(--text-muted)" }, children: ["🕒 ", Pi] }),
+                                                                    _jsxs("span", { style: { fontSize: "12px", color: "var(--text-muted)" }, children: ["🕒 ", Pi] }),
                                                                     _jsxs("div", {
+                                                                        style: { display: "flex", alignItems: "center" },
                                                                         children: [
-                                                                            _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)", marginRight: "6px" }, children: "กำไร/ขาดทุน:" }),
+                                                                            _jsx("span", { style: { fontSize: "12px", color: "var(--text-muted)", marginRight: "6px" }, children: "กำไร/ขาดทุน:" }),
+                                                                            activeMarketType === "forex" && pointsProfit !== 0 && _jsxs("span", {
+                                                                                style: {
+                                                                                    fontSize: "13px",
+                                                                                    color: pointsProfit >= 0 ? "#34d399" : "#f87171",
+                                                                                    marginRight: "8px",
+                                                                                    fontWeight: "700"
+                                                                                },
+                                                                                children: [(pointsProfit > 0 ? "+" : "") + pointsProfit.toLocaleString(), " จุด"]
+                                                                            }),
                                                                             _jsx("strong", {
-                                                                                style: { fontSize: "14px", color: currentProfit > 0 ? "var(--color-success)" : currentProfit < 0 ? "var(--color-danger)" : "#fff" },
-                                                                                children: (currentProfit > 0 ? "+" : "") + (activeMarketType === "thai_stock" ? "฿" : "$") + currentProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                                                                style: {
+                                                                                    fontSize: "15px",
+                                                                                    color: currentProfit > 0 ? "#22c55e" : currentProfit < 0 ? "#ef4444" : "#fff",
+                                                                                    fontWeight: "700"
+                                                                                },
+                                                                                children: (currentProfit > 0 ? "+" : "") + currPrefix + currentProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                                                                             })
                                                                         ]
                                                                     })
@@ -4357,12 +4526,12 @@ Indicator`] || "",
                                                                         style: {
                                                                             color: "var(--color-success)"
                                                                         },
-                                                                        children: ["+", T[`"TP(จุด)\\nที่ตั้งใว้"`] || "300"]
+                                                                        children: ["+", T["TP(จุด)\nที่ตั้งใว้"] || T["TP(จุด) ที่ตั้งใว้"] || T["TP (จุด)"] || T.tpPoints || "300"]
                                                                     }), " / ", _jsxs("span", {
                                                                         style: {
                                                                             color: "var(--color-danger)"
                                                                         },
-                                                                        children: ["-", T[`"SL(จุด)\\nที่ตั้งใว้"`] || "150"]
+                                                                        children: ["-", T["SL(จุด)\nที่ตั้งใว้"] || T["SL(จุด) ที่ตั้งใว้"] || T["SL (จุด)"] || T.slPoints || "150"]
                                                                     })]
                                                                 })
                                                             }), _jsx("td", {

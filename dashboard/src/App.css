@@ -1592,7 +1592,7 @@ input[type=number] {
 /* 🖥️ Clean Grid Side-by-Side: Form on Left (420px), Active Trades on Right (1fr) */
 .form-and-active-trades-split {
   display: grid !important;
-  grid-template-columns: minmax(320px, 420px) 1fr !important;
+  grid-template-columns: minmax(340px, 440px) 1fr !important;
   gap: 20px !important;
   width: 100% !important;
   align-items: stretch !important;
