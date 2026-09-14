@@ -56,7 +56,9 @@ export async function onRequestPost(context) {
         `• 🛢️ <b>ภาพกราฟสดน้ำมัน WTI:</b> ทุกวันอังคาร เวลา 08:00 น.\n` +
         `• 📈 <b>หุ้นไทยเด่นที่สุดในตลาด (Daily Top Picks):</b> จันทร์ - ศุกร์ เวลา 08:30 น.\n` +
         `• ⚡ <b>วิเคราะห์กลุ่มอุตสาหกรรม (Weekly Sector):</b> ทุกวันจันทร์ เวลา 08:30 น.\n` +
-        `• 🗓️ <b>วิเคราะห์กลุ่มอุตสาหกรรม (Monthly Outlook):</b> ทุกวันที่ 1 ของเดือน เวลา 08:30 น.`
+        `• 🗓️ <b>วิเคราะห์กลุ่มอุตสาหกรรม (Monthly Outlook):</b> ทุกวันที่ 1 ของเดือน เวลา 08:30 น.\n` +
+        `• 🚀 <b>แจ้งเตือนทะลุกรอบ & วอลุ่มพุ่ง (Intraday Breakout):</b> จันทร์ - ศุกร์ เวลา 10:30 & 14:30 น.\n` +
+        `• 📊 <b>รายงานสรุปตลาดสิ้นวัน (Market Wrap):</b> จันทร์ - ศุกร์ เวลา 17:15 น.`
       );
     } else if (action === "custom" && customMessage) {
       messageText = customMessage;
@@ -66,6 +68,10 @@ export async function onRequestPost(context) {
       messageText = customMessage || `⚡ <b>ทดสอบระบบวิเคราะห์กลุ่มอุตสาหกรรมที่น่าสนใจ (ประจำสัปดาห์นี้)</b>\nระบบพร้อมส่งแจ้งเตือนอัตโนมัติ ทุกวันจันทร์ เวลา 08:30 น.`;
     } else if (action === "monthly_sector") {
       messageText = customMessage || `🗓️ <b>ทดสอบระบบวิเคราะห์กลุ่มอุตสาหกรรมยุทธศาสตร์ (ประจำเดือนนี้)</b>\nระบบพร้อมส่งแจ้งเตือนอัตโนมัติ ทุกวันที่ 1 ของเดือน เวลา 08:30 น.`;
+    } else if (action === "intraday_alert") {
+      messageText = customMessage || `⚡ <b>ทดสอบระบบแจ้งเตือนทะลุกรอบ & วอลุ่มผิดปกติระหว่างวัน (Intraday Breakout)</b>\nระบบพร้อมส่งแจ้งเตือนอัตโนมัติ จันทร์ - ศุกร์ ระหว่าง 10:30 - 15:30 น.`;
+    } else if (action === "market_wrap") {
+      messageText = customMessage || `📊 <b>ทดสอบระบบรายงานสรุปตลาดหุ้นไทยสิ้นวัน (End-of-Day Market Wrap)</b>\nระบบพร้อมส่งแจ้งเตือนอัตโนมัติ จันทร์ - ศุกร์ เวลา 17:15 น.`;
     } else {
       messageText = `🔔 แจ้งเตือนจาก Onicorn Trade Dashboard`;
     }

@@ -2,11 +2,14 @@ name: Automated Telegram Alerts (Gold, Oil, Thai Stocks & Sectors)
 
 on:
   schedule:
-    # 08:00 AM Bangkok Time (UTC+7) = 01:00 AM UTC
-    # Runs Monday to Friday (1-5)
+    # 08:00 AM Bangkok Time (UTC+7) = 01:00 AM UTC (Mon - Fri: Gold News, Daily Top Stocks, Weekly Sector on Mon)
     - cron: '0 1 * * 1-5'
     # 08:00 AM Bangkok Time on the 1st of every month (for Monthly Sector Outlook)
     - cron: '0 1 1 * *'
+    # 10:30 AM & 14:30 PM Bangkok Time (03:30 & 07:30 UTC: Intraday Breakout & Volume Alert)
+    - cron: '30 3,7 * * 1-5'
+    # 17:15 PM Bangkok Time (10:15 UTC: End-of-Day Market Wrap)
+    - cron: '15 10 * * 1-5'
   workflow_dispatch:
     inputs:
       task:
@@ -19,6 +22,8 @@ on:
           - thai_stocks
           - weekly_sector
           - monthly_sector
+          - intraday_alert
+          - market_wrap
           - gold_news
           - oil_chart
           - all
@@ -93,14 +98,16 @@ jobs:
         run: |
           python scripts/send_oil_chart.py
 
-      - name: 📈 Send Thai Stock & Sector Alerts
-        # Runs Monday-Friday for Top Stocks, Monday for Weekly Sector, 1st of Month for Monthly Sector
+      - name: 📈 Send Thai Stock, Sector & Market Alerts
+        # Runs Monday-Friday for Top Stocks, Monday for Weekly Sector, 1st of Month for Monthly Sector, Intraday Breakouts, and Market Wrap
         if: |
           github.event_name == 'schedule' ||
           github.event.inputs.task == 'auto' ||
           github.event.inputs.task == 'thai_stocks' ||
           github.event.inputs.task == 'weekly_sector' ||
           github.event.inputs.task == 'monthly_sector' ||
+          github.event.inputs.task == 'intraday_alert' ||
+          github.event.inputs.task == 'market_wrap' ||
           github.event.inputs.task == 'all'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
