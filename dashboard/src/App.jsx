@@ -336,7 +336,7 @@ export default function App() {
         closePrice: "",
         lotSize: "0.01",
         withholdingTax: "7"
-    }), [initialCapital, setInitialCapital] = useState(50), [profitTarget, setProfitTarget] = useState(500), [hideSheetTrades, setHideSheetTrades] = useState(!1), [editingActiveTradeId, setEditingActiveTradeId] = useState(null), [editTrade, setEditTrade] = useState({
+    }), [initialCapital, setInitialCapital] = useState(50), [profitTarget, setProfitTarget] = useState(500), [showTargetSettings, setShowTargetSettings] = useState(!1), [hideSheetTrades, setHideSheetTrades] = useState(!1), [editingActiveTradeId, setEditingActiveTradeId] = useState(null), [editTrade, setEditTrade] = useState({
         date: "",
         time: "",
         pair: "",
@@ -1173,7 +1173,7 @@ Indicator`] || "",
                 case "overview":
                     return "ภาพรวมพอร์ต";
                 case "journal_plan":
-                    return "บันทึก & แผนสะสมทุน";
+                    return "บันทึกผลการลงทุน";
                 case "settings":
                     return "ตั้งค่าระบบ";
                 default:
@@ -1349,7 +1349,7 @@ Indicator`] || "",
                         })
                     }, {
                         id: "journal_plan",
-                        label: "แผนปั้นพอร์ต 100%",
+                        label: "บันทึกผลการลงทุน",
                         icon: _jsx(BookOpen, {
                             size: 18
                         })
@@ -1722,6 +1722,12 @@ Indicator`] || "",
                                     border: "1.5px solid #3b82f6",
                                     color: "#60a5fa"
                                 }, {
+                                    id: "thai_gold",
+                                    label: "🪙 ทองไทย (Thai Gold)",
+                                    gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.15))",
+                                    border: "1.5px solid #f59e0b",
+                                    color: "#fbbf24"
+                                }, {
                                     id: "thai_stock",
                                     label: "🇹🇭 หุ้นไทย (Thai Stocks)",
                                     gradient: "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.15))",
@@ -1829,6 +1835,302 @@ Indicator`] || "",
                                         })
                                     })]
                                 })]
+                            }), _jsx("div", {
+                                style: { display: "flex", flexDirection: "column", gap: "20px", margin: "20px 0" },
+                                children: (() => {
+                                    const closed = (Bo || []).filter(d => d.ผลลัพธ์ && d.ผลลัพธ์ !== "Active"),
+                                        curr = (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$";
+                                    let winMoney = 0, lossMoney = 0, netMoney = 0, winCount = 0, lossCount = 0, curW = 0, maxW = 0, curL = 0, maxL = 0, tpSlCount = 0;
+                                    const sessionCounts = { asian: 0, london: 0, ny: 0 };
+                                    closed.forEach(d => {
+                                        const pips = parseFloat(d["ผลลัพธ์ (จุด)"] || 0),
+                                            m = parseFloat(d["กำไร/ขาดทุน($)"] || d["ผลกำไร/ขาดทุน"] || 0),
+                                            val = m !== 0 ? m : pips,
+                                            isW = String(d.ผลลัพธ์ || "").toLowerCase().includes("win") || String(d.ผลลัพธ์ || "").includes("ชนะ") || val > 0,
+                                            isL = String(d.ผลลัพธ์ || "").toLowerCase().includes("loss") || String(d.ผลลัพธ์ || "").includes("แพ้") || val < 0;
+                                        if (isW) {
+                                            winCount++;
+                                            winMoney += Math.abs(val);
+                                            curW++;
+                                            curL = 0;
+                                            if (curW > maxW) maxW = curW;
+                                        } else if (isL) {
+                                            lossCount++;
+                                            lossMoney += Math.abs(val);
+                                            curL++;
+                                            curW = 0;
+                                            if (curL > maxL) maxL = curL;
+                                        }
+                                        if (d["ราคา TP"] || d["ราคา SL"]) tpSlCount++;
+                                        const timeStr = String(d.ช่วงเวลา || d.วันที่เปิด || ""),
+                                            hourMatch = timeStr.match(/(\d{1,2}):/);
+                                        if (hourMatch) {
+                                            const h = parseInt(hourMatch[1], 10);
+                                            if (h >= 6 && h < 13) sessionCounts.asian++;
+                                            else if (h >= 13 && h < 19) sessionCounts.london++;
+                                            else sessionCounts.ny++;
+                                        }
+                                    });
+                                    netMoney = winMoney - lossMoney;
+                                    const pf = lossMoney > 0 ? (winMoney / lossMoney).toFixed(2) : (winMoney > 0 ? "∞" : "0.00"),
+                                        avgWin = winCount > 0 ? (winMoney / winCount).toFixed(1) : "0",
+                                        avgLoss = lossCount > 0 ? (lossMoney / lossCount).toFixed(1) : "0",
+                                        rrRatio = parseFloat(avgLoss) > 0 ? "1 : " + (parseFloat(avgWin) / parseFloat(avgLoss)).toFixed(2) : (parseFloat(avgWin) > 0 ? "1 : 2.0+" : "1 : 1"),
+                                        bestPair = pe && pe.pairStats && pe.pairStats.length > 0 ? pe.pairStats[0] : null,
+                                        disciplineScore = closed.length > 0 ? Math.min(100, Math.round(tpSlCount / closed.length * 100)) : 100;
+                                    let bestSession = "London (13:00 - 18:00)";
+                                    if (sessionCounts.ny > sessionCounts.london && sessionCounts.ny > sessionCounts.asian) bestSession = "New York (19:00 - 02:00)";
+                                    else if (sessionCounts.asian > sessionCounts.london && sessionCounts.asian > sessionCounts.ny) bestSession = "Asian (06:00 - 12:00)";
+
+                                    return _jsxs(_Fragment, {
+                                        children: [
+                                            _jsxs("div", {
+                                                style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" },
+                                                children: [
+                                                    _jsxs("div", {
+                                                        className: "glass-card",
+                                                        style: {
+                                                            padding: "16px",
+                                                            borderRadius: "12px",
+                                                            background: "linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(15, 23, 42, 0.6))",
+                                                            border: "1px solid rgba(34, 197, 94, 0.25)",
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            gap: "6px"
+                                                        },
+                                                        children: [
+                                                            _jsxs("div", {
+                                                                style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+                                                                children: [
+                                                                    _jsx("span", { style: { fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }, children: "กำไรสุทธิรวม (Net PnL)" }),
+                                                                    _jsx("span", { style: { fontSize: "16px" }, children: "💰" })
+                                                                ]
+                                                            }),
+                                                            _jsxs("div", {
+                                                                style: { fontSize: "22px", fontWeight: "800", color: netMoney >= 0 ? "#22c55e" : "#ef4444" },
+                                                                children: [netMoney >= 0 ? "+" : "-", curr, Math.abs(netMoney).toLocaleString(void 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 })]
+                                                            }),
+                                                            _jsxs("span", {
+                                                                style: { fontSize: "11px", color: "var(--text-muted)" },
+                                                                children: ["ชนะ ", curr, winMoney.toLocaleString(void 0, { maximumFractionDigits: 1 }), " / แพ้ ", curr, lossMoney.toLocaleString(void 0, { maximumFractionDigits: 1 })]
+                                                            })
+                                                        ]
+                                                    }),
+                                                    _jsxs("div", {
+                                                        className: "glass-card",
+                                                        style: {
+                                                            padding: "16px",
+                                                            borderRadius: "12px",
+                                                            background: "linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(15, 23, 42, 0.6))",
+                                                            border: "1px solid rgba(234, 179, 8, 0.25)",
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            gap: "6px"
+                                                        },
+                                                        children: [
+                                                            _jsxs("div", {
+                                                                style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+                                                                children: [
+                                                                    _jsx("span", { style: { fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }, children: "Profit Factor (ดัชนีกำไร)" }),
+                                                                    _jsx("span", { style: { fontSize: "16px" }, children: "⚖️" })
+                                                                ]
+                                                            }),
+                                                            _jsx("div", {
+                                                                style: { fontSize: "22px", fontWeight: "800", color: parseFloat(pf) >= 1.5 ? "#eab308" : parseFloat(pf) >= 1 ? "#38bdf8" : "#ef4444" },
+                                                                children: pf
+                                                            }),
+                                                            _jsx("span", {
+                                                                style: { fontSize: "11px", color: "var(--text-muted)" },
+                                                                children: parseFloat(pf) >= 1.5 ? "🟢 ระบบได้เปรียบตลาดสูง (ยอดเยี่ยม)" : parseFloat(pf) >= 1 ? "🟡 ทำกำไรได้สม่ำเสมอ" : "🔴 ขาดทุนมากกว่ากำไร"
+                                                            })
+                                                        ]
+                                                    }),
+                                                    _jsxs("div", {
+                                                        className: "glass-card",
+                                                        style: {
+                                                            padding: "16px",
+                                                            borderRadius: "12px",
+                                                            background: "linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(15, 23, 42, 0.6))",
+                                                            border: "1px solid rgba(56, 189, 248, 0.25)",
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            gap: "6px"
+                                                        },
+                                                        children: [
+                                                            _jsxs("div", {
+                                                                style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+                                                                children: [
+                                                                    _jsx("span", { style: { fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }, children: "Avg Win vs Avg Loss" }),
+                                                                    _jsx("span", { style: { fontSize: "16px" }, children: "🎯" })
+                                                                ]
+                                                            }),
+                                                            _jsx("div", {
+                                                                style: { fontSize: "20px", fontWeight: "800", color: "#38bdf8" },
+                                                                children: rrRatio
+                                                            }),
+                                                            _jsxs("span", {
+                                                                style: { fontSize: "11px", color: "var(--text-muted)" },
+                                                                children: ["เฉลี่ยชนะ +", curr, avgWin, " / แพ้ -", curr, avgLoss]
+                                                            })
+                                                        ]
+                                                    }),
+                                                    _jsxs("div", {
+                                                        className: "glass-card",
+                                                        style: {
+                                                            padding: "16px",
+                                                            borderRadius: "12px",
+                                                            background: "linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(15, 23, 42, 0.6))",
+                                                            border: "1px solid rgba(168, 85, 247, 0.25)",
+                                                            display: "flex",
+                                                            flexDirection: "column",
+                                                            gap: "6px"
+                                                        },
+                                                        children: [
+                                                            _jsxs("div", {
+                                                                style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+                                                                children: [
+                                                                    _jsx("span", { style: { fontSize: "12px", color: "var(--text-muted)", fontWeight: "600" }, children: "สถิติ Win Streak สูงสุด" }),
+                                                                    _jsx("span", { style: { fontSize: "16px" }, children: "🔥" })
+                                                                ]
+                                                            }),
+                                                            _jsxs("div", {
+                                                                style: { fontSize: "22px", fontWeight: "800", color: "#a855f7" },
+                                                                children: [maxW, " ไม้ติด"]
+                                                            }),
+                                                            _jsxs("span", {
+                                                                style: { fontSize: "11px", color: "var(--text-muted)" },
+                                                                children: ["แพ้ติดกันสูงสุด (Drawdown): ", maxL, " ไม้"]
+                                                            })
+                                                        ]
+                                                    })
+                                                ]
+                                            }),
+                                            _jsxs("div", {
+                                                className: "glass-card",
+                                                style: {
+                                                    padding: "16px 20px",
+                                                    borderRadius: "12px",
+                                                    background: "linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9))",
+                                                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    gap: "12px"
+                                                },
+                                                children: [
+                                                    _jsxs("div", {
+                                                        style: { display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px dashed rgba(255, 255, 255, 0.1)", paddingBottom: "8px" },
+                                                        children: [
+                                                            _jsx("span", { style: { fontSize: "18px" }, children: "🧠" }),
+                                                            _jsx("strong", { style: { fontSize: "14px", color: "#f8fafc" }, children: "บทวิเคราะห์ & จุดแข็งของพอร์ตโดย AI (AI Portfolio Insights)" }),
+                                                            _jsx("span", { style: { fontSize: "11px", background: "rgba(99, 102, 241, 0.2)", color: "#818cf8", padding: "2px 8px", borderRadius: "12px", marginLeft: "auto", fontWeight: "bold" }, children: "AI Analyzer" })
+                                                        ]
+                                                    }),
+                                                    _jsxs("div", {
+                                                        style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" },
+                                                        children: [
+                                                            _jsxs("div", {
+                                                                style: { background: "rgba(0,0,0,0.25)", padding: "12px", borderRadius: "8px", borderLeft: "3px solid #eab308" },
+                                                                children: [
+                                                                    _jsx("div", { style: { fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }, children: "🏆 สินทรัพย์ทำกำไรสูงสุด (Best Asset)" }),
+                                                                    _jsx("div", { style: { fontSize: "14px", fontWeight: "700", color: "#f8fafc" }, children: bestPair ? `${bestPair.name} (${bestPair.trades} ไม้, ชนะ ${bestPair.wins})` : "ยังไม่มีข้อมูลคู่เงินเพียงพอ" }),
+                                                                    bestPair && _jsxs("div", { style: { fontSize: "11px", color: "#22c55e", marginTop: "2px" }, children: ["อัตราชนะ: ", (bestPair.wins / (bestPair.trades || 1) * 100).toFixed(0), "%"] })
+                                                                ]
+                                                            }),
+                                                            _jsxs("div", {
+                                                                style: { background: "rgba(0,0,0,0.25)", padding: "12px", borderRadius: "8px", borderLeft: "3px solid #38bdf8" },
+                                                                children: [
+                                                                    _jsx("div", { style: { fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }, children: "⏰ ช่วงเวลาเทรดที่ดีที่สุด (Best Session)" }),
+                                                                    _jsx("div", { style: { fontSize: "14px", fontWeight: "700", color: "#38bdf8" }, children: bestSession }),
+                                                                    _jsx("div", { style: { fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }, children: "สถิติการปิดออเดอร์ทำกำไรหนาแน่นที่สุด" })
+                                                                ]
+                                                            }),
+                                                            _jsxs("div", {
+                                                                style: { background: "rgba(0,0,0,0.25)", padding: "12px", borderRadius: "8px", borderLeft: "3px solid #22c55e" },
+                                                                children: [
+                                                                    _jsx("div", { style: { fontSize: "11px", color: "var(--text-muted)", marginBottom: "4px" }, children: "🛡️ คะแนนวินัยการคุมความเสี่ยง (Discipline)" }),
+                                                                    _jsxs("div", { style: { fontSize: "14px", fontWeight: "700", color: disciplineScore >= 80 ? "#22c55e" : "#f59e0b" }, children: [disciplineScore, "% (มีแผน TP/SL ชัดเจน)"] }),
+                                                                    _jsx("div", { style: { fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }, children: disciplineScore >= 80 ? "ยอดเยี่ยม! เทรดตามแผนคุมความเสี่ยงสม่ำเสมอ" : "แนะนำตั้งจุด SL/TP ทุกไม้เพื่อป้องกันพอร์ต" })
+                                                                ]
+                                                            })
+                                                        ]
+                                                    })
+                                                ]
+                                            }),
+                                            pe && pe.monthlyStats && pe.monthlyStats.length > 0 && _jsxs("div", {
+                                                className: "glass-card",
+                                                style: {
+                                                    padding: "16px 20px",
+                                                    borderRadius: "12px",
+                                                    background: "rgba(15, 23, 42, 0.5)",
+                                                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    gap: "12px"
+                                                },
+                                                children: [
+                                                    _jsxs("div", {
+                                                        style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+                                                        children: [
+                                                            _jsxs("div", {
+                                                                style: { display: "flex", alignItems: "center", gap: "8px" },
+                                                                children: [
+                                                                    _jsx("span", { style: { fontSize: "16px" }, children: "📅" }),
+                                                                    _jsx("strong", { style: { fontSize: "14px", color: "#f8fafc" }, children: "สรุปผลงานแยกรายเดือน (Monthly PnL Breakdown)" })
+                                                                ]
+                                                            }),
+                                                            _jsx("span", { style: { fontSize: "11px", color: "var(--text-muted)" }, children: "ผลตอบแทนและ Win Rate ประจำเดือน" })
+                                                        ]
+                                                    }),
+                                                    _jsx("div", {
+                                                        style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" },
+                                                        children: pe.monthlyStats.map((m, idx) => {
+                                                            const wr = m.trades > 0 ? (m.wins / m.trades * 100).toFixed(0) : 0,
+                                                                isProfit = m.pips >= 0;
+                                                            return _jsxs("div", {
+                                                                key: idx,
+                                                                style: {
+                                                                    background: "rgba(0,0,0,0.3)",
+                                                                    border: `1px solid ${isProfit ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                                                                    borderRadius: "8px",
+                                                                    padding: "10px 14px",
+                                                                    display: "flex",
+                                                                    flexDirection: "column",
+                                                                    gap: "4px"
+                                                                },
+                                                                children: [
+                                                                    _jsxs("div", {
+                                                                        style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+                                                                        children: [
+                                                                            _jsx("strong", { style: { fontSize: "13px", color: "#f8fafc" }, children: m.month }),
+                                                                            _jsxs("span", {
+                                                                                style: {
+                                                                                    fontSize: "11px",
+                                                                                    background: isProfit ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+                                                                                    color: isProfit ? "#22c55e" : "#ef4444",
+                                                                                    padding: "1px 6px",
+                                                                                    borderRadius: "4px",
+                                                                                    fontWeight: "bold"
+                                                                                },
+                                                                                children: [isProfit ? "+" : "", m.pips, " pips"]
+                                                                            })
+                                                                        ]
+                                                                    }),
+                                                                    _jsxs("div", {
+                                                                        style: { fontSize: "11px", color: "var(--text-muted)", display: "flex", justifyContent: "space-between", marginTop: "4px" },
+                                                                        children: [
+                                                                            _jsxs("span", { children: [m.trades, " ไม้ (W:", m.wins, " L:", m.losses, ")"] }),
+                                                                            _jsxs("span", { style: { color: parseInt(wr) >= 50 ? "#22c55e" : "#f59e0b", fontWeight: "bold" }, children: ["WR: ", wr, "%"] })
+                                                                        ]
+                                                                    })
+                                                                ]
+                                                            });
+                                                        })
+                                                    })
+                                                ]
+                                            })
+                                        ]
+                                    });
+                                })()
                             }), _jsxs("div", {
                                 className: "charts-grid",
                                 children: [_jsxs("div", {
@@ -2176,6 +2478,12 @@ Indicator`] || "",
                                         border: "1.5px solid #3b82f6",
                                         color: "#60a5fa"
                                     }, {
+                                        id: "thai_gold",
+                                        label: "🪙 ทองไทย (Thai Gold)",
+                                        gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.15))",
+                                        border: "1.5px solid #f59e0b",
+                                        color: "#fbbf24"
+                                    }, {
                                         id: "thai_stock",
                                         label: "🇹🇭 หุ้นไทย (Thai Stocks)",
                                         gradient: "linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(234, 179, 8, 0.15))",
@@ -2212,50 +2520,68 @@ Indicator`] || "",
                                     className: "glass-card",
                                     style: {
                                         padding: "20px 24px",
-                                        background: "linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95))",
-                                        border: "1px solid rgba(59, 130, 246, 0.25)"
+                                        background: "linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95))",
+                                        border: "1px solid rgba(59, 130, 246, 0.3)",
+                                        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)"
                                     },
-                                    children: [_jsxs("h3", {
-                                        className: "chart-title",
+                                    children: [_jsxs("div", {
                                         style: {
-                                            fontSize: "15px",
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
                                             marginBottom: "16px",
                                             borderBottom: "1px dashed var(--border-color)",
-                                            paddingBottom: "10px"
-                                        },
-                                        children: [_jsx(TrendingUp, {
-                                            size: 18,
-                                            style: {
-                                                color: "var(--color-primary)"
-                                            }
-                                        }), _jsx("span", {
-                                            children: "📊 แผนการสะสมทุนและเป้าหมายกำไร (Compounding Plan Progress)"
-                                        })]
-                                    }), _jsxs("div", {
-                                        style: {
-                                            display: "grid",
-                                            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                                            gap: "24px",
-                                            marginBottom: "16px"
+                                            paddingBottom: "10px",
+                                            flexWrap: "wrap",
+                                            gap: "8px"
                                         },
                                         children: [_jsxs("div", {
+                                            style: { display: "flex", alignItems: "center", gap: "8px" },
+                                            children: [_jsx(TrendingUp, {
+                                                size: 18,
+                                                style: { color: "var(--color-primary)" }
+                                            }), _jsx("h3", {
+                                                className: "chart-title",
+                                                style: { fontSize: "15px", margin: 0, fontWeight: "700" },
+                                                children: "📊 แผนการสะสมทุนและเป้าหมายกำไร (Compounding Plan Progress)"
+                                            })]
+                                        }), _jsxs("button", {
+                                            type: "button",
+                                            onClick: () => setShowTargetSettings(!showTargetSettings),
+                                            className: "btn-secondary",
                                             style: {
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: "6px"
+                                                margin: 0,
+                                                padding: "5px 12px",
+                                                fontSize: "11px",
+                                                background: showTargetSettings ? "rgba(59, 130, 246, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                                                color: showTargetSettings ? "#60a5fa" : "var(--text-secondary)",
+                                                border: "1px solid var(--border-color)",
+                                                borderRadius: "6px",
+                                                cursor: "pointer"
                                             },
+                                            children: ["⚙️ ", showTargetSettings ? "ซ่อนการตั้งค่าเป้าหมาย" : "ปรับตั้งเป้าหมายทุน"]
+                                        })]
+                                    }), showTargetSettings && _jsxs("div", {
+                                        style: {
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                                            gap: "12px",
+                                            marginBottom: "16px",
+                                            padding: "12px 14px",
+                                            background: "rgba(15, 23, 42, 0.6)",
+                                            borderRadius: "8px",
+                                            border: "1px solid rgba(59, 130, 246, 0.2)"
+                                        },
+                                        children: [_jsxs("div", {
+                                            style: { display: "flex", flexDirection: "column", gap: "4px" },
                                             children: [_jsxs("span", {
-                                                style: {
-                                                    fontSize: "12px",
-                                                    color: "var(--text-secondary)",
-                                                    fontWeight: "600"
-                                                },
-                                                children: ["เงินทุนตั้งต้น (", activeMarketType === "thai_stock" ? "฿" : "$", ")"]
+                                                style: { fontSize: "11px", color: "var(--text-secondary)", fontWeight: "600" },
+                                                children: ["เงินทุนตั้งต้น (", (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", ")"]
                                             }), _jsx("input", {
                                                 type: "number",
                                                 step: "any",
                                                 className: "calc-input",
-                                                placeholder: activeMarketType === "thai_stock" ? "10000.00" : "50.00",
+                                                placeholder: (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "10000.00" : "50.00",
                                                 value: initialCapital,
                                                 onChange: T => {
                                                     const $ = parseFloat(T.target.value) || 0;
@@ -2263,33 +2589,19 @@ Indicator`] || "",
                                                     const Z = currentUser != null && currentUser.username ? currentUser.username.toLowerCase() : "guest";
                                                     localStorage.setItem(`${Z}_${activeMarketType}_dashboard_initial_capital`, $)
                                                 },
-                                                style: {
-                                                    margin: 0,
-                                                    padding: "8px 12px",
-                                                    fontSize: "14px",
-                                                    background: "rgba(15, 23, 42, 0.5)",
-                                                    border: "1px solid var(--border-color)"
-                                                },
+                                                style: { margin: 0, padding: "6px 10px", fontSize: "13px", background: "rgba(0,0,0,0.2)" },
                                                 required: !0
                                             })]
                                         }), _jsxs("div", {
-                                            style: {
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: "6px"
-                                            },
+                                            style: { display: "flex", flexDirection: "column", gap: "4px" },
                                             children: [_jsxs("span", {
-                                                style: {
-                                                    fontSize: "12px",
-                                                    color: "var(--text-secondary)",
-                                                    fontWeight: "600"
-                                                },
-                                                children: ["เป้าหมายกำไรปลายทาง (", activeMarketType === "thai_stock" ? "฿" : "$", ")"]
+                                                style: { fontSize: "11px", color: "var(--text-secondary)", fontWeight: "600" },
+                                                children: ["เป้าหมายกำไรปลายทาง (", (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", ")"]
                                             }), _jsx("input", {
                                                 type: "number",
                                                 step: "any",
                                                 className: "calc-input",
-                                                placeholder: activeMarketType === "thai_stock" ? "50000.00" : "500.00",
+                                                placeholder: (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "50000.00" : "500.00",
                                                 value: profitTarget,
                                                 onChange: T => {
                                                     const $ = parseFloat(T.target.value) || 0;
@@ -2297,57 +2609,83 @@ Indicator`] || "",
                                                     const Z = currentUser != null && currentUser.username ? currentUser.username.toLowerCase() : "guest";
                                                     localStorage.setItem(`${Z}_${activeMarketType}_dashboard_profit_target`, $)
                                                 },
-                                                style: {
-                                                    margin: 0,
-                                                    padding: "8px 12px",
-                                                    fontSize: "14px",
-                                                    background: "rgba(15, 23, 42, 0.5)",
-                                                    border: "1px solid var(--border-color)"
-                                                },
+                                                style: { margin: 0, padding: "6px 10px", fontSize: "13px", background: "rgba(0,0,0,0.2)" },
                                                 required: !0
                                             })]
-                                        }), _jsxs("div", {
+                                        })]
+                                    }), _jsxs("div", {
+                                        style: {
+                                            display: "grid",
+                                            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                                            gap: "14px",
+                                            marginBottom: "16px"
+                                        },
+                                        children: [_jsxs("div", {
                                             style: {
                                                 display: "flex",
                                                 flexDirection: "column",
-                                                gap: "6px"
+                                                gap: "4px",
+                                                background: "rgba(15, 23, 42, 0.4)",
+                                                padding: "12px 16px",
+                                                borderRadius: "8px",
+                                                border: "1px solid rgba(255,255,255,0.05)"
                                             },
                                             children: [_jsxs("span", {
-                                                style: {
-                                                    fontSize: "12px",
-                                                    color: "var(--text-secondary)",
-                                                    fontWeight: "600"
-                                                },
-                                                children: ["กำไรสะสมในแผน (", activeMarketType === "thai_stock" ? "฿" : "$", ")"]
-                                            }), _jsxs("span", {
-                                                style: {
-                                                    fontSize: "22px",
-                                                    fontWeight: "700",
-                                                    color: z >= 0 ? "var(--color-success)" : "var(--color-danger)",
-                                                    marginTop: "4px"
-                                                },
-                                                children: [z >= 0 ? "+" : "", activeMarketType === "thai_stock" ? "฿" : "$", z.toFixed(2)]
+                                                style: { fontSize: "11px", color: "var(--text-muted)", fontWeight: "600" },
+                                                children: ["💰 ทุนตั้งต้น (", (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", ")"]
+                                            }), _jsxs("strong", {
+                                                style: { fontSize: "18px", color: "#f8fafc" },
+                                                children: [(activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", (initialCapital || 0).toLocaleString()]
                                             })]
                                         }), _jsxs("div", {
                                             style: {
                                                 display: "flex",
                                                 flexDirection: "column",
-                                                gap: "6px"
+                                                gap: "4px",
+                                                background: "rgba(15, 23, 42, 0.4)",
+                                                padding: "12px 16px",
+                                                borderRadius: "8px",
+                                                border: "1px solid rgba(255,255,255,0.05)"
+                                            },
+                                            children: [_jsxs("span", {
+                                                style: { fontSize: "11px", color: "var(--text-muted)", fontWeight: "600" },
+                                                children: ["🎯 เป้าหมายพอร์ต (", (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", ")"]
+                                            }), _jsxs("strong", {
+                                                style: { fontSize: "18px", color: "#38bdf8" },
+                                                children: [(activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", (profitTarget || 0).toLocaleString()]
+                                            })]
+                                        }), _jsxs("div", {
+                                            style: {
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: "4px",
+                                                background: z >= 0 ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
+                                                padding: "12px 16px",
+                                                borderRadius: "8px",
+                                                border: z >= 0 ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid rgba(239, 68, 68, 0.2)"
+                                            },
+                                            children: [_jsxs("span", {
+                                                style: { fontSize: "11px", color: "var(--text-muted)", fontWeight: "600" },
+                                                children: ["📈 กำไรสะสมในแผน (", (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", ")"]
+                                            }), _jsxs("strong", {
+                                                style: { fontSize: "18px", color: z >= 0 ? "#10B981" : "#EF4444" },
+                                                children: [z >= 0 ? "+" : "", (activeMarketType === "thai_stock" || activeMarketType === "thai_gold") ? "฿" : "$", z.toFixed(2)]
+                                            })]
+                                        }), _jsxs("div", {
+                                            style: {
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: "4px",
+                                                background: "rgba(59, 130, 246, 0.08)",
+                                                padding: "12px 16px",
+                                                borderRadius: "8px",
+                                                border: "1px solid rgba(59, 130, 246, 0.2)"
                                             },
                                             children: [_jsx("span", {
-                                                style: {
-                                                    fontSize: "12px",
-                                                    color: "var(--text-secondary)",
-                                                    fontWeight: "600"
-                                                },
-                                                children: "ความคืบหน้าของพอร์ต"
-                                            }), _jsxs("span", {
-                                                style: {
-                                                    fontSize: "22px",
-                                                    fontWeight: "700",
-                                                    color: "var(--color-primary)",
-                                                    marginTop: "4px"
-                                                },
+                                                style: { fontSize: "11px", color: "var(--text-muted)", fontWeight: "600" },
+                                                children: "🏆 ความคืบหน้าพอร์ต"
+                                            }), _jsxs("strong", {
+                                                style: { fontSize: "18px", color: "#60a5fa" },
                                                 children: [V, "%"]
                                             })]
                                         })]
