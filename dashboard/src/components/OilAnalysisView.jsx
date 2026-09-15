@@ -27,11 +27,11 @@ const THAI_PUMP_PRICES = {
   "ดีเซล B20":       { buy: 32.94, old: 32.94, change: "0.00 ฿ (คงที่)", unit: "บาท/ลิตร" },
 };
 
-// ─── investing.com pair IDs for oil charts ───
+// ─── TradingView and Yahoo ticker symbols for oil charts ───
 const OIL_CHARTS = [
-  { id: "wti",   pairId: 8849,  label: "🛢️ WTI Crude Oil",  ticker: "CL=F"     },
-  { id: "brent", pairId: 8833,  label: "🛢️ Brent Crude Oil", ticker: "BZ=F"     },
-  { id: "ng",    pairId: 49453, label: "⛽ Natural Gas",      ticker: "NG=F"     },
+  { id: "wti",   pairId: 8849,  symbol: "TVC:USOIL",  label: "🛢️ WTI Crude Oil",  ticker: "CL=F"     },
+  { id: "brent", pairId: 8833,  symbol: "TVC:UKOIL",  label: "🛢️ Brent Crude Oil", ticker: "BZ=F"     },
+  { id: "ng",    pairId: 49453, symbol: "TVC:NATGAS", label: "⛽ Natural Gas",      ticker: "NG=F"     },
 ];
 
 const PRICE_TICKERS = [
@@ -148,6 +148,7 @@ function generateForecast(wti, brent, ng, usdThb) {
 
 export default function OilAnalysisView({ username, onNavigateTab }) {
   const [activeOil, setActiveOil]   = useState(OIL_CHARTS[0]);
+  const [timeframe, setTimeframe]   = useState("D");
   const [prices, setPrices]         = useState({});
   const [usdThb, setUsdThb]         = useState(33.5);
   const [loadingPrices, setLoadingPrices] = useState(true);
@@ -633,7 +634,36 @@ export default function OilAnalysisView({ username, onNavigateTab }) {
         {/* Header row with chart switcher buttons + price tab buttons */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14,
           borderBottom:"1px solid var(--border-color)", paddingBottom:10, flexWrap:"wrap", gap:8 }}>
-          <span style={{ fontSize:15, fontWeight:700 }}>📊 กราฟสด investing.com: {activeOil.label}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span style={{ fontSize:15, fontWeight:700 }}>📊 กราฟสด TradingView: {activeOil.label}</span>
+            {/* Timeframe switcher */}
+            <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.06)", padding: "2px 4px", borderRadius: "8px" }}>
+              {[
+                { label: "15M", val: "15" },
+                { label: "1H", val: "60" },
+                { label: "4H", val: "240" },
+                { label: "1D", val: "D" },
+                { label: "1W", val: "W" },
+              ].map(tf => (
+                <button
+                  key={tf.val}
+                  onClick={() => setTimeframe(tf.val)}
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    border: "none",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    background: timeframe === tf.val ? "linear-gradient(135deg,#f97316,#fb923c)" : "transparent",
+                    color: timeframe === tf.val ? "#fff" : "var(--text-secondary)"
+                  }}
+                >
+                  {tf.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
             <button
               type="button"
@@ -667,23 +697,23 @@ export default function OilAnalysisView({ username, onNavigateTab }) {
         </div>
 
         {/* Split layout: chart left | price right */}
-        <div className="oil-split-container" style={{ display:"flex", gap:20, alignItems:"stretch", minHeight:420 }}>
+        <div className="oil-split-container" style={{ display:"flex", gap:20, alignItems:"stretch", minHeight:440 }}>
 
           {/* ── Left: Chart ── */}
           <div ref={chartContainerRef} className="oil-chart-box" style={{ flex:"1.2 1 0", minWidth:0, borderRadius:10, overflow:"hidden",
-            background:"#1a1a2e", border:"1px solid var(--border-color)", minHeight: "420px" }}>
+            background:"#131722", border:"1px solid var(--border-color)", minHeight: "440px" }}>
             <iframe
-              key={activeOil.pairId}
-              src={`https://ssltvc.investing.com/?pair_ID=${activeOil.pairId}&height=${chartDimensions.height}&width=${chartDimensions.width}&interval=1440&plotStyle=candles&domain_ID=53&lang_ID=53&timezone_ID=7`}
-              width={chartDimensions.width}
-              height={chartDimensions.height}
+              key={`${activeOil.symbol}_${timeframe}`}
+              src={`https://s.tradingview.com/widgetembed/?symbol=${activeOil.symbol}&theme=dark&locale=th&style=1&timezone=Asia/Bangkok&interval=${timeframe}`}
+              width="100%"
+              height="100%"
               frameBorder="0"
               scrolling="no"
               allowTransparency={true}
               marginWidth="0"
               marginHeight="0"
-              style={{ border:"none", display:"block", width:"100%", height:"100%" }}
-              title="Investing.com Oil Chart"
+              style={{ border:"none", display:"block", width:"100%", height:"100%", minHeight:"440px", background:"#131722" }}
+              title="TradingView Oil Chart"
             />
           </div>
 
@@ -793,7 +823,7 @@ export default function OilAnalysisView({ username, onNavigateTab }) {
 
             {/* Source link */}
             <div style={{ marginTop:"auto", paddingTop:10, fontSize:11, color:"var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
-              <span>แหล่งข้อมูลกราฟ: <a href="https://th.investing.com/commodities/crude-oil" target="_blank" rel="noopener noreferrer" style={{ color:"#f97316" }}>th.investing.com</a></span>
+              <span>แหล่งข้อมูลกราฟ: <a href="https://th.tradingview.com/symbols/USOIL/" target="_blank" rel="noopener noreferrer" style={{ color:"#f97316" }}>TradingView</a></span>
               <span>แหล่งประวัติน้ำมันไทย: <a href="https://www.bangchak.co.th/th/oilprice/historical" target="_blank" rel="noopener noreferrer" style={{ color:"#22c55e" }}>bangchak.co.th</a></span>
             </div>
           </div>

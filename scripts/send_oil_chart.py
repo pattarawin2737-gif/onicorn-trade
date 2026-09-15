@@ -3,7 +3,7 @@
 """
 Automated Telegram Alert: Oil Analysis Chart Screenshot (WTI Crude Oil)
 Runs every Tuesday at 08:00 AM Bangkok Time (UTC+7)
-Captures screenshot of "กราฟสด investing.com: 🛢️ WTI Crude Oil" and sends to Telegram.
+Captures screenshot of "📊 กราฟสด TradingView: 🛢️ WTI Crude Oil" and sends to Telegram.
 """
 
 import os
@@ -30,7 +30,7 @@ def get_thai_weekday_and_date():
 def capture_oil_chart_screenshot(output_path="oil_wti_chart.png"):
     """
     Use Playwright to capture the WTI Crude Oil chart.
-    Tries the live Onicorn Trade dashboard first; falls back to direct Investing chart if needed.
+    Tries the live Onicorn Trade dashboard first; falls back to direct TradingView chart if needed.
     """
     from playwright.sync_api import sync_playwright
 
@@ -67,10 +67,25 @@ def capture_oil_chart_screenshot(output_path="oil_wti_chart.png"):
 
             # Wait for the oil chart card to appear
             print("⏳ Waiting for oil chart element...")
-            page.wait_for_selector("#oil-wti-chart-card", timeout=15000)
+            page.wait_for_selector("#oil-wti-chart-card", timeout=20000)
 
-            # Wait an additional 5 seconds for chart iframe and candles to render
-            page.wait_for_timeout(6000)
+            # Wait for TradingView chart iframe to be mounted
+            try:
+                page.wait_for_selector("#oil-wti-chart-card iframe", timeout=15000)
+            except Exception:
+                pass
+
+            # Wait for TradingView canvas / candlestick chart rendering
+            print("⏳ Allowing TradingView chart to render...")
+            page.wait_for_timeout(8000)
+
+            # Hide sticky/fixed headers and sidebar so they don't clip over the screenshot
+            page.evaluate("""() => {
+                const header = document.querySelector('.app-header');
+                if (header) header.style.display = 'none';
+                const sidebar = document.querySelector('.app-sidebar');
+                if (sidebar) sidebar.style.display = 'none';
+            }""")
 
             card = page.locator("#oil-wti-chart-card")
             card.screenshot(path=output_path)
@@ -79,18 +94,17 @@ def capture_oil_chart_screenshot(output_path="oil_wti_chart.png"):
         except Exception as e:
             print(f"⚠️ Failed to capture from dashboard ({e}). Trying direct fallback chart...")
 
-        # Fallback: Capture direct investing chart iframe
+        # Fallback: Capture direct TradingView chart widget
         if not captured:
             try:
-                direct_url = "https://ssltvc.investing.com/?pair_ID=8849&height=650&width=1100&interval=1440&plotStyle=candles&domain_ID=53&lang_ID=53&timezone_ID=7"
-                print(f"📡 Navigating to direct chart: {direct_url}")
+                direct_url = "https://s.tradingview.com/widgetembed/?symbol=TVC:USOIL&theme=dark&locale=th&style=1&timezone=Asia/Bangkok&interval=D"
+                print(f"📡 Navigating to direct TradingView chart: {direct_url}")
                 page.goto(
                     direct_url,
                     wait_until="networkidle",
-                    timeout=30000,
-                    referer="https://th.investing.com/"
+                    timeout=30000
                 )
-                page.wait_for_timeout(5000)
+                page.wait_for_timeout(6000)
                 page.screenshot(path=output_path)
                 print(f"✅ Successfully captured direct chart to {output_path}")
                 captured = True
@@ -201,7 +215,7 @@ def main():
         f"🛢️ <b>วิเคราะห์ราคาน้ำมันดิบโลก: WTI Crude Oil</b>\n"
         f"📅 <b>ประจำ{date_title}</b> (รายงานทุกวันอังคาร 08:00 น.)\n"
         f"──────────────────────────\n"
-        f"📊 <b>ภาพรวมกราฟสด investing.com: 🛢️ WTI Crude Oil</b>\n"
+        f"📊 <b>ภาพรวมกราฟสด TradingView: 🛢️ WTI Crude Oil</b>\n"
         f"• แสดงโครงสร้างแท่งเทียนราคาน้ำมันดิบโลกแบบ Daily (D1)\n"
         f"• พร้อมตารางเปรียบเทียบราคาน้ำมันขายปลีกในประเทศไทย (ปั๊ม ปตท. / บางจาก)\n"
         f"──────────────────────────\n"
