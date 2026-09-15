@@ -900,19 +900,10 @@ export default function App() {
                 const params = new URLSearchParams(window.location.search);
                 const t = params.get("tab");
                 if (t) return t;
-                const savedTab = localStorage.getItem("onicorn_active_tab");
-                if (savedTab) return savedTab;
             }
         } catch(e) {}
         return "inter_gold_analysis";
     }), [activeMarketType, setActiveMarketType] = useState("forex"), [selectedPlanSheet, setSelectedPlanSheet] = useState("PLAN 2569"), [overviewPairFilter, setOverviewPairFilter] = useState("ALL"), [overviewResultFilter, setOverviewResultFilter] = useState("ALL"), [overviewLimitFilter, setOverviewLimitFilter] = useState(10), [tradesData, setTradesData] = useState([]), [planData, setPlanData] = useState(null), [sessionLogs, setSessionLogs] = useState([]), [loading, setLoading] = useState(!1), [dataError, setDataError] = useState(""), [isDemoMode, setIsDemoMode] = useState(!1), [$authLoading, setShowConfigAlert] = useState(!1), [pairFilter, setPairFilter] = useState("ALL"), [resultFilter, setResultFilter] = useState("ALL"), chartRef1 = useRef(null), $setPasswordInput = useRef(null), zo = useRef(null), No = useRef(null);
-    useEffect(() => {
-        if (activeTab && typeof window !== "undefined") {
-            try {
-                localStorage.setItem("onicorn_active_tab", activeTab);
-            } catch(e) {}
-        }
-    }, [activeTab]);
     useEffect(() => {
         if ((activeTab === "journal_plan" || activeTab === "overview") && activeMarketType === "thai_gold") {
             setActiveMarketType("forex");
@@ -997,6 +988,9 @@ export default function App() {
         return () => clearInterval(interval);
     }, [tradesData, activeMarketType]);
     useEffect(() => {
+        try {
+            localStorage.removeItem("onicorn_active_tab");
+        } catch (e) {}
         const b = sessionStorage.getItem("trader_user"),
             D = sessionStorage.getItem("trader_token");
         b && D && (setIsLoggedIn(!0), setCurrentUser(JSON.parse(b)))
@@ -1195,7 +1189,10 @@ export default function App() {
                     };
                     sessionStorage.setItem("trader_user", JSON.stringify(L));
                     sessionStorage.setItem("trader_token", "d1-token-" + data.username);
-                    localStorage.setItem("saved_username", userTrimmed);
+                    try {
+                        localStorage.removeItem("onicorn_active_tab");
+                    } catch (e) {}
+                    setActiveTab("inter_gold_analysis");
                     setCurrentUser(L);
                     setIsLoggedIn(!0);
                     saveD1LoginLog(data.username);
@@ -1304,6 +1301,12 @@ export default function App() {
                     localStorage.setItem("saved_remember", "0"),
                     localStorage.removeItem("saved_password")
                 );
+                try {
+                    localStorage.removeItem("onicorn_active_tab");
+                } catch (e) {}
+                const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+                const tabFromUrl = urlParams ? urlParams.get("tab") : null;
+                setActiveTab(tabFromUrl || "inter_gold_analysis");
                 setCurrentUser(L);
                 setIsLoggedIn(!0);
                 saveD1LoginLog(authData.username);
@@ -1322,6 +1325,12 @@ export default function App() {
             username: "DemoTrader",
             role: "Demo Viewer"
         };
+        try {
+            localStorage.removeItem("onicorn_active_tab");
+        } catch (e) {}
+        const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+        const tabFromUrl = urlParams ? urlParams.get("tab") : null;
+        setActiveTab(tabFromUrl || "inter_gold_analysis");
         sessionStorage.setItem("trader_user", JSON.stringify(b)), sessionStorage.setItem("trader_token", "demo-token"), setCurrentUser(b), setIsLoggedIn(!0)
     }, Zy = b => {
         if (b.preventDefault(), !newTrade.entryPrice || isNaN(parseFloat(newTrade.entryPrice))) {
@@ -1780,7 +1789,12 @@ Indicator`] || "",
             window.confirm("คุณต้องการเรียกคืนและซิงก์ข้อมูลประวัติจาก Google Sheets กลับมาอีกครั้งใช่หรือไม่?") && (localStorage.removeItem(getUserKey("forex_dashboard_hide_sheet_trades")), localStorage.removeItem(getUserKey("forex_dashboard_deleted_trade_ids")), setHideSheetTrades(!1), setTimeout(() => loadAllData(), 100), alert("เรียกคืนประวัติและซิงก์ข้อมูลสำเร็จเรียบร้อย!"))
         },
         handleLogout = () => {
-            sessionStorage.clear(), setIsLoggedIn(!1), setCurrentUser(null);
+            sessionStorage.clear();
+            try {
+                localStorage.removeItem("onicorn_active_tab");
+            } catch (e) {}
+            setActiveTab("inter_gold_analysis");
+            setIsLoggedIn(!1), setCurrentUser(null);
             const b = localStorage.getItem("saved_username") || "";
             let D = "";
             try {
