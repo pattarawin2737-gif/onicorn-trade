@@ -24,7 +24,8 @@ import {
   Info,
   Link,
   Droplets,
-  ShieldAlert
+  ShieldAlert,
+  UserPlus
 } from "lucide-react";
 import Chart from "chart.js/auto";
 import AnalysisView from "./components/AnalysisView";
@@ -555,7 +556,7 @@ export default function App() {
         } catch {
             return ""
         }
-    }), [rememberMe, setRememberMe] = useState(() => localStorage.getItem("saved_remember") === "1"), [appsScriptUrl, setAppsScriptUrl] = useState(CONFIG.getAppsScriptUrl()), [authError, setAuthError] = useState(""), [authLoading, setAuthLoading] = useState(!1), [spreadsheetId, setSpreadsheetId] = useState(CONFIG.SPREADSHEET_ID), [activeSheetTab, setActiveSheetTab] = useState("active_trades"), getTodayDateString = () => {
+    }), [rememberMe, setRememberMe] = useState(() => localStorage.getItem("saved_remember") === "1"), [appsScriptUrl, setAppsScriptUrl] = useState(CONFIG.getAppsScriptUrl()), [authMode, setAuthMode] = useState("login"), [regConfirmPassword, setRegConfirmPassword] = useState(""), [authSuccessMsg, setAuthSuccessMsg] = useState(""), [authError, setAuthError] = useState(""), [authLoading, setAuthLoading] = useState(!1), [spreadsheetId, setSpreadsheetId] = useState(CONFIG.SPREADSHEET_ID), [activeSheetTab, setActiveSheetTab] = useState("active_trades"), getTodayDateString = () => {
         const b = new Date;
         return b.getFullYear() + "-" + String(b.getMonth() + 1).padStart(2, "0") + "-" + String(b.getDate()).padStart(2, "0")
     }, getCurrentTimeString = () => {
@@ -1162,35 +1163,158 @@ export default function App() {
         } catch (D) {
             console.warn("ไม่สามารถบันทึกประวัติล็อกอินลง D1 ได้:", D)
         }
-    }, handleLogin = async b => {
-        b.preventDefault(), setAuthError(""), setAuthLoading(!0);
-        const D = CONFIG.getAppsScriptUrl();
-        CONFIG.setAppsScriptUrl(D);
+    }, handleRegister = async b => {
+        b.preventDefault(), setAuthError(""), setAuthSuccessMsg("");
+        const userTrimmed = usernameInput.trim();
+        const passTrimmed = passwordInput.trim();
+        const confirmTrimmed = regConfirmPassword.trim();
+        if (!userTrimmed || !passTrimmed) {
+            setAuthError("กรุณาระบุชื่อผู้ใช้งานและรหัสผ่าน");
+            return;
+        }
+        if (passTrimmed !== confirmTrimmed) {
+            setAuthError("รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน");
+            return;
+        }
+        setAuthLoading(!0);
         try {
-            const z = await fetch(D, {
+            const res = await fetch("/api/register", {
                 method: "POST",
-                mode: "cors",
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8"
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    username: usernameInput.trim(),
-                    password: passwordInput.trim()
+                    username: userTrimmed,
+                    password: passTrimmed
                 })
             });
-            if (!z.ok) throw new Error(`การเข้าสู่ระบบล้มเหลว: HTTP ${z.status}`);
-            const V = await z.json();
-            if (V.success) {
-                const L = {
-                    username: V.username,
-                    role: V.role
-                };
-                sessionStorage.setItem("trader_user", JSON.stringify(L)), sessionStorage.setItem("trader_token", V.token), localStorage.setItem("saved_username", usernameInput.trim()), rememberMe ? (localStorage.setItem("saved_remember", "1"), localStorage.setItem("saved_password", btoa(passwordInput.trim()))) : (localStorage.setItem("saved_remember", "0"), localStorage.removeItem("saved_password")), setCurrentUser(L), setIsLoggedIn(!0), saveD1LoginLog(V.username)
-            } else setAuthError(V.message || "เกิดข้อผิดพลาดในการตรวจสอบบัญชีผู้ใช้")
-        } catch (z) {
-            console.error(z), setAuthError("ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ลงชื่อเข้าใช้ได้ กรุณาตรวจสอบว่าได้ตั้งค่าและเผยแพร่ (Deploy) Apps Script เป็น 'Everyone' แล้ว หรือกรอกข้อมูลและเข้าใช้งานแบบโหมดสาธิต (Demo)")
+            const data = await res.json();
+            if (data.success) {
+                if (data.approved === 1) {
+                    const L = {
+                        username: data.username,
+                        role: data.role || "user"
+                    };
+                    sessionStorage.setItem("trader_user", JSON.stringify(L));
+                    sessionStorage.setItem("trader_token", "d1-token-" + data.username);
+                    localStorage.setItem("saved_username", userTrimmed);
+                    setCurrentUser(L);
+                    setIsLoggedIn(!0);
+                    saveD1LoginLog(data.username);
+                } else {
+                    setAuthSuccessMsg(data.message || "ลงทะเบียนสำเร็จเรียบร้อย! สามารถเข้าสู่ระบบได้ทันที");
+                    setAuthMode("login");
+                    setPasswordInput("");
+                    setRegConfirmPassword("");
+                }
+            } else {
+                setAuthError(data.error || "เกิดข้อผิดพลาดในการลงทะเบียน");
+            }
+        } catch (err) {
+            console.error(err);
+            setAuthError("ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ลงทะเบียนได้");
         } finally {
-            setAuthLoading(!1)
+            setAuthLoading(!1);
+        }
+    }, handleLogin = async b => {
+        b.preventDefault(), setAuthError(""), setAuthSuccessMsg(""), setAuthLoading(!0);
+        const userTrimmed = usernameInput.trim();
+        const passTrimmed = passwordInput.trim();
+        if (!userTrimmed || !passTrimmed) {
+            setAuthError("กรุณาระบุชื่อผู้ใช้งานและรหัสผ่าน");
+            setAuthLoading(!1);
+            return;
+        }
+        try {
+            let authData = null;
+            // 1. Authenticate via Cloudflare D1 database (/api/auth) first
+            try {
+                const d1Res = await fetch("/api/auth", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        username: userTrimmed,
+                        password: passTrimmed
+                    })
+                });
+                const d1Json = await d1Res.json().catch(() => null);
+                if (d1Res.ok && d1Json && d1Json.success) {
+                    authData = d1Json;
+                } else if (d1Json && d1Json.error) {
+                    if (d1Json.error.includes("รหัสผ่านไม่ถูกต้อง") || d1Json.error.includes("อนุมัติ")) {
+                        setAuthError(d1Json.error);
+                        return;
+                    }
+                }
+            } catch (d1Err) {
+                console.warn("D1 /api/auth fetch error, falling back to Apps Script:", d1Err);
+            }
+
+            // 2. If user not found in D1, check Google Apps Script URL as secondary fallback
+            if (!authData) {
+                const D = CONFIG.getAppsScriptUrl();
+                if (D && D.startsWith("http")) {
+                    try {
+                        const z = await fetch(D, {
+                            method: "POST",
+                            mode: "cors",
+                            headers: {
+                                "Content-Type": "text/plain;charset=utf-8"
+                            },
+                            body: JSON.stringify({
+                                username: userTrimmed,
+                                password: passTrimmed
+                            })
+                        });
+                        if (z.ok) {
+                            const V = await z.json();
+                            if (V.success) {
+                                authData = V;
+                                fetch("/api/auth-sync", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        username: V.username || userTrimmed,
+                                        password: passTrimmed,
+                                        role: V.role || "user"
+                                    })
+                                }).catch(() => {});
+                            } else {
+                                setAuthError(V.message || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+                                return;
+                            }
+                        }
+                    } catch (appsScriptErr) {
+                        console.warn("Apps Script fallback error:", appsScriptErr);
+                    }
+                }
+            }
+
+            // 3. Process login success
+            if (authData && authData.success) {
+                const L = {
+                    username: authData.username,
+                    role: authData.role
+                };
+                sessionStorage.setItem("trader_user", JSON.stringify(L));
+                sessionStorage.setItem("trader_token", authData.token || ("d1-token-" + authData.username));
+                localStorage.setItem("saved_username", userTrimmed);
+                rememberMe ? (
+                    localStorage.setItem("saved_remember", "1"),
+                    localStorage.setItem("saved_password", btoa(passTrimmed))
+                ) : (
+                    localStorage.setItem("saved_remember", "0"),
+                    localStorage.removeItem("saved_password")
+                );
+                setCurrentUser(L);
+                setIsLoggedIn(!0);
+                saveD1LoginLog(authData.username);
+            } else {
+                setAuthError("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง หรือยังไม่ได้ลงทะเบียน (หากยังไม่มีบัญชี สามารถกด 'สมัครสมาชิกใหม่' ด้านบนได้ครับ)");
+            }
+        } catch (z) {
+            console.error(z);
+            setAuthError("ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ลงชื่อเข้าใช้ได้ กรุณาตรวจสอบการเชื่อมต่อ หรือเข้าใช้งานแบบโหมดสาธิต (Demo)");
+        } finally {
+            setAuthLoading(!1);
         }
     }, handleDemoLogin = () => {
         setIsDemoMode(!0);
@@ -7022,10 +7146,75 @@ Indicator`] || "",
                     }), _jsx("h1", {
                         className: "brand-name",
                         children: "OniCorn Trading"
-                    }), _jsx("authError", {
+                    }), _jsx("p", {
                         className: "brand-tagline",
                         children: "วิเคราะห์เหตุผลการเข้าเทรด & จดบันทึกการเทรดพร้อมสรุปผล"
                     })]
+                }), _jsxs("div", {
+                    style: {
+                        display: "flex",
+                        gap: "6px",
+                        marginBottom: "16px",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        padding: "4px",
+                        borderRadius: "8px"
+                    },
+                    children: [_jsxs("button", {
+                        type: "button",
+                        onClick: () => { setAuthMode("login"); setAuthError(""); setAuthSuccessMsg(""); },
+                        style: {
+                            flex: 1,
+                            padding: "8px 12px",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            background: authMode === "login" ? "var(--color-primary)" : "transparent",
+                            color: authMode === "login" ? "#fff" : "var(--text-secondary)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            transition: "all 0.2s"
+                        },
+                        children: [_jsx(Lock, { size: 14 }), _jsx("span", { children: "เข้าสู่ระบบ" })]
+                    }), _jsxs("button", {
+                        type: "button",
+                        onClick: () => { setAuthMode("register"); setAuthError(""); setAuthSuccessMsg(""); },
+                        style: {
+                            flex: 1,
+                            padding: "8px 12px",
+                            border: "none",
+                            borderRadius: "6px",
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            cursor: "pointer",
+                            background: authMode === "register" ? "var(--color-primary)" : "transparent",
+                            color: authMode === "register" ? "#fff" : "var(--text-secondary)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            transition: "all 0.2s"
+                        },
+                        children: [_jsx(UserPlus, { size: 14 }), _jsx("span", { children: "สมัครสมาชิกใหม่" })]
+                    })]
+                }), authSuccessMsg && _jsxs("div", {
+                    className: "alert-success",
+                    style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        padding: "10px 14px",
+                        borderRadius: "8px",
+                        background: "rgba(34, 197, 94, 0.15)",
+                        color: "#22c55e",
+                        border: "1px solid rgba(34, 197, 94, 0.3)",
+                        marginBottom: "16px",
+                        fontSize: "13px"
+                    },
+                    children: [_jsx(CheckCircle2, { size: 18 }), _jsx("span", { children: authSuccessMsg })]
                 }), authError && _jsxs("div", {
                     className: "alert-error",
                     children: [_jsx(AlertTriangle, {
@@ -7034,7 +7223,7 @@ Indicator`] || "",
                         children: authError
                     })]
                 }), _jsxs("form", {
-                    onSubmit: handleLogin,
+                    onSubmit: authMode === "login" ? handleLogin : handleRegister,
                     children: [_jsxs("div", {
                         className: "form-group",
                         children: [_jsx("label", {
@@ -7048,7 +7237,7 @@ Indicator`] || "",
                             }), _jsx("input", {
                                 type: "text",
                                 className: "form-input",
-                                placeholder: "ระบุชื่อบัญชีใน Google Sheets",
+                                placeholder: authMode === "login" ? "ระบุชื่อบัญชีของคุณ" : "กำหนดชื่อผู้ใช้งานใหม่",
                                 value: usernameInput,
                                 onChange: b => setUsernameInput(b.target.value),
                                 required: !0
@@ -7067,13 +7256,32 @@ Indicator`] || "",
                             }), _jsx("input", {
                                 type: "password",
                                 className: "form-input",
-                                placeholder: "ระบุรหัสผ่านของคุณ",
+                                placeholder: authMode === "login" ? "ระบุรหัสผ่านของคุณ" : "กำหนดรหัสผ่าน",
                                 value: passwordInput,
                                 onChange: b => setPasswordInput(b.target.value),
                                 required: !0
                             })]
                         })]
-                    }), _jsxs("div", {
+                    }), authMode === "register" && _jsxs("div", {
+                        className: "form-group",
+                        children: [_jsx("label", {
+                            className: "form-label",
+                            children: "ยืนยันรหัสผ่าน (Confirm Password)"
+                        }), _jsxs("div", {
+                            className: "input-wrapper",
+                            children: [_jsx(Lock, {
+                                className: "input-icon",
+                                size: 18
+                            }), _jsx("input", {
+                                type: "password",
+                                className: "form-input",
+                                placeholder: "กรอกรหัสผ่านใหม่อีกครั้งเพื่อยืนยัน",
+                                value: regConfirmPassword,
+                                onChange: b => setRegConfirmPassword(b.target.value),
+                                required: !0
+                            })]
+                        })]
+                    }), authMode === "login" && _jsxs("div", {
                         style: {
                             display: "flex",
                             alignItems: "center",
@@ -7111,20 +7319,22 @@ Indicator`] || "",
                                 className: "spinner",
                                 size: 18
                             }), _jsx("span", {
-                                children: "กำลังตรวจสอบสิทธิ์..."
+                                children: authMode === "login" ? "กำลังตรวจสอบสิทธิ์..." : "กำลังสร้างบัญชีผู้ใช้..."
                             })]
                         }) : _jsxs(_Fragment, {
-                            children: [_jsx(Lock, {
+                            children: [authMode === "login" ? _jsx(Lock, {
+                                size: 18
+                            }) : _jsx(UserPlus, {
                                 size: 18
                             }), _jsx("span", {
-                                children: "ลงชื่อเข้าใช้งาน"
+                                children: authMode === "login" ? "ลงชื่อเข้าใช้งาน" : "สร้างบัญชีผู้ใช้งานใหม่"
                             })]
                         })
                     }), _jsxs("div", {
                         style: {
                             marginTop: "24px"
                         },
-                        children: [_jsx("authError", {
+                        children: [_jsx("p", {
                             style: {
                                 color: "var(--text-muted)",
                                 fontSize: "14px",

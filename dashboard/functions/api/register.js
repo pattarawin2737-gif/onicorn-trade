@@ -61,7 +61,7 @@ export async function onRequestPost(context) {
     }
 
     const finalRole = (username.toLowerCase() === "pattarawin" || username.toLowerCase() === "admin") ? "admin" : "user";
-    const finalApproved = (finalRole === "admin") ? 1 : 0;
+    const finalApproved = 1; // Auto-approve users so they can immediately log in and use the app
 
     // 4. Create user
     await db.prepare("INSERT INTO users (username, password, role, approved) VALUES (?, ?, ?, ?)")
@@ -73,7 +73,7 @@ export async function onRequestPost(context) {
       username,
       role: finalRole,
       approved: finalApproved,
-      message: finalApproved === 1 ? "ลงทะเบียนสมาชิกสำเร็จ" : "ลงทะเบียนสำเร็จ! กรุณารอผู้ดูแลระบบ (Admin) อนุมัติใช้งานบัญชีของคุณก่อนเข้าใช้งาน"
+      message: "ลงทะเบียนสมาชิกสำเร็จ! คุณสามารถเข้าสู่ระบบได้ทันที"
     }), {
       headers: {
         "Content-Type": "application/json",
