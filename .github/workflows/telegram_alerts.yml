@@ -43,14 +43,23 @@ jobs:
         run: |
           DAY_OF_WEEK=$(TZ=Asia/Bangkok date +%u)
           DAY_OF_MONTH=$(TZ=Asia/Bangkok date +%-d)
+          BKK_HOUR=$(TZ=Asia/Bangkok date +%-H)
           TODAY_DATE=$(TZ=Asia/Bangkok date '+%Y-%m-%d %H:%M:%S')
           echo "Bangkok Time: $TODAY_DATE"
           echo "Bangkok Day of Week (1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri): $DAY_OF_WEEK"
           echo "Bangkok Day of Month: $DAY_OF_MONTH"
+          echo "Bangkok Hour: $BKK_HOUR"
           if [ "$DAY_OF_WEEK" = "2" ]; then
             echo "is_tuesday=true" >> $GITHUB_OUTPUT
           else
             echo "is_tuesday=false" >> $GITHUB_OUTPUT
+          fi
+          # Check morning slot (scheduled at 08:00 AM Bangkok Time / 01:00 UTC)
+          # Covers hours 7-9 to account for potential GitHub Actions runner queue delay
+          if [ "$BKK_HOUR" -ge 7 ] && [ "$BKK_HOUR" -le 9 ]; then
+            echo "is_morning_slot=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_morning_slot=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 🐍 Set up Python 3.11
@@ -65,19 +74,18 @@ jobs:
           pip install -r scripts/requirements.txt
 
       - name: 🌐 Install Playwright Chromium
-        # Only install Playwright Chromium when Oil Chart is scheduled (Tuesday) or requested
+        # Only install Playwright Chromium when Oil Chart is scheduled (Tuesday 08:00 AM morning slot) or requested
         if: |
-          (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'auto')) ||
+          (steps.check_day.outputs.is_tuesday == 'true' && steps.check_day.outputs.is_morning_slot == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'auto')) ||
           github.event.inputs.task == 'oil_chart' ||
           github.event.inputs.task == 'all'
         run: |
           playwright install --with-deps chromium
 
       - name: 📢 Send Gold News Digest (XAU/USD)
-        # Runs Monday - Friday (08:00 AM BKK)
+        # Runs Monday - Friday at 08:00 AM BKK (morning slot only) or when requested
         if: |
-          github.event_name == 'schedule' ||
-          github.event.inputs.task == 'auto' ||
+          (steps.check_day.outputs.is_morning_slot == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'auto')) ||
           github.event.inputs.task == 'gold_news' ||
           github.event.inputs.task == 'all'
         env:
@@ -87,9 +95,9 @@ jobs:
           python scripts/send_gold_news.py
 
       - name: 🛢️ Send WTI Oil Chart Screenshot
-        # Runs every Tuesday at 08:00 AM BKK or when selected
+        # Runs every Tuesday at 08:00 AM BKK (morning slot only) or when requested
         if: |
-          (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'auto')) ||
+          (steps.check_day.outputs.is_tuesday == 'true' && steps.check_day.outputs.is_morning_slot == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'auto')) ||
           github.event.inputs.task == 'oil_chart' ||
           github.event.inputs.task == 'all'
         env:
