@@ -36,6 +36,7 @@ import InterGoldAnalysisView from "./components/InterGoldAnalysisView";
 import OilAnalysisView from "./components/OilAnalysisView";
 import AdminUsersView from "./components/AdminUsersView";
 import TelegramSettingsCard from "./components/TelegramSettingsCard";
+import EASettingsCard from "./components/EASettingsCard";
 import { CONFIG } from "./config";
 import { fetchSheetData, parseCompoundingPlan, calculateTradingStats } from "./utils/googleSheets";
 import "./App.css";
@@ -3950,6 +3951,19 @@ Indicator`] || "",
                                                                                     fontWeight: "bold"
                                                                                 },
                                                                                 children: T["ประเภทการเข้า"] || (lt ? "Buy" : "Sell")
+                                                                            }),
+                                                                            (T.source === "ea" || String(T.id || "").startsWith("ea-")) && _jsx("span", {
+                                                                                style: {
+                                                                                    fontSize: "11px",
+                                                                                    background: "rgba(59, 130, 246, 0.2)",
+                                                                                    color: "#60a5fa",
+                                                                                    border: "1px solid rgba(59, 130, 246, 0.4)",
+                                                                                    padding: "2px 6px",
+                                                                                    borderRadius: "6px",
+                                                                                    fontWeight: "600"
+                                                                                },
+                                                                                title: T["หมายเหตุ"] || "Synced via EA",
+                                                                                children: `🤖 EA #${T.ticket || String(T.id || "").replace("ea-", "")}`
                                                                             })
                                                                         ]
                                                                     }),
@@ -4286,13 +4300,29 @@ Indicator`] || "",
                                                                     whiteSpace: "nowrap"
                                                                 },
                                                                 children: Pi
-                                                            }), _jsx("td", {
+                                                            }), _jsxs("td", {
                                                                 style: {
                                                                     padding: "10px 8px",
                                                                     fontWeight: "bold",
                                                                     color: "#fff"
                                                                 },
-                                                                children: T["คู่เงิน"]
+                                                                children: [
+                                                                    _jsx("span", { children: T["คู่เงิน"] }),
+                                                                    (T.source === "ea" || String(T.id || "").startsWith("ea-")) && _jsx("span", {
+                                                                        style: {
+                                                                            marginLeft: "6px",
+                                                                            fontSize: "10px",
+                                                                            background: "rgba(59, 130, 246, 0.2)",
+                                                                            color: "#60a5fa",
+                                                                            border: "1px solid rgba(59, 130, 246, 0.4)",
+                                                                            padding: "1px 5px",
+                                                                            borderRadius: "4px",
+                                                                            fontWeight: "600"
+                                                                        },
+                                                                        title: T["หมายเหตุ"] || "Synced via EA",
+                                                                        children: "🤖 EA"
+                                                                    })
+                                                                ]
                                                             }), activeMarketType === "forex" && _jsx("td", {
                                                                 style: {
                                                                     padding: "10px 8px"
@@ -4675,9 +4705,26 @@ Indicator`] || "",
                                                                 T["ช่วงเวลา"] && _jsx("div", { style: { fontSize: "10px", color: "var(--text-muted)", marginTop: "1px" }, children: T["ช่วงเวลา"] })
                                                             ]
                                                         });
-                                                        const pairTd = _jsx("td", {
+                                                        const isEaTrade = T.source === "ea" || String(T.id || "").startsWith("ea-");
+                                                        const pairTd = _jsxs("td", {
                                                             style: { fontSize: "12px", padding: "7px 6px", fontWeight: 700, color: "var(--text-primary)" },
-                                                            children: T["คู่เงิน"]
+                                                            children: [
+                                                                _jsx("span", { children: T["คู่เงิน"] }),
+                                                                isEaTrade && _jsx("span", {
+                                                                    style: {
+                                                                        marginLeft: "6px",
+                                                                        fontSize: "10px",
+                                                                        background: "rgba(59, 130, 246, 0.2)",
+                                                                        color: "#60a5fa",
+                                                                        border: "1px solid rgba(59, 130, 246, 0.4)",
+                                                                        padding: "1px 5px",
+                                                                        borderRadius: "4px",
+                                                                        fontWeight: "600"
+                                                                    },
+                                                                    title: T["หมายเหตุ"] || "Synced via EA",
+                                                                    children: "🤖 EA"
+                                                                })
+                                                            ]
                                                         });
                                                         const remarksTd = _jsx("td", {
                                                             style: { fontSize: "11px", padding: "7px 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
@@ -4820,7 +4867,7 @@ Indicator`] || "",
                                 })]
                             })
                         })(), activeTab === "settings" && _jsxs(_Fragment, {
-                            children: [_jsx(TelegramSettingsCard, {}), _jsxs("div", {
+                            children: [_jsx(EASettingsCard, { currentUser }), _jsx(TelegramSettingsCard, {}), _jsxs("div", {
                                 className: "glass-card settings-box",
                                 children: [_jsxs("h2", {
                                 className: "chart-title",
