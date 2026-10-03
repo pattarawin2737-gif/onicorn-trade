@@ -3931,36 +3931,65 @@ Indicator`] || "",
                                                             padding: "14px 16px",
                                                             display: "flex",
                                                             flexDirection: "column",
-                                                            gap: "10px"
+                                                            gap: "10px",
+                                                            overflow: "hidden"
                                                         },
                                                         children: [
                                                             _jsxs("div", {
-                                                                style: { display: "flex", justifyContent: "space-between", alignItems: "center" },
+                                                                style: {
+                                                                    display: "flex",
+                                                                    justifyContent: "space-between",
+                                                                    alignItems: "flex-start",
+                                                                    gap: "8px",
+                                                                    flexWrap: "wrap"
+                                                                },
                                                                 children: [
                                                                     _jsxs("div", {
-                                                                        style: { display: "flex", alignItems: "center", gap: "8px" },
+                                                                        style: {
+                                                                            display: "flex",
+                                                                            flexDirection: "column",
+                                                                            gap: "4px",
+                                                                            minWidth: 0,
+                                                                            flex: "1 1 auto"
+                                                                        },
                                                                         children: [
-                                                                            _jsx("span", { style: { fontSize: "17px", fontWeight: "800", color: "#fff" }, children: T["คู่เงิน"] }),
-                                                                            _jsx("span", {
-                                                                                style: {
-                                                                                    fontSize: "12px",
-                                                                                    background: lt ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
-                                                                                    color: lt ? "#22c55e" : "#ef4444",
-                                                                                    padding: "2px 8px",
-                                                                                    borderRadius: "6px",
-                                                                                    fontWeight: "bold"
-                                                                                },
-                                                                                children: T["ประเภทการเข้า"] || (lt ? "Buy" : "Sell")
+                                                                            _jsxs("div", {
+                                                                                style: { display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" },
+                                                                                children: [
+                                                                                    _jsx("span", {
+                                                                                        style: { fontSize: "16px", fontWeight: "800", color: "#fff", whiteSpace: "nowrap" },
+                                                                                        children: T["คู่เงิน"]
+                                                                                    }),
+                                                                                    _jsx("span", {
+                                                                                        style: {
+                                                                                            fontSize: "11.5px",
+                                                                                            background: lt ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)",
+                                                                                            color: lt ? "#22c55e" : "#ef4444",
+                                                                                            padding: "2px 7px",
+                                                                                            borderRadius: "5px",
+                                                                                            fontWeight: "bold"
+                                                                                        },
+                                                                                        children: T["ประเภทการเข้า"] || (lt ? "Buy" : "Sell")
+                                                                                    })
+                                                                                ]
                                                                             }),
                                                                             (T.source === "ea" || String(T.id || "").startsWith("ea-")) && _jsx("span", {
                                                                                 style: {
-                                                                                    fontSize: "11px",
-                                                                                    background: "rgba(59, 130, 246, 0.2)",
-                                                                                    color: "#60a5fa",
-                                                                                    border: "1px solid rgba(59, 130, 246, 0.4)",
-                                                                                    padding: "2px 6px",
-                                                                                    borderRadius: "6px",
-                                                                                    fontWeight: "600"
+                                                                                    fontSize: "10.5px",
+                                                                                    background: "rgba(59, 130, 246, 0.15)",
+                                                                                    color: "#93c5fd",
+                                                                                    border: "1px solid rgba(59, 130, 246, 0.35)",
+                                                                                    padding: "1px 6px",
+                                                                                    borderRadius: "5px",
+                                                                                    fontWeight: "600",
+                                                                                    display: "inline-flex",
+                                                                                    alignItems: "center",
+                                                                                    gap: "4px",
+                                                                                    width: "fit-content",
+                                                                                    maxWidth: "100%",
+                                                                                    overflow: "hidden",
+                                                                                    textOverflow: "ellipsis",
+                                                                                    whiteSpace: "nowrap"
                                                                                 },
                                                                                 title: T["หมายเหตุ"] || "Synced via EA",
                                                                                 children: `🤖 EA #${T.ticket || String(T.id || "").replace("ea-", "")}`
@@ -3968,7 +3997,12 @@ Indicator`] || "",
                                                                         ]
                                                                     }),
                                                                     _jsxs("div", {
-                                                                        style: { display: "flex", gap: "6px" },
+                                                                        style: {
+                                                                            display: "flex",
+                                                                            gap: "4px",
+                                                                            alignItems: "center",
+                                                                            flexShrink: 0
+                                                                        },
                                                                         children: [
                                                                             _jsx("button", {
                                                                                 onClick: () => {
@@ -3990,14 +4024,14 @@ Indicator`] || "",
                                                                                     border: "1px solid #3b82f6",
                                                                                     color: "#60a5fa",
                                                                                     margin: 0,
-                                                                                    padding: "4px 10px",
-                                                                                    borderRadius: "8px",
-                                                                                    fontSize: "12px",
+                                                                                    padding: "4px 8px",
+                                                                                    borderRadius: "6px",
+                                                                                    fontSize: "11.5px",
                                                                                     fontWeight: "bold",
                                                                                     cursor: "pointer",
-                                                                                    display: "flex",
+                                                                                    display: "inline-flex",
                                                                                     alignItems: "center",
-                                                                                    gap: "4px",
+                                                                                    gap: "3px",
                                                                                     whiteSpace: "nowrap"
                                                                                 },
                                                                                 children: "🎯 ปิดไม้"
@@ -4008,10 +4042,13 @@ Indicator`] || "",
                                                                                     background: "rgba(255, 255, 255, 0.05)",
                                                                                     border: "1px solid rgba(255, 255, 255, 0.15)",
                                                                                     margin: 0,
-                                                                                    padding: "4px 8px",
-                                                                                    borderRadius: "8px",
-                                                                                    fontSize: "12px",
-                                                                                    cursor: "pointer"
+                                                                                    padding: "4px 7px",
+                                                                                    borderRadius: "6px",
+                                                                                    fontSize: "11.5px",
+                                                                                    cursor: "pointer",
+                                                                                    display: "inline-flex",
+                                                                                    alignItems: "center",
+                                                                                    justifyContent: "center"
                                                                                 },
                                                                                 title: "แก้ไข",
                                                                                 children: "✏️"
@@ -4023,10 +4060,13 @@ Indicator`] || "",
                                                                                     border: "1px solid rgba(239, 68, 68, 0.4)",
                                                                                     color: "#ef4444",
                                                                                     margin: 0,
-                                                                                    padding: "4px 8px",
-                                                                                    borderRadius: "8px",
-                                                                                    fontSize: "12px",
-                                                                                    cursor: "pointer"
+                                                                                    padding: "4px 7px",
+                                                                                    borderRadius: "6px",
+                                                                                    fontSize: "11.5px",
+                                                                                    cursor: "pointer",
+                                                                                    display: "inline-flex",
+                                                                                    alignItems: "center",
+                                                                                    justifyContent: "center"
                                                                                 },
                                                                                 title: "ลบ",
                                                                                 children: "✕"
