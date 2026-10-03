@@ -4907,7 +4907,7 @@ Indicator`] || "",
                                 })]
                             })
                         })(), activeTab === "settings" && _jsxs(_Fragment, {
-                            children: [_jsx(EASettingsCard, { currentUser }), _jsx(TelegramSettingsCard, {}), _jsxs("div", {
+                            children: [_jsx(EASettingsCard, { currentUser }), _jsx(TelegramSettingsCard, {}), (String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "administrator" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "pattarawin") && _jsxs("div", {
                                 className: "glass-card settings-box",
                                 children: [_jsxs("h2", {
                                 className: "chart-title",
@@ -4915,6 +4915,18 @@ Indicator`] || "",
                                     size: 20
                                 }), _jsx("span", {
                                     children: "ตั้งค่าการเชื่อมโยงระบบ (System Configuration)"
+                                }), _jsx("span", {
+                                    style: {
+                                        fontSize: "11px",
+                                        background: "rgba(239, 68, 68, 0.2)",
+                                        color: "#f87171",
+                                        border: "1px solid rgba(239, 68, 68, 0.4)",
+                                        padding: "2px 8px",
+                                        borderRadius: "10px",
+                                        fontWeight: "600",
+                                        marginLeft: "8px"
+                                    },
+                                    children: "🔒 เฉพาะ Admin"
                                 })]
                             }), _jsxs("div", {
                                 style: {
