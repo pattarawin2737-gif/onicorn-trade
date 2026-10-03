@@ -6,9 +6,6 @@ export default function EASettingsCard({ currentUser }) {
   const [showToken, setShowToken] = useState(false);
   const [testStatus, setTestStatus] = useState(null); // { type: 'success' | 'error' | 'info', text: '' }
   const [isTesting, setIsTesting] = useState(false);
-  const [viewCodeModal, setViewCodeModal] = useState(null); // 'mt4' | 'mt5' | null
-  const [codeContent, setCodeContent] = useState("");
-  const [isLoadingCode, setIsLoadingCode] = useState(false);
 
   // Derive username and token
   const username = (currentUser && currentUser.username) 
@@ -74,26 +71,6 @@ export default function EASettingsCard({ currentUser }) {
       });
     } finally {
       setIsTesting(false);
-    }
-  };
-
-  const handleOpenSourceCode = async (platform) => {
-    setViewCodeModal(platform);
-    setIsLoadingCode(true);
-    setCodeContent("");
-    try {
-      const fileName = platform === "mt4" ? "Onicorn_AutoJournal_MT4.mq4" : "Onicorn_AutoJournal_MT5.mq5";
-      const res = await fetch(`/ea/${fileName}`);
-      if (res.ok) {
-        const text = await res.text();
-        setCodeContent(text);
-      } else {
-        setCodeContent(`// ไม่สามารถโหลดโค้ดได้ กรุณาดาวน์โหลดไฟล์โดยตรง`);
-      }
-    } catch (e) {
-      setCodeContent(`// Error loading file: ${e.message}`);
-    } finally {
-      setIsLoadingCode(false);
     }
   };
 
@@ -426,7 +403,7 @@ export default function EASettingsCard({ currentUser }) {
         marginBottom: "20px"
       }}>
         <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", fontWeight: "700", color: "#f8fafc" }}>
-          📥 ดาวน์โหลดไฟล์ EA หรือคัดลอกซอร์สโค้ด (Download & Source Code)
+          📥 ดาวน์โหลดไฟล์ EA สำเร็จรูป (Download EA .ex4 & .ex5)
         </h4>
         <div style={{
           display: "grid",
@@ -448,48 +425,34 @@ export default function EASettingsCard({ currentUser }) {
                 <span style={{ fontSize: "18px" }}>📈</span>
                 <strong style={{ fontSize: "14px", color: "#fff" }}>MetaTrader 4 (MT4)</strong>
               </div>
-              <span style={{ fontSize: "11px", color: "#60a5fa", background: "rgba(59, 130, 246, 0.15)", padding: "2px 6px", borderRadius: "4px" }}>
-                .mq4
+              <span style={{ fontSize: "11px", color: "#60a5fa", background: "rgba(59, 130, 246, 0.15)", padding: "2px 7px", borderRadius: "5px", fontWeight: "700" }}>
+                .ex4
               </span>
             </div>
             <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-              ไฟล์ EA สำหรับ MT4: Onicorn_AutoJournal_MT4.mq4
+              ไฟล์ EA สำเร็จรูปสำหรับ MT4: Onicorn_AutoJournal_MT4.ex4 (พร้อมใช้งานทันที ไม่ต้องกด Compile)
             </span>
-            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+            <div style={{ marginTop: "4px" }}>
               <a
-                href="/ea/Onicorn_AutoJournal_MT4.mq4"
-                download="Onicorn_AutoJournal_MT4.mq4"
+                href="/ea/Onicorn_AutoJournal_MT4.ex4"
+                download="Onicorn_AutoJournal_MT4.ex4"
                 style={{
-                  flex: 1,
-                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
                   background: "linear-gradient(135deg, #3b82f6, #2563eb)",
                   color: "#fff",
-                  padding: "8px 12px",
+                  padding: "9px 14px",
                   borderRadius: "6px",
-                  fontSize: "12px",
+                  fontSize: "12.5px",
                   fontWeight: "600",
                   textDecoration: "none",
                   boxShadow: "0 2px 6px rgba(59, 130, 246, 0.3)"
                 }}
               >
-                📥 ดาวน์โหลด .mq4
+                📥 ดาวน์โหลดไฟล์ .ex4 (สำหรับ MT4)
               </a>
-              <button
-                type="button"
-                onClick={() => handleOpenSourceCode("mt4")}
-                style={{
-                  background: "rgba(255, 255, 255, 0.08)",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  color: "var(--text-secondary)",
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  fontWeight: "500"
-                }}
-              >
-                ดูซอร์สโค้ด
-              </button>
             </div>
           </div>
 
@@ -508,48 +471,34 @@ export default function EASettingsCard({ currentUser }) {
                 <span style={{ fontSize: "18px" }}>🚀</span>
                 <strong style={{ fontSize: "14px", color: "#fff" }}>MetaTrader 5 (MT5)</strong>
               </div>
-              <span style={{ fontSize: "11px", color: "#c084fc", background: "rgba(168, 85, 247, 0.15)", padding: "2px 6px", borderRadius: "4px" }}>
-                .mq5
+              <span style={{ fontSize: "11px", color: "#c084fc", background: "rgba(168, 85, 247, 0.15)", padding: "2px 7px", borderRadius: "5px", fontWeight: "700" }}>
+                .ex5
               </span>
             </div>
             <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
-              ไฟล์ EA สำหรับ MT5: Onicorn_AutoJournal_MT5.mq5
+              ไฟล์ EA สำเร็จรูปสำหรับ MT5: Onicorn_AutoJournal_MT5.ex5 (พร้อมใช้งานทันที ไม่ต้องกด Compile)
             </span>
-            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+            <div style={{ marginTop: "4px" }}>
               <a
-                href="/ea/Onicorn_AutoJournal_MT5.mq5"
-                download="Onicorn_AutoJournal_MT5.mq5"
+                href="/ea/Onicorn_AutoJournal_MT5.ex5"
+                download="Onicorn_AutoJournal_MT5.ex5"
                 style={{
-                  flex: 1,
-                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
                   background: "linear-gradient(135deg, #a855f7, #7e22ce)",
                   color: "#fff",
-                  padding: "8px 12px",
+                  padding: "9px 14px",
                   borderRadius: "6px",
-                  fontSize: "12px",
+                  fontSize: "12.5px",
                   fontWeight: "600",
                   textDecoration: "none",
                   boxShadow: "0 2px 6px rgba(168, 85, 247, 0.3)"
                 }}
               >
-                📥 ดาวน์โหลด .mq5
+                📥 ดาวน์โหลดไฟล์ .ex5 (สำหรับ MT5)
               </a>
-              <button
-                type="button"
-                onClick={() => handleOpenSourceCode("mt5")}
-                style={{
-                  background: "rgba(255, 255, 255, 0.08)",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
-                  color: "var(--text-secondary)",
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  fontWeight: "500"
-                }}
-              >
-                ดูซอร์สโค้ด
-              </button>
             </div>
           </div>
         </div>
@@ -582,7 +531,7 @@ export default function EASettingsCard({ currentUser }) {
               marginTop: "1px"
             }}>1</span>
             <div>
-              <strong style={{ color: "#fff" }}>นำไฟล์ EA ไปใส่ใน MetaTrader:</strong> เปิด MT4 หรือ MT5 ไปที่เมนู <code style={{ color: "#60a5fa" }}>File ➔ Open Data Folder</code> แล้วเข้าไปที่โฟลเดอร์ <code style={{ color: "#60a5fa" }}>MQL4/Experts</code> (สำหรับ MT4) หรือ <code style={{ color: "#c084fc" }}>MQL5/Experts</code> (สำหรับ MT5) วางไฟล์แล้วกด Compile ใน MetaEditor หรือคลิกขวา Refresh ในหน้าต่าง Navigator
+              <strong style={{ color: "#fff" }}>นำไฟล์ EA สำเร็จรูป (.ex4 / .ex5) ไปใส่ใน MetaTrader:</strong> เปิด MT4 หรือ MT5 ไปที่เมนู <code style={{ color: "#60a5fa" }}>File ➔ Open Data Folder</code> แล้วนำไฟล์ <code style={{ color: "#60a5fa" }}>.ex4</code> ไปวางในโฟลเดอร์ <code style={{ color: "#60a5fa" }}>MQL4/Experts</code> (สำหรับ MT4) หรือนำไฟล์ <code style={{ color: "#c084fc" }}>.ex5</code> ไปวางใน <code style={{ color: "#c084fc" }}>MQL5/Experts</code> (สำหรับ MT5) จากนั้นในโปรแกรม MetaTrader ให้คลิกขวาที่เมนู Navigator ➔ กด <code style={{ color: "#22c55e" }}>Refresh</code> ได้ทันที (เนื่องจากเป็นไฟล์ที่ Compile สำเร็จรูปแล้ว พร้อมใช้งานได้ทันทีโดยไม่ต้องเปิด MetaEditor)
             </div>
           </div>
 
@@ -648,99 +597,6 @@ export default function EASettingsCard({ currentUser }) {
         </div>
       </div>
 
-      {/* Code Modal */}
-      {viewCodeModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.75)",
-          backdropFilter: "blur(4px)",
-          zIndex: 99999,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "20px"
-        }}>
-          <div style={{
-            background: "#0f172a",
-            border: "1px solid rgba(59, 130, 246, 0.4)",
-            borderRadius: "14px",
-            width: "100%",
-            maxWidth: "850px",
-            maxHeight: "85vh",
-            display: "flex",
-            flexDirection: "column",
-            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)"
-          }}>
-            <div style={{
-              padding: "16px 20px",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "20px" }}>{viewCodeModal === "mt4" ? "📈" : "🚀"}</span>
-                <strong style={{ fontSize: "16px", color: "#fff" }}>
-                  ซอร์สโค้ด EA สำหรับ {viewCodeModal === "mt4" ? "MetaTrader 4 (.mq4)" : "MetaTrader 5 (.mq5)"}
-                </strong>
-              </div>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(codeContent, "modalCode")}
-                  style={{
-                    background: copiedKey === "modalCode" ? "#22c55e" : "#3b82f6",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    fontWeight: "600",
-                    cursor: "pointer"
-                  }}
-                >
-                  {copiedKey === "modalCode" ? "✓ คัดลอกโค้ดทั้งหมดแล้ว" : "คัดลอกโค้ดทั้งหมด (Copy)"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewCodeModal(null)}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.1)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    fontSize: "13px",
-                    cursor: "pointer"
-                  }}
-                >
-                  ✕ ปิด
-                </button>
-              </div>
-            </div>
-
-            <div style={{ padding: "16px 20px", overflowY: "auto", flex: 1 }}>
-              {isLoadingCode ? (
-                <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-                  กำลังโหลดซอร์สโค้ด...
-                </div>
-              ) : (
-                <pre style={{
-                  margin: 0,
-                  fontSize: "12px",
-                  fontFamily: "monospace",
-                  color: "#e2e8f0",
-                  whiteSpace: "pre-wrap",
-                  lineHeight: "1.5"
-                }}>
-                  {codeContent}
-                </pre>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
