@@ -661,6 +661,7 @@ export default function AnalysisView({ username }) {
     const initWidget = () => {
       if (window.TradingView && document.getElementById("tradingview_chart_container")) {
         new window.TradingView.widget({
+          "autosize": true,
           "width": "100%",
           "height": "100%",
           "symbol": symbol,
@@ -1189,8 +1190,8 @@ export default function AnalysisView({ username }) {
               `}</style>
               
               {/* TradingView Chart Container */}
-              <div className="tradingview-container-wrapper" style={{ height: "670px", minHeight: "670px", margin: 0, position: "relative", borderRadius: "12px", overflow: "hidden" }}>
-                <div id="tradingview_chart_container" className="tradingview-chart-box" style={{ height: "100%" }}></div>
+              <div className="tradingview-container-wrapper" style={{ height: "670px", minHeight: "670px", width: "100%", margin: 0, position: "relative", borderRadius: "12px", overflow: "hidden" }}>
+                <div id="tradingview_chart_container" className="tradingview-chart-box" style={{ height: "100%", width: "100%", minHeight: "670px" }}></div>
                 {symbol.startsWith("SET:") && (
                   <div style={{
                     position: "absolute",

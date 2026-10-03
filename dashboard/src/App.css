@@ -780,13 +780,21 @@
   border-radius: 12px;
   border: 1px solid var(--border-color);
   overflow: hidden;
-  height: 600px;
+  height: 670px;
+  min-height: 670px;
+  width: 100%;
   position: relative;
 }
 
-.tradingview-chart-box {
-  width: 100%;
-  height: 100%;
+.tradingview-chart-box,
+#tradingview_chart_container,
+#tradingview_chart_container div,
+#tradingview_chart_container iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 670px !important;
+  border: none !important;
+  display: block !important;
 }
 
 /* Tools workspace side */
@@ -1380,7 +1388,16 @@ input[type=number] {
   /* Adjust trading view chart heights on mobile */
   .tradingview-container-wrapper, 
   .chart-wrapper-card {
-    height: 400px !important;
+    height: 480px !important;
+    min-height: 480px !important;
+  }
+
+  .tradingview-chart-box,
+  #tradingview_chart_container,
+  #tradingview_chart_container div,
+  #tradingview_chart_container iframe {
+    height: 100% !important;
+    min-height: 480px !important;
   }
 
   /* Hide header timezone text on mobile to avoid layout breaking */
