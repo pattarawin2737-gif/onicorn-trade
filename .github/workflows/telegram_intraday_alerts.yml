@@ -2,9 +2,9 @@ name: ⚡ Telegram Intraday Breakout & Volume Alert
 
 on:
   schedule:
-    # 10:35 AM & 14:35 PM Bangkok Time (UTC+7) = 03:35 & 07:35 AM UTC (Mon - Fri)
-    # Scans for real breakouts during active morning & afternoon SET trading sessions
-    - cron: '35 3,7 * * 1-5'
+    # 14:35 PM Bangkok Time (UTC+7) = 07:35 AM UTC (Mon - Fri)
+    # Scans for real breakouts during active afternoon SET trading session
+    - cron: '35 7 * * 1-5'
   workflow_dispatch:
 
 jobs:
