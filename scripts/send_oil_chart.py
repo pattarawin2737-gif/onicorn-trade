@@ -161,7 +161,12 @@ def send_telegram_photo(token, chat_id, photo_path, caption):
         }
     )
 
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 def get_telegram_credentials():
@@ -173,6 +178,7 @@ def get_telegram_credentials():
     """
     token = None
     chat_id = None
+    settings = {}
 
     try:
         import ssl
@@ -193,14 +199,14 @@ def get_telegram_credentials():
                 api_chat = str(settings.get("telegram_chat_id", "")).strip()
                 if api_token and api_chat:
                     print("✅ Successfully retrieved Telegram credentials dynamically from Web Settings!")
-                    return api_token, api_chat
+                    return api_token, api_chat, settings
     except Exception as e:
         print(f"Notice: Could not fetch settings from Web API ({e}), will check environment variables...")
 
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 
-    return token, chat_id
+    return token, chat_id, settings
 
 def main():
     print("=" * 60)
@@ -208,7 +214,13 @@ def main():
     print(f"⏰ Execution Time (BKK): {datetime.now(BKK_TZ).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
-    token, chat_id = get_telegram_credentials()
+    token, chat_id, settings = get_telegram_credentials()
+
+    # Check enable flag from settings
+    oil_chart_enabled = str(settings.get("telegram_oil_chart_enabled", "1")) != "0"
+    if not oil_chart_enabled:
+        print("ℹ️ Oil Chart Telegram alert is disabled in settings. Skipping.")
+        return
 
     date_title = get_thai_weekday_and_date()
     caption = (
@@ -227,8 +239,8 @@ def main():
     success = capture_oil_chart_screenshot(output_path)
 
     if not success or not os.path.exists(output_path):
-        print("❌ Error: Failed to capture chart screenshot.")
-        sys.exit(1)
+        print("⚠️ Warning: Failed to capture chart screenshot. Skipping Oil Chart alert.")
+        return
 
     print(f"📸 Screenshot saved successfully ({os.path.getsize(output_path)} bytes)")
 
@@ -244,10 +256,8 @@ def main():
             print("🎉 WTI Crude Oil chart screenshot successfully sent to Telegram!")
         else:
             print(f"❌ Telegram API returned error: {res}")
-            sys.exit(1)
     except Exception as e:
-        print(f"❌ Failed to send photo: {e}")
-        sys.exit(1)
+        print(f"⚠️ Failed to send photo: {e}")
 
 if __name__ == "__main__":
     main()

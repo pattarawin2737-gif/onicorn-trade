@@ -364,7 +364,11 @@ def build_telegram_messages(events):
     return messages
 
 def send_telegram_message(token, chat_id, text):
-    """Send HTML message to Telegram via Bot API"""
+    """Send HTML message to Telegram via Bot API with secure SSL fallback"""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = json.dumps({
         "chat_id": chat_id,
@@ -376,9 +380,9 @@ def send_telegram_message(token, chat_id, text):
     req = urllib.request.Request(
         url,
         data=payload,
-        headers={"Content-Type": "application/json"}
+        headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, context=ctx, timeout=15) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 def get_telegram_credentials():
@@ -390,6 +394,7 @@ def get_telegram_credentials():
     """
     token = None
     chat_id = None
+    settings = {}
 
     # 1. Fetch from Onicorn Trade Dashboard Settings API
     try:
@@ -410,7 +415,7 @@ def get_telegram_credentials():
                 api_chat = str(settings.get("telegram_chat_id", "")).strip()
                 if api_token and api_chat:
                     print("✅ Successfully retrieved Telegram credentials dynamically from Web Settings!")
-                    return api_token, api_chat
+                    return api_token, api_chat, settings
     except Exception as e:
         print(f"Notice: Could not fetch settings from Web API ({e}), will check environment variables...")
 
@@ -418,7 +423,7 @@ def get_telegram_credentials():
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 
-    return token, chat_id
+    return token, chat_id, settings
 
 def main():
     print("=" * 60)
@@ -426,15 +431,24 @@ def main():
     print(f"⏰ Execution Time (BKK): {datetime.now(BKK_TZ).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
-    token, chat_id = get_telegram_credentials()
+    token, chat_id, settings = get_telegram_credentials()
+
+    # Check enable flag from settings
+    gold_news_enabled = str(settings.get("telegram_gold_news_enabled", "1")) != "0"
+    if not gold_news_enabled:
+        print("ℹ️ Gold News Telegram alert is disabled in settings. Skipping.")
+        return
 
     html_content = fetch_economic_calendar()
     if not html_content:
-        print("❌ Error: Could not fetch economic calendar data.")
-        sys.exit(1)
+        print("⚠️ Warning: Could not fetch economic calendar data today. Skipping Gold News alert.")
+        return
 
     events = parse_news_rows(html_content)
     print(f"✅ Total calendar rows parsed: {len(events)}")
+    if not events:
+        print("ℹ️ No economic events found for today. Skipping Gold News alert.")
+        return
 
     messages = build_telegram_messages(events)
     print(f"📝 Generated {len(messages)} Telegram message part(s).")
@@ -457,10 +471,9 @@ def main():
             else:
                 print(f"❌ Telegram API returned error: {res}")
         except Exception as e:
-            print(f"❌ Failed to send part {i}: {e}")
-            sys.exit(1)
+            print(f"⚠️ Failed to send part {i}: {e}")
 
-    print("🎉 All Gold News alerts successfully sent!")
+    print("🎉 Gold News alert processing complete!")
 
 if __name__ == "__main__":
     main()

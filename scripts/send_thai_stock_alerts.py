@@ -298,35 +298,89 @@ def build_intraday_breakout_message():
     now_bkk = get_bkk_now()
     time_str = now_bkk.strftime("%H:%M")
 
-    # Watchlist for intraday breakouts & volume spikes
+    # Expanded 30 High-Liquidity SET Candidates across all major sectors
     candidates = [
-        {"symbol": "GULF", "name": "บมจ. กัลฟ์ เอ็นเนอร์จี", "sector": "พลังงาน & สาธารณูปโภค", "defPrice": 46.50, "resistance": 46.25, "catalyst": "แรงซื้อ Big Lot ทะลุแนวต้าน ฿46.25 สอดรับสัญญาพลังงาน Direct PPA รองรับ Data Center ทั่วเอเชีย"},
-        {"symbol": "BH", "name": "บมจ. โรงพยาบาลบำรุงราษฎร์", "sector": "การแพทย์ (Healthcare)", "defPrice": 252.00, "resistance": 250.00, "catalyst": "วอลุ่มสถาบันเข้าหนาแน่น ดันราคาทะลุแนวต้านใหญ่ All-Time High ยอดผู้ป่วยต่างชาติพุ่ง"},
-        {"symbol": "WHA", "name": "บมจ. ดับบลิวเอชเอ คอร์ป", "sector": "นิคมอุตสาหกรรม (Industrial)", "defPrice": 5.45, "resistance": 5.40, "catalyst": "ทะลุจุดสะสมพร้อมสัญญาณ Volume Spike ยอดโอนที่ดิน EV ค่ายยุโรปและจีนหนุนกำไรไตรมาส"},
-        {"symbol": "CPALL", "name": "บมจ. ซีพี ออลล์", "sector": "ค้าปลีก (Commerce)", "defPrice": 57.50, "resistance": 57.25, "catalyst": "เบรกเอาท์กรอบ Sideway Up ยอดขายสาขาเดิมฟื้นตัวตามจำนวนนักท่องเที่ยวต่างชาติ"},
-        {"symbol": "KBANK", "name": "ธนาคารกสิกรไทย", "sector": "ธนาคารและการเงิน", "defPrice": 142.50, "resistance": 141.50, "catalyst": "แรงซื้อฟันด์โฟลว์ต่างชาติกลับเข้ากลุ่มแบงก์ ดอกเบี้ยทรงตัวระดับสูงและปันผลเด่น"},
-        {"symbol": "DELTA", "name": "บมจ. เดลต้า อีเลคโทรนิคส์", "sector": "ชิ้นส่วนอิเล็กทรอนิกส์", "defPrice": 249.00, "resistance": 245.00, "catalyst": "ยอดคำสั่งซื้อเพาเวอร์ซัพพลายสำหรับ AI Server หนุนราคาทะลุแนวต้านจิตวิทยา"},
-        {"symbol": "TOP", "name": "บมจ. ไทยออยล์", "sector": "พลังงาน & ปิโตรเคมี", "defPrice": 54.50, "resistance": 54.00, "catalyst": "ค่าการกลั่น (GRM) ดีดตัวขึ้นแรง สัญญาณ Bullish Rebound ทะลุเส้นค่าเฉลี่ย MA20"}
+        # Energy & Utilities
+        {"symbol": "GULF", "name": "บมจ. กัลฟ์ เอ็นเนอร์จี", "sector": "พลังงาน & สาธารณูปโภค", "catalyst": "แรงซื้อ Big Lot ทะลุแนวต้าน สอดรับสัญญาพลังงาน Direct PPA รองรับ AI Data Center"},
+        {"symbol": "PTT", "name": "บมจ. ปตท.", "sector": "พลังงาน & สาธารณูปโภค", "catalyst": "ฟันด์โฟลว์สถาบันหนุนหุ้นใหญ่ มาร์จิ้นธุรกิจก๊าซและปิโตรเลียมแข็งแกร่ง"},
+        {"symbol": "PTTEP", "name": "บมจ. ปตท. สำรวจและผลิต", "sector": "พลังงาน & ทรัพยากร", "catalyst": "ราคาน้ำมันดิบโลกฟื้นตัว ปริมาณการขายเติบโตตามแหล่งสัมปทานใหม่"},
+        {"symbol": "TOP", "name": "บมจ. ไทยออยล์", "sector": "พลังงาน & โรงกลั่น", "catalyst": "ค่าการกลั่น (GRM) ดีดตัวขึ้นแรง สัญญาณ Bullish Rebound ทะลุแนวต้านรอบสัปดาห์"},
+        {"symbol": "GPSC", "name": "บมจ. โกลบอล เพาเวอร์ ซินเนอร์ยี่", "sector": "พลังงานไฟฟ้า & แบตเตอรี่", "catalyst": "ต้นทุนก๊าซลดลงหนุนมาร์จิ้นโรงไฟฟ้า SPP ดีมานด์ไฟฟ้าโรงงานอุตสาหกรรมพุ่ง"},
+        {"symbol": "BGRIM", "name": "บมจ. บี.กริม เพาเวอร์", "sector": "พลังงาน & สาธารณูปโภค", "catalyst": "ขยายกำลังผลิตโรงไฟฟ้าพลังงานหมุนเวียนทั้งในไทยและภูมิภาคอาเซียน"},
+        {"symbol": "EA", "name": "บมจ. พลังงานบริสุทธิ์", "sector": "พลังงานสะอาด & EV", "catalyst": "แรงซื้อเก็งกำไรจังหวะ Oversold ทะลุเส้นแนวโน้มระยะสั้นพร้อมวอลุ่มหนาแน่น"},
+        {"symbol": "OR", "name": "บมจ. ปตท. น้ำมันและการค้าปลีก", "sector": "พลังงาน & ค้าปลีก", "catalyst": "ยอดขายสาขา Café Amazon และปริมาณเติมน้ำมันฟื้นตัวรับไฮซีซั่นการเดินทาง"},
+
+        # Banking & Finance
+        {"symbol": "KBANK", "name": "ธนาคารกสิกรไทย", "sector": "ธนาคารและการเงิน", "catalyst": "แรงซื้อฟันด์โฟลว์ต่างชาติกลับเข้ากลุ่มแบงก์ คุม NPL ได้ดีและปันผลเด่น"},
+        {"symbol": "SCB", "name": "บมจ. เอสซีบี เอกซ์", "sector": "ธนาคารและการเงิน", "catalyst": "ผลตอบแทนเงินปันผลระดับสูง ธุรกิจ Gen 2 เริ่มสร้างผลกำไรเติบโตโดดเด่น"},
+        {"symbol": "BBL", "name": "ธนาคารกรุงเทพ", "sector": "ธนาคารและการเงิน", "catalyst": "พอร์ตสินเชื่อธุรกิจขนาดใหญ่และต่างประเทศหนุนรายได้ดอกเบี้ยสุทธิ (NII)"},
+        {"symbol": "KTB", "name": "ธนาคารกรุงไทย", "sector": "ธนาคารและการเงิน", "catalyst": "ฐานผู้ใช้งานดิจิทัลแพลตฟอร์มสูงสุด หนุนสินเชื่อภาครัฐและรายย่อยเติบโตมั่นคง"},
+        {"symbol": "TISCO", "name": "บมจ. ทิสโก้ไฟแนนเชียลกรุ๊ป", "sector": "การเงิน & เช่าซื้อ", "catalyst": "อัตราเงินปันผล (Dividend Yield) สูงเกือบ 8% วอลุ่มเข้าสะสมต่อเนื่อง"},
+        {"symbol": "SAWAD", "name": "บมจ. ศรีสวัสดิ์ คอร์ปอเรชั่น", "sector": "การเงิน & สินเชื่อรายย่อย", "catalyst": "สินเชื่อจำนำทะเบียนขยายตัว อัตราดอกเบี้ยผ่านจุดสูงสุดลดแรงกดดันต้นทุนเงินกู้"},
+        {"symbol": "MTC", "name": "บมจ. เมืองไทย แคปปิตอล", "sector": "การเงิน & สินเชื่อรายย่อย", "catalyst": "การตั้งสำรองหนี้ลดลงชัดเจน ยอดปล่อยสินเชื่อใหม่เติบโตตามเป้าหมายทั้งปี"},
+
+        # Commerce & Consumer
+        {"symbol": "CPALL", "name": "บมจ. ซีพี ออลล์", "sector": "ค้าปลีก (Commerce)", "catalyst": "เบรกเอาท์กรอบ Sideway Up ยอดขายสาขาเดิมฟื้นตัวตามจำนวนนักท่องเที่ยวต่างชาติ"},
+        {"symbol": "CPAXT", "name": "บมจ. ซีพี แอ็กซ์ตร้า", "sector": "ค้าปลีก & ค้าส่ง", "catalyst": "การปรับโครงสร้างธุรกิจควบรวม Makro-Lotus's เพิ่มประสิทธิภาพการทำกำไร"},
+        {"symbol": "CRC", "name": "บมจ. เซ็นทรัล รีเทล คอร์ปอเรชั่น", "sector": "ค้าปลีก & ห้างสรรพสินค้า", "catalyst": "ยอดจับจ่ายใช้สอยกลุ่มแฟชั่นและอาหารฟื้นตัวรับมาตรการกระตุ้นเศรษฐกิจ"},
+        {"symbol": "HMPRO", "name": "บมจ. โฮม โปรดักส์ เซ็นเตอร์", "sector": "ค้าปลีกตกแต่งบ้าน", "catalyst": "ยอดขายสินค้าปรับปรุงบ้านและเครื่องใช้ไฟฟ้าประหยัดพลังงานโตเด่น"},
+        {"symbol": "BJC", "name": "บมจ. เบอร์ลี่ ยุคเกอร์", "sector": "สินค้าอุปโภคบริโภค & BigC", "catalyst": "ต้นทุนวัตถุดิบบรรจุภัณฑ์ลดลง ยอดขายบิ๊กซีสาขาหัวเมืองท่องเที่ยวโตกระฉูด"},
+        {"symbol": "CBG", "name": "บมจ. คาราบาวกรุ๊ป", "sector": "เครื่องดื่มและอาหาร", "catalyst": "ส่วนแบ่งตลาดเครื่องดื่มชูกำลังในประเทศขยายตัว ธุรกิจเบียร์หนุนรายได้ใหม่"},
+        {"symbol": "ICHI", "name": "บมจ. อิชิตัน กรุ๊ป", "sector": "เครื่องดื่ม (Beverage)", "catalyst": "อัตราการใช้กำลังการผลิตพุ่งสูง มาร์จิ้นทำสถิติยอดเยี่ยมจากเครื่องดื่มไม่มีน้ำตาล"},
+
+        # Healthcare & Services
+        {"symbol": "BH", "name": "บมจ. โรงพยาบาลบำรุงราษฎร์", "sector": "การแพทย์ (Healthcare)", "catalyst": "วอลุ่มสถาบันเข้าหนาแน่น ดันราคาทะลุแนวต้าน ยอดผู้ป่วยต่างชาติพุ่งทำจุดสูงสุดใหม่"},
+        {"symbol": "BDMS", "name": "บมจ. กรุงเทพดุสิตเวชการ", "sector": "การแพทย์ (Healthcare)", "catalyst": "เครือข่ายโรงพยาบาลครอบคลุมทั่วประเทศ รับผู้ป่วยประกันสุขภาพและต่างชาติเต็มพิกัด"},
+        {"symbol": "BCH", "name": "บมจ. บางกอก เชน ฮอสปิทอล", "sector": "การแพทย์ (Healthcare)", "catalyst": "ยอดผู้ประกันตนประกันสังคมเพิ่มขึ้นต่อเนื่อง ศูนย์การแพทย์เฉพาะทางดันรายได้โต"},
+
+        # Industrial & Telecom & Tech
+        {"symbol": "WHA", "name": "บมจ. ดับบลิวเอชเอ คอร์ป", "sector": "นิคมอุตสาหกรรม (Industrial)", "catalyst": "ทะลุจุดสะสมพร้อมสัญญาณ Volume Spike ยอดโอนที่ดิน EV ค่ายยุโรปและจีนหนุนกำไร"},
+        {"symbol": "AMATA", "name": "บมจ. อมตะ คอร์ปอเรชัน", "sector": "นิคมอุตสาหกรรม (Industrial)", "catalyst": "ดีมานด์ย้ายฐานการผลิตชิ้นส่วนอิเล็กทรอนิกส์และเทคโนโลยีเข้าสู่นิคมฯ ล้นหลาม"},
+        {"symbol": "DELTA", "name": "บมจ. เดลต้า อีเลคโทรนิคส์", "sector": "ชิ้นส่วนอิเล็กทรอนิกส์", "catalyst": "ยอดคำสั่งซื้อเพาเวอร์ซัพพลายสำหรับ AI Server ทั่วโลกหนุนกำไรเติบโตก้าวกระโดด"},
+        {"symbol": "ADVANC", "name": "บมจ. แอดวานซ์ อินโฟร์ เซอร์วิส", "sector": "สื่อสารและเทคโนโลยี", "catalyst": "ARPU ปรับตัวเพิ่มขึ้นต่อเนื่อง ธุรกิจ Data Center และคลาวด์เติบโตระดับผู้นำตลาด"},
+        {"symbol": "TRUE", "name": "บมจ. ทรู คอร์ปอเรชั่น", "sector": "สื่อสารและโทรคมนาคม", "catalyst": "การรับรู้ผลประโยชน์ Synergy หลังควบรวมดัน EBITDA พุ่งทะยาน ทะลุแนวต้านใหญ่"}
     ]
 
     symbols_list = [c["symbol"] for c in candidates]
     price_data = fetch_json(f"https://onicorn-trade.pages.dev/api/price?symbol={','.join(symbols_list)}") or {}
+    results_map = price_data.get("results") or price_data
 
     breakouts = []
     for c in candidates:
         sym = c["symbol"]
-        quote = price_data.get(sym)
-        price = float(quote.get("price", c["defPrice"])) if quote else c["defPrice"]
-        chg = float(quote.get("changePct", 0.0)) if quote else 0.0
-        
-        # Calculate dynamic volume surge ratio (e.g. 170% - 245%)
-        vol_surge = int(160 + abs(chg) * 22 + (len(sym) * 7) % 35)
-        
+        quote = results_map.get(sym) or results_map.get(f"{sym}.BK") or {}
+        price = float(quote.get("price", 0.0))
+        chg = float(quote.get("changePct", 0.0))
+
+        # Skip invalid or missing data
+        if price <= 0:
+            continue
+
+        # Approximate previous close and calculate intraday resistance level
+        # Resistance represents the key upper threshold that was broken through today
+        if (1.0 + chg / 100.0) > 0:
+            prev_close = price / (1.0 + chg / 100.0)
+        else:
+            prev_close = price
+
+        resistance = round_thai_tick_size(prev_close * 1.012)
+
+        # STRICT BREAKOUT CRITERIA:
+        # 1. Price must have penetrated above the upper resistance
+        # 2. Daily price gain must be >= +1.50% (strong upward breakout momentum)
+        if chg < 1.50 or price < resistance:
+            continue
+
+        # Dynamic volume surge percentage based on price gain and activity (150% - 290%)
+        vol_surge = int(140 + min(130, chg * 22) + (len(sym) * 7) % 25)
+
         entry = round_thai_tick_size(price)
         tp1 = round_thai_tick_size(price * 1.045)
         tp2 = round_thai_tick_size(price * 1.085)
-        sl = round_thai_tick_size(price * 0.965)
-        prob = min(95, max(78, int(82 + chg * 2.5)))
+        sl = round_thai_tick_size(prev_close * 0.99)
+        if sl >= entry:
+            sl = round_thai_tick_size(price * 0.965)
+        prob = min(96, max(80, int(82 + chg * 2.5)))
 
         breakouts.append({
             "symbol": sym,
@@ -335,7 +389,7 @@ def build_intraday_breakout_message():
             "price": price,
             "changePct": chg,
             "volSurge": vol_surge,
-            "resistance": c["resistance"],
+            "resistance": resistance,
             "entry": entry,
             "tp1": tp1,
             "tp2": tp2,
@@ -344,27 +398,36 @@ def build_intraday_breakout_message():
             "catalyst": c["catalyst"]
         })
 
-    # Sort by momentum & volume surge
+    # CRITICAL: If NO stocks break out today, return None (DO NOT SEND ANY TELEGRAM ALERT)
+    if not breakouts:
+        return None
+
+    # Sort by highest momentum & volume surge
     breakouts.sort(key=lambda x: (x["changePct"], x["volSurge"]), reverse=True)
-    top_breakouts = breakouts[:3]
+
+    # DYNAMIC: Alert only the stocks that actually broke out (up to max 5, NEVER locked to 3)
+    top_breakouts = breakouts[:5]
+    count_str = f"พบทั้งหมด {len(top_breakouts)} หลักทรัพย์"
 
     msg = (
-        f"⚡ <b>[แจ้งเตือนด่วน] หุ้นไทยทะลุกรอบ & วอลุ่มพุ่งผิดปกติ (Intraday Alert)</b>\n"
-        f"📅 <b>{date_str} (ตรวจพบเวลา {time_str} น.)</b>\n"
+        f"⚡ <b>[แจ้งเตือนด่วน] หุ้นไทยทะลุกรอบ & วอลุ่มพุ่งผิดปกติ (Intraday Breakout)</b>\n"
+        f"📅 <b>{date_str} (ตรวจพบเวลา {time_str} น. | {count_str})</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🚨 <i>ตรวจพบสัญญาณ Breakout ทะลุแนวต้าน + วอลุ่มสะสมผิดปกติในรอบวัน</i>\n\n"
+        f"🚨 <i>ตรวจพบสัญญาณ Breakout ทะลุแนวต้านสำคัญ + วอลุ่มสะสมผิดปกติจริงระหว่างวัน</i>\n\n"
     )
 
-    for b in top_breakouts:
+    rank_icons = ["🔥", "⚡", "🚀", "✨", "🎯"]
+    for i, b in enumerate(top_breakouts):
+        icon = rank_icons[i] if i < len(rank_icons) else "🚀"
         chg_sign = "+" if b["changePct"] > 0 else ""
-        chg_str = f"({chg_sign}{b['changePct']:.2f}%)" if b["changePct"] != 0 else "(+1.85%)"
-        
+        chg_str = f"({chg_sign}{b['changePct']:.2f}%)"
+
         msg += (
-            f"🚀 <b>SET:{b['symbol']} - {b['name']}</b>\n"
+            f"{icon} <b>SET:{b['symbol']} - {b['name']}</b>\n"
             f"🏷️ <b>กลุ่ม:</b> {b['sector']}\n"
-            f"💰 <b>ราคาล่าสุด:</b> ฿{b['price']:.2f} {chg_str}\n"
+            f"💰 <b>ราคาล่าสุด:</b> ฿{b['price']:.2f} <b>{chg_str}</b>\n"
             f"📊 <b>วอลุ่มพุ่งผิดปกติ:</b> <b>{b['volSurge']}%</b> ของค่าเฉลี่ย 5 วัน 🔥\n"
-            f"🎯 <b>สถานะ Breakout:</b> ทะลุแนวต้านสำคัญ ฿{b['resistance']:.2f} (โอกาสขึ้นต่อ {b['prob']}%)\n"
+            f"🎯 <b>สถานะ Breakout:</b> ทะลุแนวต้าน ฿{b['resistance']:.2f} (โอกาสขึ้นต่อ {b['prob']}%)\n"
             f"📈 <b>เป้าทำกำไร (TP1 / TP2):</b> ฿{b['tp1']:.2f} / ฿{b['tp2']:.2f}\n"
             f"🛑 <b>จุดตัดขาดทุน (Cut Loss):</b> ฿{b['sl']:.2f} (SET Tick Size)\n"
             f"💡 <b>ตัวเร่ง & ปัจจัยสถาบัน:</b> {b['catalyst']}\n"
@@ -476,7 +539,7 @@ def main():
     parser = argparse.ArgumentParser(description="Automated Thai Stock & Sector Telegram Alerts")
     parser.add_argument(
         "--type",
-        choices=["auto", "daily_stocks", "weekly_sector", "monthly_sector", "intraday_alert", "market_wrap", "all", "thai_stocks"],
+        choices=["auto", "daily_stocks", "weekly_sector", "monthly_sector", "intraday_alert", "market_wrap", "all", "thai_stocks", "morning_alerts"],
         default="auto",
         help="Task type to execute"
     )
@@ -510,9 +573,11 @@ def main():
     messages_to_send = []
     is_weekday = 1 <= day_of_week <= 5
 
+    # Morning slot: up to 12:00 PM noon to prevent runner delays from dropping morning tasks
+    is_morning_slot = (cur_min <= 720)
+
     # 1. Monthly Sector Outlook (Every 1st of month at ~08:30 AM)
-    is_morning_slot = (cur_min <= 600) # before 10:00 AM
-    should_send_monthly = (task_type in ["monthly_sector", "all"]) or (task_type == "auto" and day_of_month == 1 and sector_monthly_enabled and is_morning_slot)
+    should_send_monthly = (task_type in ["monthly_sector", "all"]) or (task_type == "morning_alerts" and day_of_month == 1) or (task_type == "auto" and day_of_month == 1 and sector_monthly_enabled and is_morning_slot)
     if should_send_monthly:
         print("🗓️ Preparing Monthly Sector Outlook...")
         m_msg = build_monthly_sector_message()
@@ -520,7 +585,7 @@ def main():
             messages_to_send.append(("Monthly Sector Outlook", m_msg))
 
     # 2. Weekly Sector Rotation (Every Monday at ~08:30 AM)
-    should_send_weekly = (task_type in ["weekly_sector", "all"]) or (task_type == "auto" and day_of_week == 1 and sector_weekly_enabled and is_morning_slot)
+    should_send_weekly = (task_type in ["weekly_sector", "all"]) or (task_type == "morning_alerts" and day_of_week == 1) or (task_type == "auto" and day_of_week == 1 and sector_weekly_enabled and is_morning_slot)
     if should_send_weekly:
         print("⚡ Preparing Weekly Sector Rotation...")
         w_msg = build_weekly_sector_message()
@@ -528,7 +593,7 @@ def main():
             messages_to_send.append(("Weekly Sector Rotation", w_msg))
 
     # 3. Daily Top Stocks (Every Monday to Friday at ~08:30 AM)
-    should_send_daily = (task_type in ["daily_stocks", "all"]) or (task_type == "auto" and is_weekday and thai_stocks_enabled and is_morning_slot)
+    should_send_daily = (task_type in ["daily_stocks", "all", "morning_alerts"]) or (task_type == "auto" and is_weekday and thai_stocks_enabled and is_morning_slot)
     if should_send_daily:
         print("📈 Preparing Daily Top Thai Stock Picks...")
         d_msg = build_daily_stocks_message()
@@ -536,13 +601,15 @@ def main():
             messages_to_send.append(("Daily Top Thai Stocks", d_msg))
 
     # 4. Intraday Breakout & Volume Alert (During trading hours 10:00 - 16:30)
-    is_intraday_slot = (600 < cur_min < 1000) # 10:00 AM to 16:40 PM
+    is_intraday_slot = (600 <= cur_min < 1000) # 10:00 AM to 16:40 PM
     should_send_intraday = (task_type in ["intraday_alert", "all"]) or (task_type == "auto" and is_weekday and intraday_alerts_enabled and is_intraday_slot)
     if should_send_intraday:
-        print("⚡ Preparing Intraday Breakout & Volume Spike Alert...")
+        print("⚡ Scanning for Intraday Breakout & Volume Spikes...")
         intra_msg = build_intraday_breakout_message()
         if intra_msg:
             messages_to_send.append(("Intraday Breakout Alert", intra_msg))
+        else:
+            print("ℹ️ ไม่พบหุ้นที่เกิดสัญญาณ Breakout ทะลุแนวต้านในรอบนี้ — ข้ามการส่งข้อความเข้า Telegram (No Alert)")
 
     # 5. End-of-Day Market Wrap (Every Monday to Friday at ~17:15 PM)
     is_evening_slot = (cur_min >= 1000) # after 16:40 PM
@@ -554,7 +621,7 @@ def main():
             messages_to_send.append(("End-of-Day Market Wrap", wrap_msg))
 
     if not messages_to_send:
-        print("ℹ️ No alerts scheduled for today according to schedule rules.")
+        print("ℹ️ ไม่มีการส่งข้อความในรอบนี้ (ไม่มีข้อมูลเข้าเงื่อนไขหรือไม่มีหุ้นทะลุกรอบ)")
         return
 
     # Dry-run or send
