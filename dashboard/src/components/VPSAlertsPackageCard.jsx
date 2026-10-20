@@ -39,6 +39,10 @@ export default function VPSAlertsPackageCard({ currentUser }) {
     { name: "README.md", desc: "คู่มือการติดตั้งและการใช้งานอย่างละเอียดฉบับภาษาไทย", type: "Documentation" }
   ];
 
+  const [osTab, setOsTab] = useState("windows"); // "windows" | "linux"
+
+  const winPowerShellCmd = `powershell -Command "Invoke-WebRequest -Uri 'https://onicorn-trade.pages.dev/onicorn-vps-alerts.zip' -OutFile 'onicorn-vps-alerts.zip'; Expand-Archive -Path 'onicorn-vps-alerts.zip' -DestinationPath 'C:\\onicorn-vps-alerts' -Force"`;
+
   return (
     <div className="glass-card" style={{
       padding: "24px",
@@ -79,7 +83,7 @@ export default function VPSAlertsPackageCard({ currentUser }) {
                 </span>
               </h3>
               <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "var(--text-muted)" }}>
-                ดาวน์โหลดชุดไฟล์สำเร็จรูปนำไปรันบน VPS ส่วนตัวของคุณเพื่อการแจ้งเตือนตรงเวลา 100% พร้อมระบบสำรองและป้องกันข้อความซ้ำ
+                ดาวน์โหลดชุดไฟล์สำเร็จรูปนำไปรันบน VPS ส่วนตัวของคุณ (รองรับทั้ง Windows และ Linux) เพื่อการแจ้งเตือนตรงเวลา 100%
               </p>
             </div>
           </div>
@@ -115,7 +119,7 @@ export default function VPSAlertsPackageCard({ currentUser }) {
             borderRadius: "6px",
             fontWeight: "500"
           }}>
-            ~117 KB
+            ~125 KB
           </span>
         </a>
       </div>
@@ -145,108 +149,156 @@ export default function VPSAlertsPackageCard({ currentUser }) {
         </div>
       </div>
 
-      {/* 3-Step Setup Instructions */}
-      <div style={{
-        background: "rgba(15, 23, 42, 0.6)",
-        border: "1px solid rgba(59, 130, 246, 0.25)",
-        borderRadius: "12px",
-        padding: "16px",
-        marginBottom: "16px"
-      }}>
-        <h4 style={{ margin: "0 0 14px 0", fontSize: "14px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
-          <Terminal size={16} color="#60a5fa" />
-          <span>ขั้นตอนติดตั้งบน VPS ผ่าน SSH Terminal (3 ขั้นตอนง่ายๆ)</span>
-        </h4>
-
-        {/* Step 1 */}
-        <div style={{ marginBottom: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-            <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd" }}>
-              1. โหลดและแตกไฟล์บน VPS (หรืออัปโหลดไฟล์ ZIP ขึ้น VPS):
-            </span>
-            <button
-              onClick={() => copyToClipboard("curl -O https://onicorn-trade.pages.dev/onicorn-vps-alerts.zip && unzip onicorn-vps-alerts.zip && cd onicorn-vps-alerts", "step1")}
-              style={{
-                background: copiedKey === "step1" ? "#10b981" : "rgba(59, 130, 246, 0.2)",
-                border: "1px solid rgba(59, 130, 246, 0.4)",
-                borderRadius: "6px",
-                padding: "3px 8px",
-                fontSize: "11px",
-                color: "#ffffff",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px"
-              }}
-            >
-              {copiedKey === "step1" ? <Check size={12} /> : <Copy size={12} />}
-              {copiedKey === "step1" ? "คัดลอกแล้ว!" : "คัดลอกคำสั่ง"}
-            </button>
-          </div>
-          <div style={{
-            background: "rgba(0, 0, 0, 0.4)",
-            border: "1px solid rgba(255, 255, 255, 0.06)",
+      {/* OS Tab Switcher */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+        <button
+          onClick={() => setOsTab("windows")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: osTab === "windows" ? "rgba(59, 130, 246, 0.25)" : "rgba(255, 255, 255, 0.05)",
+            border: osTab === "windows" ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.1)",
+            color: osTab === "windows" ? "#60a5fa" : "var(--text-muted)",
+            padding: "8px 16px",
             borderRadius: "8px",
-            padding: "8px 12px",
-            fontFamily: "monospace",
-            fontSize: "12px",
-            color: "#38bdf8",
-            overflowX: "auto"
-          }}>
-            curl -O https://onicorn-trade.pages.dev/onicorn-vps-alerts.zip && unzip onicorn-vps-alerts.zip && cd onicorn-vps-alerts
-          </div>
-        </div>
-
-        {/* Step 2 */}
-        <div style={{ marginBottom: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-            <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd" }}>
-              2. รันคำสั่งติดตั้งระบบอัตโนมัติ (ตั้งเวลาไทย + Python + Playwright):
-            </span>
-            <button
-              onClick={() => copyToClipboard("sudo bash vps_setup.sh", "step2")}
-              style={{
-                background: copiedKey === "step2" ? "#10b981" : "rgba(59, 130, 246, 0.2)",
-                border: "1px solid rgba(59, 130, 246, 0.4)",
-                borderRadius: "6px",
-                padding: "3px 8px",
-                fontSize: "11px",
-                color: "#ffffff",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px"
-              }}
-            >
-              {copiedKey === "step2" ? <Check size={12} /> : <Copy size={12} />}
-              {copiedKey === "step2" ? "คัดลอกแล้ว!" : "คัดลอกคำสั่ง"}
-            </button>
-          </div>
-          <div style={{
-            background: "rgba(0, 0, 0, 0.4)",
-            border: "1px solid rgba(255, 255, 255, 0.06)",
+            fontSize: "13px",
+            fontWeight: "700",
+            cursor: "pointer"
+          }}
+        >
+          <span>🪟 Windows VPS (Server 2016 / 2019 / 2022 / MT4 MT5)</span>
+        </button>
+        <button
+          onClick={() => setOsTab("linux")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            background: osTab === "linux" ? "rgba(59, 130, 246, 0.25)" : "rgba(255, 255, 255, 0.05)",
+            border: osTab === "linux" ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.1)",
+            color: osTab === "linux" ? "#60a5fa" : "var(--text-muted)",
+            padding: "8px 16px",
             borderRadius: "8px",
-            padding: "8px 12px",
-            fontFamily: "monospace",
-            fontSize: "12px",
-            color: "#4ade80",
-            overflowX: "auto"
-          }}>
-            sudo bash vps_setup.sh
-          </div>
-        </div>
+            fontSize: "13px",
+            fontWeight: "700",
+            cursor: "pointer"
+          }}
+        >
+          <span>🐧 Linux VPS (Ubuntu / Debian / CentOS)</span>
+        </button>
+      </div>
 
-        {/* Step 3 */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-            <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd" }}>
-              3. ตั้งเวลาอัตโนมัติใน Crontab (พิมพ์คำสั่ง crontab -e):
-            </span>
-            <div style={{ display: "flex", gap: "6px" }}>
+      {/* WINDOWS VPS SETUP */}
+      {osTab === "windows" && (
+        <div style={{
+          background: "rgba(15, 23, 42, 0.6)",
+          border: "1px solid rgba(59, 130, 246, 0.25)",
+          borderRadius: "12px",
+          padding: "16px",
+          marginBottom: "16px"
+        }}>
+          <h4 style={{ margin: "0 0 14px 0", fontSize: "14px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
+            <Terminal size={16} color="#60a5fa" />
+            <span>ขั้นตอนติดตั้งบน Windows VPS (ง่ายมาก ดับเบิ้ลคลิกไฟล์รันได้เลย)</span>
+          </h4>
+
+          {/* Windows Step 1 */}
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd", marginBottom: "4px" }}>
+              1. โหลดและแตกไฟล์ ZIP บน Windows VPS:
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "0 0 6px 0" }}>
+              เปิด Browser บน Windows VPS แล้วดาวน์โหลดไฟล์ ZIP จากปุ่มด้านบน หรือคัดลอกคำสั่ง PowerShell นี้ไปรัน:
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{
+                flex: 1,
+                background: "rgba(0, 0, 0, 0.4)",
+                border: "1px solid rgba(255, 255, 255, 0.06)",
+                borderRadius: "8px",
+                padding: "8px 12px",
+                fontFamily: "monospace",
+                fontSize: "11px",
+                color: "#38bdf8",
+                overflowX: "auto"
+              }}>
+                {winPowerShellCmd}
+              </div>
               <button
-                onClick={() => copyToClipboard(crontabText, "crontab")}
+                onClick={() => copyToClipboard(winPowerShellCmd, "winps")}
                 style={{
-                  background: copiedKey === "crontab" ? "#10b981" : "rgba(59, 130, 246, 0.2)",
+                  background: copiedKey === "winps" ? "#10b981" : "rgba(59, 130, 246, 0.2)",
+                  border: "1px solid rgba(59, 130, 246, 0.4)",
+                  borderRadius: "6px",
+                  padding: "6px 10px",
+                  fontSize: "11px",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {copiedKey === "winps" ? "คัดลอกแล้ว!" : "คัดลอก"}
+              </button>
+            </div>
+          </div>
+
+          {/* Windows Step 2 */}
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd", marginBottom: "4px" }}>
+              2. ตรวจสอบว่ามี Python ในเครื่อง (หากยังไม่มี ให้ติดตั้ง Python 3):
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
+              ดาวน์โหลด Python 3 จาก <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer" style={{ color: "#60a5fa" }}>python.org/downloads</a> (<b>*สำคัญมาก:</b> ตอนกดติดตั้ง ให้ติ๊กถูกที่ช่อง <code>Add Python to PATH</code>)
+            </p>
+          </div>
+
+          {/* Windows Step 3 */}
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd", marginBottom: "4px" }}>
+              3. ดับเบิ้ลคลิกไฟล์ <code>vps_setup.bat</code>:
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
+              สคริปต์จะทำการติดตั้งแพ็กเกจ Python และเบราว์เซอร์ Playwright ให้โดยอัตโนมัติ
+            </p>
+          </div>
+
+          {/* Windows Step 4 */}
+          <div>
+            <div style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd", marginBottom: "4px" }}>
+              4. ติดตั้งเวลาอัตโนมัติ (Windows Task Scheduler):
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
+              คลิกขวาที่ไฟล์ <b><code>install_windows_scheduler.bat</code></b> แล้วเลือก <b>"Run as administrator" (เรียกใช้ในฐานะผู้ดูแล)</b> เพื่อสร้างงานตั้งเวลา 4 รอบประจำวันลงใน Windows Task Scheduler ทันที!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* LINUX VPS SETUP */}
+      {osTab === "linux" && (
+        <div style={{
+          background: "rgba(15, 23, 42, 0.6)",
+          border: "1px solid rgba(59, 130, 246, 0.25)",
+          borderRadius: "12px",
+          padding: "16px",
+          marginBottom: "16px"
+        }}>
+          <h4 style={{ margin: "0 0 14px 0", fontSize: "14px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "6px" }}>
+            <Terminal size={16} color="#60a5fa" />
+            <span>ขั้นตอนติดตั้งบน Linux VPS ผ่าน SSH Terminal</span>
+          </h4>
+
+          {/* Linux Step 1 */}
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd" }}>
+                1. โหลดและแตกไฟล์บน VPS:
+              </span>
+              <button
+                onClick={() => copyToClipboard("curl -O https://onicorn-trade.pages.dev/onicorn-vps-alerts.zip && unzip onicorn-vps-alerts.zip && cd onicorn-vps-alerts", "step1")}
+                style={{
+                  background: copiedKey === "step1" ? "#10b981" : "rgba(59, 130, 246, 0.2)",
                   border: "1px solid rgba(59, 130, 246, 0.4)",
                   borderRadius: "6px",
                   padding: "3px 8px",
@@ -258,48 +310,128 @@ export default function VPSAlertsPackageCard({ currentUser }) {
                   gap: "4px"
                 }}
               >
-                {copiedKey === "crontab" ? <Check size={12} /> : <Copy size={12} />}
-                {copiedKey === "crontab" ? "คัดลอก Crontab แล้ว!" : "คัดลอกตาราง Crontab"}
+                {copiedKey === "step1" ? <Check size={12} /> : <Copy size={12} />}
+                {copiedKey === "step1" ? "คัดลอกแล้ว!" : "คัดลอกคำสั่ง"}
               </button>
+            </div>
+            <div style={{
+              background: "rgba(0, 0, 0, 0.4)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+              borderRadius: "8px",
+              padding: "8px 12px",
+              fontFamily: "monospace",
+              fontSize: "12px",
+              color: "#38bdf8",
+              overflowX: "auto"
+            }}>
+              curl -O https://onicorn-trade.pages.dev/onicorn-vps-alerts.zip && unzip onicorn-vps-alerts.zip && cd onicorn-vps-alerts
+            </div>
+          </div>
+
+          {/* Linux Step 2 */}
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd" }}>
+                2. รันคำสั่งติดตั้งระบบอัตโนมัติ (ตั้งเวลาไทย + Python + Playwright):
+              </span>
               <button
-                onClick={() => setShowCrontabDetails(!showCrontabDetails)}
+                onClick={() => copyToClipboard("sudo bash vps_setup.sh", "step2")}
                 style={{
-                  background: "rgba(255, 255, 255, 0.08)",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  background: copiedKey === "step2" ? "#10b981" : "rgba(59, 130, 246, 0.2)",
+                  border: "1px solid rgba(59, 130, 246, 0.4)",
                   borderRadius: "6px",
                   padding: "3px 8px",
                   fontSize: "11px",
-                  color: "var(--text-secondary)",
+                  color: "#ffffff",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   gap: "4px"
                 }}
               >
-                {showCrontabDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                {showCrontabDetails ? "ซ่อน" : "ดูตารางเวลา"}
+                {copiedKey === "step2" ? <Check size={12} /> : <Copy size={12} />}
+                {copiedKey === "step2" ? "คัดลอกแล้ว!" : "คัดลอกคำสั่ง"}
               </button>
+            </div>
+            <div style={{
+              background: "rgba(0, 0, 0, 0.4)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+              borderRadius: "8px",
+              padding: "8px 12px",
+              fontFamily: "monospace",
+              fontSize: "12px",
+              color: "#4ade80",
+              overflowX: "auto"
+            }}>
+              sudo bash vps_setup.sh
             </div>
           </div>
 
-          {showCrontabDetails && (
-            <div style={{
-              background: "rgba(0, 0, 0, 0.5)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: "8px",
-              padding: "10px 12px",
-              fontFamily: "monospace",
-              fontSize: "11.5px",
-              color: "#f1f5f9",
-              whiteSpace: "pre-wrap",
-              lineHeight: "1.5",
-              marginBottom: "10px"
-            }}>
-              {crontabText}
+          {/* Linux Step 3 */}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+              <span style={{ fontSize: "12.5px", fontWeight: "600", color: "#93c5fd" }}>
+                3. ตั้งเวลาอัตโนมัติใน Crontab (พิมพ์คำสั่ง crontab -e):
+              </span>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <button
+                  onClick={() => copyToClipboard(crontabText, "crontab")}
+                  style={{
+                    background: copiedKey === "crontab" ? "#10b981" : "rgba(59, 130, 246, 0.2)",
+                    border: "1px solid rgba(59, 130, 246, 0.4)",
+                    borderRadius: "6px",
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    color: "#ffffff",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  {copiedKey === "crontab" ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedKey === "crontab" ? "คัดลอกแล้ว!" : "คัดลอก Crontab"}
+                </button>
+                <button
+                  onClick={() => setShowCrontabDetails(!showCrontabDetails)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.08)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    borderRadius: "6px",
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  {showCrontabDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {showCrontabDetails ? "ซ่อน" : "ดูตารางเวลา"}
+                </button>
+              </div>
             </div>
-          )}
+
+            {showCrontabDetails && (
+              <div style={{
+                background: "rgba(0, 0, 0, 0.5)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "8px",
+                padding: "10px 12px",
+                fontFamily: "monospace",
+                fontSize: "11.5px",
+                color: "#f1f5f9",
+                whiteSpace: "pre-wrap",
+                lineHeight: "1.5",
+                marginBottom: "10px"
+              }}>
+                {crontabText}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Quick Test Command Box */}
       <div style={{

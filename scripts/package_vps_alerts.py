@@ -24,10 +24,18 @@ def build_vps_package():
         (os.path.join(script_dir, "send_gold_news.py"), "onicorn-vps-alerts/send_gold_news.py"),
         (os.path.join(script_dir, "send_oil_chart.py"), "onicorn-vps-alerts/send_oil_chart.py"),
         (os.path.join(script_dir, "requirements.txt"), "onicorn-vps-alerts/requirements.txt"),
+        # Linux VPS scripts
         (os.path.join(script_dir, "run_vps_alert.sh"), "onicorn-vps-alerts/run_vps_alert.sh"),
         (os.path.join(script_dir, "vps_setup.sh"), "onicorn-vps-alerts/vps_setup.sh"),
         (os.path.join(script_dir, "vps_daemon.py"), "onicorn-vps-alerts/vps_daemon.py"),
         (os.path.join(script_dir, "crontab.txt"), "onicorn-vps-alerts/crontab.txt"),
+        # Windows VPS scripts
+        (os.path.join(script_dir, "run_vps_alert.bat"), "onicorn-vps-alerts/run_vps_alert.bat"),
+        (os.path.join(script_dir, "vps_setup.bat"), "onicorn-vps-alerts/vps_setup.bat"),
+        (os.path.join(script_dir, "install_windows_scheduler.bat"), "onicorn-vps-alerts/install_windows_scheduler.bat"),
+        (os.path.join(script_dir, "test_alert.bat"), "onicorn-vps-alerts/test_alert.bat"),
+        (os.path.join(script_dir, "start_vps_daemon.bat"), "onicorn-vps-alerts/start_vps_daemon.bat"),
+        # Guides
         (os.path.join(script_dir, "VPS_GUIDE.md"), "onicorn-vps-alerts/README.md"),
     ]
 
