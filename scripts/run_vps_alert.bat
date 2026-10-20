@@ -6,27 +6,42 @@ set "RUNNER_ENV=vps"
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
-:: Locate python3 executable
+REM Locate Python executable
 where python >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
     set "PYTHON_BIN=python"
-) else (
-    where py >nul 2>&1
-    if %ERRORLEVEL% EQU 0 (
-        set "PYTHON_BIN=py"
-    ) else (
-        if exist "%SCRIPT_DIR%venv\Scripts\python.exe" (
-            set "PYTHON_BIN=%SCRIPT_DIR%venv\Scripts\python.exe"
-        ) else (
-            echo [ERROR] Python is not found in PATH!
-            echo Please install Python 3 from https://www.python.org/downloads/
-            echo Make sure to check 'Add Python to PATH' during installation.
-            pause
-            exit /b 1
-        )
-    )
+    goto got_python
+)
+where py >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    set "PYTHON_BIN=py"
+    goto got_python
+)
+if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" (
+    set "PYTHON_BIN=%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+    goto got_python
+)
+if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
+    set "PYTHON_BIN=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
+    goto got_python
+)
+if exist "C:\Python311\python.exe" (
+    set "PYTHON_BIN=C:\Python311\python.exe"
+    goto got_python
+)
+if exist "C:\Python312\python.exe" (
+    set "PYTHON_BIN=C:\Python312\python.exe"
+    goto got_python
+)
+if exist "%SCRIPT_DIR%venv\Scripts\python.exe" (
+    set "PYTHON_BIN=%SCRIPT_DIR%venv\Scripts\python.exe"
+    goto got_python
 )
 
+echo [ERROR] Python is not found!
+exit /b 1
+
+:got_python
 set "TASK=%~1"
 set "EXTRA=%~2"
 if "%TASK%"=="" set "TASK=all"
@@ -38,63 +53,63 @@ echo Task: %TASK% %EXTRA%
 echo Python: %PYTHON_BIN%
 echo ============================================================
 
-if /i "%TASK%"=="morning" (
-    echo [1/4] Running Gold News Digest...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_gold_news.py" %EXTRA%
-    echo [2/4] Running Daily Top Thai Stocks...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type daily_stocks %EXTRA%
-    echo [3/4] Running Weekly Sector Rotation...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type weekly_sector %EXTRA%
-    echo [4/4] Running Monthly Sector Outlook...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type monthly_sector %EXTRA%
-    goto end
-)
+if /i "%TASK%"=="morning" goto do_morning
+if /i "%TASK%"=="gold_news" goto do_gold_news
+if /i "%TASK%"=="oil_chart" goto do_oil_chart
+if /i "%TASK%"=="daily_stocks" goto do_daily_stocks
+if /i "%TASK%"=="weekly_sector" goto do_weekly_sector
+if /i "%TASK%"=="monthly_sector" goto do_monthly_sector
+if /i "%TASK%"=="intraday" goto do_intraday
+if /i "%TASK%"=="market_wrap" goto do_market_wrap
+if /i "%TASK%"=="test" goto do_test
+goto finish
 
-if /i "%TASK%"=="gold_news" (
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_gold_news.py" %EXTRA%
-    goto end
-)
+:do_morning
+echo [1/4] Running Gold News Digest...
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_gold_news.py" %EXTRA%
+echo [2/4] Running Daily Top Thai Stocks...
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type daily_stocks %EXTRA%
+echo [3/4] Running Weekly Sector Rotation...
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type weekly_sector %EXTRA%
+echo [4/4] Running Monthly Sector Outlook...
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type monthly_sector %EXTRA%
+goto finish
 
-if /i "%TASK%"=="oil_chart" (
-    echo Running WTI Crude Oil Chart...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_oil_chart.py" %EXTRA%
-    goto end
-)
+:do_gold_news
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_gold_news.py" %EXTRA%
+goto finish
 
-if /i "%TASK%"=="daily_stocks" (
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type daily_stocks %EXTRA%
-    goto end
-)
+:do_oil_chart
+echo Running WTI Crude Oil Chart...
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_oil_chart.py" %EXTRA%
+goto finish
 
-if /i "%TASK%"=="weekly_sector" (
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type weekly_sector %EXTRA%
-    goto end
-)
+:do_daily_stocks
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type daily_stocks %EXTRA%
+goto finish
 
-if /i "%TASK%"=="monthly_sector" (
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type monthly_sector %EXTRA%
-    goto end
-)
+:do_weekly_sector
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type weekly_sector %EXTRA%
+goto finish
 
-if /i "%TASK%"=="intraday" (
-    echo Running Intraday Breakout Alert...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type intraday_alert %EXTRA%
-    goto end
-)
+:do_monthly_sector
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type monthly_sector %EXTRA%
+goto finish
 
-if /i "%TASK%"=="market_wrap" (
-    echo Running End-of-Day Market Wrap...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type market_wrap %EXTRA%
-    goto end
-)
+:do_intraday
+echo Running Intraday Breakout Alert...
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type intraday_alert %EXTRA%
+goto finish
 
-if /i "%TASK%"=="test" (
-    echo Testing Telegram Connection (Force mode)...
-    "%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type daily_stocks --force
-    goto end
-)
+:do_market_wrap
+echo Running End-of-Day Market Wrap...
+"%PYTHON_BIN%" "%SCRIPT_DIR%send_thai_stock_alerts.py" --type market_wrap %EXTRA%
+goto finish
 
-echo Usage: %~nx0 {morning^|gold_news^|oil_chart^|daily_stocks^|weekly_sector^|monthly_sector^|intraday^|market_wrap^|test} [--force]
+:do_test
+"%PYTHON_BIN%" "%SCRIPT_DIR%test_vps_alert.py"
+goto finish
 
-:end
-echo Task finished.
+:finish
+echo.
+echo [Task finished]

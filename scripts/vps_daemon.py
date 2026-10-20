@@ -26,8 +26,12 @@ def log(msg):
     print(f"[{now_str}] {msg}", flush=True)
 
 def run_task(task_type):
-    runner_script = os.path.join(SCRIPT_DIR, "run_vps_alert.sh")
-    cmd = ["/bin/bash", runner_script, task_type]
+    if sys.platform == "win32":
+        runner_script = os.path.join(SCRIPT_DIR, "run_vps_alert.bat")
+        cmd = ["cmd.exe", "/c", runner_script, task_type]
+    else:
+        runner_script = os.path.join(SCRIPT_DIR, "run_vps_alert.sh")
+        cmd = ["/bin/bash", runner_script, task_type]
     log(f"🚀 Executing task '{task_type}' via: {' '.join(cmd)}")
     try:
         res = subprocess.run(cmd, cwd=SCRIPT_DIR, capture_output=True, text=True)
