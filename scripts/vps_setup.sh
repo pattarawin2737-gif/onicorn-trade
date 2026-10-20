@@ -37,17 +37,34 @@ fi
 
 # 5. Setup Python Virtual Environment
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT"
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "🐍 Setting up Python environment..."
+# Detect whether we are in a standalone extracted zip or git repository
+if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
+    WORK_DIR="$SCRIPT_DIR"
+    REQ_FILE="$SCRIPT_DIR/requirements.txt"
+elif [ -f "$PARENT_DIR/scripts/requirements.txt" ]; then
+    WORK_DIR="$PARENT_DIR"
+    REQ_FILE="$PARENT_DIR/scripts/requirements.txt"
+else
+    WORK_DIR="$SCRIPT_DIR"
+    REQ_FILE="$SCRIPT_DIR/requirements.txt"
+fi
+
+cd "$WORK_DIR"
+
+echo "🐍 Setting up Python environment in: $WORK_DIR..."
 if [ ! -d "venv" ]; then
     python3 -m venv venv
 fi
 
 source venv/bin/activate
 pip install --upgrade pip
-pip install -r scripts/requirements.txt
+if [ -f "$REQ_FILE" ]; then
+    pip install -r "$REQ_FILE"
+else
+    pip install playwright>=1.40.0
+fi
 
 # 6. Install Playwright Chromium (with system dependencies)
 echo "🌐 Installing Playwright Chromium browser for Oil Chart screenshots..."

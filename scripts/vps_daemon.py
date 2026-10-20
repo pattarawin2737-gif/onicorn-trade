@@ -30,7 +30,7 @@ def run_task(task_type):
     cmd = ["/bin/bash", runner_script, task_type]
     log(f"🚀 Executing task '{task_type}' via: {' '.join(cmd)}")
     try:
-        res = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True)
+        res = subprocess.run(cmd, cwd=SCRIPT_DIR, capture_output=True, text=True)
         print(res.stdout, flush=True)
         if res.stderr:
             print(res.stderr, file=sys.stderr, flush=True)

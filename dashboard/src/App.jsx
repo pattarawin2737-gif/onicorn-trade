@@ -37,6 +37,7 @@ import OilAnalysisView from "./components/OilAnalysisView";
 import AdminUsersView from "./components/AdminUsersView";
 import TelegramSettingsCard from "./components/TelegramSettingsCard";
 import EASettingsCard from "./components/EASettingsCard";
+import VPSAlertsPackageCard from "./components/VPSAlertsPackageCard";
 import { CONFIG } from "./config";
 import { fetchSheetData, parseCompoundingPlan, calculateTradingStats } from "./utils/googleSheets";
 import "./App.css";
@@ -4907,7 +4908,7 @@ Indicator`] || "",
                                 })]
                             })
                         })(), activeTab === "settings" && _jsxs(_Fragment, {
-                            children: [_jsx(EASettingsCard, { currentUser }), _jsx(TelegramSettingsCard, {}), (String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "administrator" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "pattarawin") && _jsxs("div", {
+                            children: [_jsx(EASettingsCard, { currentUser }), _jsx(TelegramSettingsCard, {}), (String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "administrator" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "pattarawin") && _jsx(VPSAlertsPackageCard, { currentUser }), (String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.role) || "").toLowerCase().trim() === "administrator" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "admin" || String((currentUser == null ? void 0 : currentUser.username) || "").toLowerCase().trim() === "pattarawin") && _jsxs("div", {
                                 className: "glass-card settings-box",
                                 children: [_jsxs("h2", {
                                 className: "chart-title",

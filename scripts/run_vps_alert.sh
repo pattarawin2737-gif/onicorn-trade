@@ -11,22 +11,32 @@ set -e
 export TZ="Asia/Bangkok"
 export RUNNER_ENV="vps"
 
-# Resolve script directory and project root
+# Resolve script directory and working directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT"
+PARENT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Locate python3 executable (prefer virtual environment if present)
-if [ -f "$PROJECT_ROOT/venv/bin/python3" ]; then
-    PYTHON_BIN="$PROJECT_ROOT/venv/bin/python3"
-elif [ -f "$PROJECT_ROOT/.venv/bin/python3" ]; then
-    PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python3"
+# Locate python3 executable (support both standalone zip extraction and git repo)
+if [ -f "$SCRIPT_DIR/venv/bin/python3" ]; then
+    PYTHON_BIN="$SCRIPT_DIR/venv/bin/python3"
+    WORK_DIR="$SCRIPT_DIR"
+elif [ -f "$PARENT_DIR/venv/bin/python3" ]; then
+    PYTHON_BIN="$PARENT_DIR/venv/bin/python3"
+    WORK_DIR="$PARENT_DIR"
+elif [ -f "$SCRIPT_DIR/.venv/bin/python3" ]; then
+    PYTHON_BIN="$SCRIPT_DIR/.venv/bin/python3"
+    WORK_DIR="$SCRIPT_DIR"
+elif [ -f "$PARENT_DIR/.venv/bin/python3" ]; then
+    PYTHON_BIN="$PARENT_DIR/.venv/bin/python3"
+    WORK_DIR="$PARENT_DIR"
 elif command -v python3 &>/dev/null; then
     PYTHON_BIN="$(command -v python3)"
+    WORK_DIR="$SCRIPT_DIR"
 else
     echo "❌ Error: python3 is not installed or not found in PATH." >&2
     exit 1
 fi
+
+cd "$WORK_DIR"
 
 NOW=$(date '+%Y-%m-%d %H:%M:%S')
 TASK="${1:-all}"
