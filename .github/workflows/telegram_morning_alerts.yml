@@ -21,12 +21,17 @@ on:
           - daily_stocks
           - weekly_sector
           - monthly_sector
+  repository_dispatch:
+    types: [morning_alerts]
 
 jobs:
   morning_alerts:
     name: Run Telegram Morning Alerts
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      RUNNER_ENV: "github_actions"
+      FORCE_SEND: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
 
     steps:
       - name: 📥 Checkout Repository
@@ -74,7 +79,7 @@ jobs:
       - name: 🌐 Install Playwright Chromium
         # Only install Playwright Chromium when Oil Chart is scheduled (Tuesday) or explicitly requested
         if: |
-          (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'all_morning')) ||
+          (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event_name == 'repository_dispatch' || github.event.inputs.task == 'all_morning')) ||
           github.event.inputs.task == 'oil_chart'
         run: |
           playwright install --with-deps chromium
@@ -83,6 +88,7 @@ jobs:
         # Runs Monday - Friday morning or when requested
         if: |
           github.event_name == 'schedule' ||
+          github.event_name == 'repository_dispatch' ||
           github.event.inputs.task == 'all_morning' ||
           github.event.inputs.task == 'gold_news'
         continue-on-error: true
@@ -95,7 +101,7 @@ jobs:
       - name: 🛢️ Send WTI Oil Chart Screenshot
         # Runs every Tuesday morning or when requested
         if: |
-          (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'all_morning')) ||
+          (steps.check_day.outputs.is_tuesday == 'true' && (github.event_name == 'schedule' || github.event_name == 'repository_dispatch' || github.event.inputs.task == 'all_morning')) ||
           github.event.inputs.task == 'oil_chart'
         continue-on-error: true
         env:
@@ -108,6 +114,7 @@ jobs:
         # Runs Monday - Friday morning or when requested
         if: |
           github.event_name == 'schedule' ||
+          github.event_name == 'repository_dispatch' ||
           github.event.inputs.task == 'all_morning' ||
           github.event.inputs.task == 'daily_stocks'
         continue-on-error: true
@@ -120,7 +127,7 @@ jobs:
       - name: ⚡ Send Weekly Sector Rotation
         # Runs every Monday morning or when requested
         if: |
-          (steps.check_day.outputs.is_monday == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'all_morning')) ||
+          (steps.check_day.outputs.is_monday == 'true' && (github.event_name == 'schedule' || github.event_name == 'repository_dispatch' || github.event.inputs.task == 'all_morning')) ||
           github.event.inputs.task == 'weekly_sector'
         continue-on-error: true
         env:
@@ -132,7 +139,7 @@ jobs:
       - name: 🗓️ Send Monthly Sector Outlook
         # Runs on 1st of month morning or when requested
         if: |
-          (steps.check_day.outputs.is_first_day == 'true' && (github.event_name == 'schedule' || github.event.inputs.task == 'all_morning')) ||
+          (steps.check_day.outputs.is_first_day == 'true' && (github.event_name == 'schedule' || github.event_name == 'repository_dispatch' || github.event.inputs.task == 'all_morning')) ||
           github.event.inputs.task == 'monthly_sector'
         continue-on-error: true
         env:

@@ -6,6 +6,8 @@ on:
     # Scans for real breakouts during active afternoon SET trading session
     - cron: '35 7 * * 1-5'
   workflow_dispatch:
+  repository_dispatch:
+    types: [intraday_alert]
 
 jobs:
   intraday_alert:
@@ -33,5 +35,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUNNER_ENV: "github_actions"
+          FORCE_SEND: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
         run: |
           python scripts/send_thai_stock_alerts.py --type intraday_alert

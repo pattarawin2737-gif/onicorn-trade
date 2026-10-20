@@ -9,9 +9,19 @@ Captures screenshot of "📊 กราฟสด TradingView: 🛢️ WTI Crude O
 import os
 import sys
 import json
+import argparse
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone, timedelta
+
+# Add parent directory of scripts to sys.path if needed
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from alert_utils import can_execute_alert, record_alert_sent, is_force_mode
+except ImportError:
+    can_execute_alert = None
+    record_alert_sent = None
+    is_force_mode = lambda *args: False
 
 # Bangkok Timezone (UTC+7)
 BKK_TZ = timezone(timedelta(hours=7))
@@ -209,10 +219,25 @@ def get_telegram_credentials():
     return token, chat_id, settings
 
 def main():
+    parser = argparse.ArgumentParser(description="Send WTI Oil Chart Screenshot to Telegram")
+    parser.add_argument("--force", action="store_true", help="Bypass stale and deduplication checks")
+    args, _ = parser.parse_known_args()
+
+    force_mode = is_force_mode(args)
+
     print("=" * 60)
     print("🚀 Starting Automated Oil Analysis Chart Telegram Alert")
     print(f"⏰ Execution Time (BKK): {datetime.now(BKK_TZ).strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"⚡ Mode: {'FORCE' if force_mode else 'NORMAL'}")
     print("=" * 60)
+
+    # Pre-flight Gatekeeper Check (Stale Guard & Deduplication Engine)
+    if can_execute_alert:
+        can_run, reason = can_execute_alert("oil_chart", force=force_mode)
+        if not can_run:
+            print(reason)
+            return
+        print(reason)
 
     token, chat_id, settings = get_telegram_credentials()
 
@@ -254,6 +279,8 @@ def main():
         res = send_telegram_photo(token, chat_id, output_path, caption)
         if res.get("ok"):
             print("🎉 WTI Crude Oil chart screenshot successfully sent to Telegram!")
+            if record_alert_sent:
+                record_alert_sent("oil_chart")
         else:
             print(f"❌ Telegram API returned error: {res}")
     except Exception as e:

@@ -16,6 +16,15 @@ import urllib.request
 import urllib.parse
 from datetime import datetime, timezone, timedelta
 
+# Add parent directory of scripts to sys.path if needed
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from alert_utils import can_execute_alert, record_alert_sent, is_force_mode
+except ImportError:
+    can_execute_alert = None
+    record_alert_sent = None
+    is_force_mode = lambda *args: False
+
 # Bangkok Timezone (UTC+7)
 BKK_TZ = timezone(timedelta(hours=7))
 
@@ -543,10 +552,12 @@ def main():
         default="auto",
         help="Task type to execute"
     )
-    args = parser.parse_args()
+    parser.add_argument("--force", action="store_true", help="Bypass stale and deduplication checks")
+    args, _ = parser.parse_known_args()
 
     # Normalize thai_stocks to daily_stocks
     task_type = "daily_stocks" if args.type == "thai_stocks" else args.type
+    force_mode = is_force_mode(args)
 
     now_bkk = get_bkk_now()
     day_of_week = now_bkk.isoweekday() # 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
@@ -559,7 +570,16 @@ def main():
     print("🚀 Automated Thai Stock & Sector Telegram Alerts")
     print(f"⏰ Bangkok Time: {now_bkk.strftime('%Y-%m-%d %H:%M:%S')} (Day {day_of_week}, Date {day_of_month})")
     print(f"🎯 Execution Type: {task_type}")
+    print(f"⚡ Mode: {'FORCE' if force_mode else 'NORMAL'}")
     print("=" * 60)
+
+    # Pre-flight Gatekeeper Check for explicit single task
+    if task_type in ["daily_stocks", "weekly_sector", "monthly_sector", "intraday_alert", "market_wrap"] and can_execute_alert:
+        can_run, reason = can_execute_alert(task_type, force=force_mode)
+        if not can_run:
+            print(reason)
+            return
+        print(reason)
 
     token, chat_id, settings = get_telegram_credentials()
 
@@ -570,55 +590,64 @@ def main():
     intraday_alerts_enabled = str(settings.get("telegram_intraday_alerts_enabled", "1")) != "0"
     market_wrap_enabled = str(settings.get("telegram_market_wrap_enabled", "1")) != "0"
 
-    messages_to_send = []
+    messages_to_send = [] # List of tuples: (title, task_key, message_text)
     is_weekday = 1 <= day_of_week <= 5
 
-    # Morning slot: up to 12:00 PM noon to prevent runner delays from dropping morning tasks
-    is_morning_slot = (cur_min <= 720)
+    # Morning slot: up to 10:00 AM
+    is_morning_slot = (cur_min <= 600)
+
+    # Helper gatekeeper for individual tasks
+    def should_run_subtask(sub_task_name):
+        if can_execute_alert:
+            can_run, sub_reason = can_execute_alert(sub_task_name, force=force_mode)
+            if not can_run:
+                print(f"⏩ Skipping {sub_task_name}: {sub_reason}")
+                return False
+        return True
 
     # 1. Monthly Sector Outlook (Every 1st of month at ~08:30 AM)
     should_send_monthly = (task_type in ["monthly_sector", "all"]) or (task_type == "morning_alerts" and day_of_month == 1) or (task_type == "auto" and day_of_month == 1 and sector_monthly_enabled and is_morning_slot)
-    if should_send_monthly:
+    if should_send_monthly and should_run_subtask("monthly_sector"):
         print("🗓️ Preparing Monthly Sector Outlook...")
         m_msg = build_monthly_sector_message()
         if m_msg:
-            messages_to_send.append(("Monthly Sector Outlook", m_msg))
+            messages_to_send.append(("Monthly Sector Outlook", "monthly_sector", m_msg))
 
     # 2. Weekly Sector Rotation (Every Monday at ~08:30 AM)
     should_send_weekly = (task_type in ["weekly_sector", "all"]) or (task_type == "morning_alerts" and day_of_week == 1) or (task_type == "auto" and day_of_week == 1 and sector_weekly_enabled and is_morning_slot)
-    if should_send_weekly:
+    if should_send_weekly and should_run_subtask("weekly_sector"):
         print("⚡ Preparing Weekly Sector Rotation...")
         w_msg = build_weekly_sector_message()
         if w_msg:
-            messages_to_send.append(("Weekly Sector Rotation", w_msg))
+            messages_to_send.append(("Weekly Sector Rotation", "weekly_sector", w_msg))
 
     # 3. Daily Top Stocks (Every Monday to Friday at ~08:30 AM)
     should_send_daily = (task_type in ["daily_stocks", "all", "morning_alerts"]) or (task_type == "auto" and is_weekday and thai_stocks_enabled and is_morning_slot)
-    if should_send_daily:
+    if should_send_daily and should_run_subtask("daily_stocks"):
         print("📈 Preparing Daily Top Thai Stock Picks...")
         d_msg = build_daily_stocks_message()
         if d_msg:
-            messages_to_send.append(("Daily Top Thai Stocks", d_msg))
+            messages_to_send.append(("Daily Top Thai Stocks", "daily_stocks", d_msg))
 
-    # 4. Intraday Breakout & Volume Alert (During trading hours 10:00 - 16:30)
-    is_intraday_slot = (600 <= cur_min < 1000) # 10:00 AM to 16:40 PM
+    # 4. Intraday Breakout & Volume Alert (During trading hours 14:00 - 16:30)
+    is_intraday_slot = (840 <= cur_min <= 990) # 14:00 PM to 16:30 PM
     should_send_intraday = (task_type in ["intraday_alert", "all"]) or (task_type == "auto" and is_weekday and intraday_alerts_enabled and is_intraday_slot)
-    if should_send_intraday:
+    if should_send_intraday and should_run_subtask("intraday_alert"):
         print("⚡ Scanning for Intraday Breakout & Volume Spikes...")
         intra_msg = build_intraday_breakout_message()
         if intra_msg:
-            messages_to_send.append(("Intraday Breakout Alert", intra_msg))
+            messages_to_send.append(("Intraday Breakout Alert", "intraday_alert", intra_msg))
         else:
             print("ℹ️ ไม่พบหุ้นที่เกิดสัญญาณ Breakout ทะลุแนวต้านในรอบนี้ — ข้ามการส่งข้อความเข้า Telegram (No Alert)")
 
     # 5. End-of-Day Market Wrap (Every Monday to Friday at ~17:15 PM)
-    is_evening_slot = (cur_min >= 1000) # after 16:40 PM
+    is_evening_slot = (1000 <= cur_min < 1170) # 16:40 PM to 19:30 PM
     should_send_market_wrap = (task_type in ["market_wrap", "all"]) or (task_type == "auto" and is_weekday and market_wrap_enabled and is_evening_slot)
-    if should_send_market_wrap:
+    if should_send_market_wrap and should_run_subtask("market_wrap"):
         print("📊 Preparing End-of-Day Market Wrap...")
         wrap_msg = build_market_wrap_message()
         if wrap_msg:
-            messages_to_send.append(("End-of-Day Market Wrap", wrap_msg))
+            messages_to_send.append(("End-of-Day Market Wrap", "market_wrap", wrap_msg))
 
     if not messages_to_send:
         print("ℹ️ ไม่มีการส่งข้อความในรอบนี้ (ไม่มีข้อมูลเข้าเงื่อนไขหรือไม่มีหุ้นทะลุกรอบ)")
@@ -627,20 +656,22 @@ def main():
     # Dry-run or send
     if not token or not chat_id:
         print("\n⚠️ TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set. Running in Dry-Run mode:\n")
-        for title, msg in messages_to_send:
-            print(f"--- [PREVIEW: {title}] ---")
+        for title, t_key, msg in messages_to_send:
+            print(f"--- [PREVIEW: {title} ({t_key})] ---")
             print(msg)
             print()
         print("✅ Dry-run preview complete.")
         return
 
     # Send messages
-    for title, msg in messages_to_send:
+    for title, t_key, msg in messages_to_send:
         try:
             print(f"📤 Sending: {title}...")
             res = send_telegram_message(token, chat_id, msg)
             if res.get("ok"):
                 print(f"✅ Successfully sent: {title} to Telegram!")
+                if record_alert_sent:
+                    record_alert_sent(t_key)
             else:
                 print(f"❌ Telegram API Error for {title}: {res}")
         except Exception as e:

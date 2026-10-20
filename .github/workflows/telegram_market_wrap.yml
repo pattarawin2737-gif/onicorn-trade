@@ -6,6 +6,8 @@ on:
     # Summarizes SET market performance after closing auction finishes (~17:00)
     - cron: '20 10 * * 1-5'
   workflow_dispatch:
+  repository_dispatch:
+    types: [market_wrap]
 
 jobs:
   market_wrap:
@@ -32,5 +34,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUNNER_ENV: "github_actions"
+          FORCE_SEND: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
         run: |
           python scripts/send_thai_stock_alerts.py --type market_wrap

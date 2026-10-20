@@ -14,7 +14,17 @@ import json
 import urllib.request
 import urllib.parse
 import ssl
+import argparse
 from datetime import datetime, timezone, timedelta
+
+# Add parent directory of scripts to sys.path if needed
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from alert_utils import can_execute_alert, record_alert_sent, is_force_mode
+except ImportError:
+    can_execute_alert = None
+    record_alert_sent = None
+    is_force_mode = lambda *args: False
 
 # Bangkok Timezone (UTC+7)
 BKK_TZ = timezone(timedelta(hours=7))
@@ -426,10 +436,25 @@ def get_telegram_credentials():
     return token, chat_id, settings
 
 def main():
+    parser = argparse.ArgumentParser(description="Send Gold News Digest to Telegram")
+    parser.add_argument("--force", action="store_true", help="Bypass stale and deduplication checks")
+    args, _ = parser.parse_known_args()
+
+    force_mode = is_force_mode(args)
+
     print("=" * 60)
     print("🚀 Starting Automated Gold News Digest Telegram Alert")
     print(f"⏰ Execution Time (BKK): {datetime.now(BKK_TZ).strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"⚡ Mode: {'FORCE' if force_mode else 'NORMAL'}")
     print("=" * 60)
+
+    # Pre-flight Gatekeeper Check (Stale Guard & Deduplication Engine)
+    if can_execute_alert:
+        can_run, reason = can_execute_alert("gold_news", force=force_mode)
+        if not can_run:
+            print(reason)
+            return
+        print(reason)
 
     token, chat_id, settings = get_telegram_credentials()
 
@@ -463,6 +488,7 @@ def main():
         return
 
     # Send messages to Telegram
+    all_success = True
     for i, m in enumerate(messages, 1):
         try:
             res = send_telegram_message(token, chat_id, m)
@@ -470,8 +496,13 @@ def main():
                 print(f"✅ Successfully sent message part {i}/{len(messages)} to Telegram!")
             else:
                 print(f"❌ Telegram API returned error: {res}")
+                all_success = False
         except Exception as e:
             print(f"⚠️ Failed to send part {i}: {e}")
+            all_success = False
+
+    if all_success and record_alert_sent:
+        record_alert_sent("gold_news")
 
     print("🎉 Gold News alert processing complete!")
 
