@@ -35,6 +35,7 @@ def build_vps_package():
         (os.path.join(script_dir, "install_windows_scheduler.bat"), "onicorn-vps-alerts/install_windows_scheduler.bat"),
         (os.path.join(script_dir, "test_alert.bat"), "onicorn-vps-alerts/test_alert.bat"),
         (os.path.join(script_dir, "test_vps_alert.py"), "onicorn-vps-alerts/test_vps_alert.py"),
+        (os.path.join(script_dir, "self_update.py"), "onicorn-vps-alerts/self_update.py"),
         (os.path.join(script_dir, "start_vps_daemon.bat"), "onicorn-vps-alerts/start_vps_daemon.bat"),
         # Guides
         (os.path.join(script_dir, "VPS_GUIDE.md"), "onicorn-vps-alerts/README.md"),

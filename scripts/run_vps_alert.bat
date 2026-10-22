@@ -53,6 +53,11 @@ echo Task: %TASK% %EXTRA%
 echo Python: %PYTHON_BIN%
 echo ============================================================
 
+REM Check for cloud script updates (Auto-updater)
+if exist "%SCRIPT_DIR%self_update.py" (
+    "%PYTHON_BIN%" "%SCRIPT_DIR%self_update.py"
+)
+
 if /i "%TASK%"=="morning" goto do_morning
 if /i "%TASK%"=="gold_news" goto do_gold_news
 if /i "%TASK%"=="oil_chart" goto do_oil_chart

@@ -20,11 +20,17 @@ from datetime import datetime, timezone, timedelta
 # Add parent directory of scripts to sys.path if needed
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from alert_utils import can_execute_alert, record_alert_sent, is_force_mode
+    from alert_utils import (
+        can_execute_alert, record_alert_sent, is_force_mode,
+        is_alert_enabled, schedule_footer, period_badge
+    )
 except ImportError:
     can_execute_alert = None
     record_alert_sent = None
     is_force_mode = lambda *args: False
+    is_alert_enabled = lambda *args: True
+    schedule_footer = lambda *args: ""
+    period_badge = lambda *args: ""
 
 # Bangkok Timezone (UTC+7)
 BKK_TZ = timezone(timedelta(hours=7))
@@ -284,9 +290,11 @@ def build_telegram_messages(events):
     high_count = sum(1 for e in relevant if e['importance'] == 3)
     med_count = sum(1 for e in relevant if e['importance'] == 2)
 
+    badge = period_badge("gold_news")
+
     # Header section
     header = (
-        f"🌟 <b>สรุปผลวิเคราะห์อิมแพ็คข่าวสารเศรษฐกิจ (AI News Digest)</b>\n"
+        f"🌟 <b>สรุปผลวิเคราะห์อิมแพ็คข่าวสารเศรษฐกิจ (AI News Digest)</b> {badge}\n"
         f"🏆 <b>ตลาดทองคำโลก (XAU/USD) ประจำ{date_title}</b>\n"
         f"──────────────────────────\n"
     )
@@ -333,8 +341,10 @@ def build_telegram_messages(events):
         )
         event_blocks.append(block)
 
+    sched_footer = schedule_footer("gold_news")
     footer = (
-        f"\n🤖 <i>ระบบวิเคราะห์และแจ้งเตือนอัตโนมัติ Onicorn Trade Dashboard</i>\n"
+        f"\n━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{sched_footer}\n"
         f"🌐 <a href='https://onicorn-trade.pages.dev'>ดูข้อมูลกราฟสดและบทวิเคราะห์เต็ม</a>"
     )
 
@@ -448,6 +458,12 @@ def main():
     print(f"⚡ Mode: {'FORCE' if force_mode else 'NORMAL'}")
     print("=" * 60)
 
+    token, chat_id, settings = get_telegram_credentials()
+
+    if not is_alert_enabled("gold_news", settings):
+        print("ℹ️ Gold News Telegram alert is disabled in settings. Skipping.")
+        return
+
     # Pre-flight Gatekeeper Check (Stale Guard & Deduplication Engine)
     if can_execute_alert:
         can_run, reason = can_execute_alert("gold_news", force=force_mode)
@@ -455,14 +471,6 @@ def main():
             print(reason)
             return
         print(reason)
-
-    token, chat_id, settings = get_telegram_credentials()
-
-    # Check enable flag from settings
-    gold_news_enabled = str(settings.get("telegram_gold_news_enabled", "1")) != "0"
-    if not gold_news_enabled:
-        print("ℹ️ Gold News Telegram alert is disabled in settings. Skipping.")
-        return
 
     html_content = fetch_economic_calendar()
     if not html_content:

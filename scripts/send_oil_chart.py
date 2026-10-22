@@ -17,11 +17,17 @@ from datetime import datetime, timezone, timedelta
 # Add parent directory of scripts to sys.path if needed
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from alert_utils import can_execute_alert, record_alert_sent, is_force_mode
+    from alert_utils import (
+        can_execute_alert, record_alert_sent, is_force_mode,
+        is_alert_enabled, schedule_footer, period_badge
+    )
 except ImportError:
     can_execute_alert = None
     record_alert_sent = None
     is_force_mode = lambda *args: False
+    is_alert_enabled = lambda *args: True
+    schedule_footer = lambda *args: ""
+    period_badge = lambda *args: ""
 
 # Bangkok Timezone (UTC+7)
 BKK_TZ = timezone(timedelta(hours=7))
@@ -231,6 +237,12 @@ def main():
     print(f"⚡ Mode: {'FORCE' if force_mode else 'NORMAL'}")
     print("=" * 60)
 
+    token, chat_id, settings = get_telegram_credentials()
+
+    if not is_alert_enabled("oil_chart", settings):
+        print("ℹ️ Oil Chart Telegram alert is disabled in settings. Skipping.")
+        return
+
     # Pre-flight Gatekeeper Check (Stale Guard & Deduplication Engine)
     if can_execute_alert:
         can_run, reason = can_execute_alert("oil_chart", force=force_mode)
@@ -239,24 +251,18 @@ def main():
             return
         print(reason)
 
-    token, chat_id, settings = get_telegram_credentials()
-
-    # Check enable flag from settings
-    oil_chart_enabled = str(settings.get("telegram_oil_chart_enabled", "1")) != "0"
-    if not oil_chart_enabled:
-        print("ℹ️ Oil Chart Telegram alert is disabled in settings. Skipping.")
-        return
-
     date_title = get_thai_weekday_and_date()
+    badge = period_badge("oil_chart")
+    footer = schedule_footer("oil_chart")
     caption = (
-        f"🛢️ <b>วิเคราะห์ราคาน้ำมันดิบโลก: WTI Crude Oil</b>\n"
-        f"📅 <b>ประจำ{date_title}</b> (รายงานทุกวันอังคาร 08:00 น.)\n"
+        f"🛢️ <b>วิเคราะห์ราคาน้ำมันดิบโลก: WTI Crude Oil</b> {badge}\n"
+        f"📅 <b>ประจำ{date_title}</b>\n"
         f"──────────────────────────\n"
         f"📊 <b>ภาพรวมกราฟสด TradingView: 🛢️ WTI Crude Oil</b>\n"
         f"• แสดงโครงสร้างแท่งเทียนราคาน้ำมันดิบโลกแบบ Daily (D1)\n"
         f"• พร้อมตารางเปรียบเทียบราคาน้ำมันขายปลีกในประเทศไทย (ปั๊ม ปตท. / บางจาก)\n"
-        f"──────────────────────────\n"
-        f"🤖 <i>ระบบวิเคราะห์และส่งรายงานอัตโนมัติ Onicorn Trade Dashboard</i>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{footer}\n"
         f"🌐 <a href='https://onicorn-trade.pages.dev/?tab=oil_analysis'>คลิกเพื่อดูกราฟสดและบทวิเคราะห์เต็ม</a>"
     )
 

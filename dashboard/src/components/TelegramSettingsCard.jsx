@@ -22,6 +22,7 @@ export default function TelegramSettingsCard() {
   const [isSendingIntraday, setIsSendingIntraday] = useState(false);
   const [isSendingMarketWrap, setIsSendingMarketWrap] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null); // { type: 'success' | 'error' | 'info', text: '' }
+  const [alertHistory, setAlertHistory] = useState({});
 
   // Load latest settings from Cloudflare D1 / API on mount
   useEffect(() => {
@@ -39,9 +40,13 @@ export default function TelegramSettingsCard() {
           }
           if (data.settings.telegram_gold_enabled !== undefined) {
             setGoldEnabled(data.settings.telegram_gold_enabled !== "0");
+          } else if (data.settings.telegram_gold_news_enabled !== undefined) {
+            setGoldEnabled(data.settings.telegram_gold_news_enabled !== "0");
           }
           if (data.settings.telegram_oil_enabled !== undefined) {
             setOilEnabled(data.settings.telegram_oil_enabled !== "0");
+          } else if (data.settings.telegram_oil_chart_enabled !== undefined) {
+            setOilEnabled(data.settings.telegram_oil_chart_enabled !== "0");
           }
           if (data.settings.telegram_thai_stocks_enabled !== undefined) {
             setThaiStocksEnabled(data.settings.telegram_thai_stocks_enabled !== "0");
@@ -63,6 +68,15 @@ export default function TelegramSettingsCard() {
       .catch(() => {
         // Fallback silently to localStorage
       });
+
+    fetch("/api/alert-status?summary=1")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.latest_by_task) {
+          setAlertHistory(data.latest_by_task);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleSave = async () => {
@@ -76,7 +90,9 @@ export default function TelegramSettingsCard() {
     localStorage.setItem("telegram_bot_token", cleanToken);
     localStorage.setItem("telegram_chat_id", cleanChatId);
     localStorage.setItem("telegram_gold_enabled", goldEnabled ? "1" : "0");
+    localStorage.setItem("telegram_gold_news_enabled", goldEnabled ? "1" : "0");
     localStorage.setItem("telegram_oil_enabled", oilEnabled ? "1" : "0");
+    localStorage.setItem("telegram_oil_chart_enabled", oilEnabled ? "1" : "0");
     localStorage.setItem("telegram_thai_stocks_enabled", thaiStocksEnabled ? "1" : "0");
     localStorage.setItem("telegram_sector_weekly_enabled", sectorWeeklyEnabled ? "1" : "0");
     localStorage.setItem("telegram_sector_monthly_enabled", sectorMonthlyEnabled ? "1" : "0");
@@ -92,7 +108,9 @@ export default function TelegramSettingsCard() {
             telegram_bot_token: cleanToken,
             telegram_chat_id: cleanChatId,
             telegram_gold_enabled: goldEnabled ? "1" : "0",
+            telegram_gold_news_enabled: goldEnabled ? "1" : "0",
             telegram_oil_enabled: oilEnabled ? "1" : "0",
+            telegram_oil_chart_enabled: oilEnabled ? "1" : "0",
             telegram_thai_stocks_enabled: thaiStocksEnabled ? "1" : "0",
             telegram_sector_weekly_enabled: sectorWeeklyEnabled ? "1" : "0",
             telegram_sector_monthly_enabled: sectorMonthlyEnabled ? "1" : "0",
@@ -905,6 +923,35 @@ export default function TelegramSettingsCard() {
     }
   };
 
+  const renderLastSent = (taskId) => {
+    const item = alertHistory?.[taskId];
+    if (!item) return null;
+    const timeStr = item.created_at
+      ? new Date(item.created_at).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })
+      : "";
+    const dateStr = item.date || "";
+    const runnerBadge = item.runner === "vps" ? "🖥️ VPS" : item.runner === "github_actions" ? "⚙️ GitHub" : "🌐 Web";
+    const isSuccess = item.status === "sent";
+
+    return (
+      <div style={{
+        marginTop: "4px",
+        fontSize: "11px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        padding: "2px 8px",
+        borderRadius: "6px",
+        background: isSuccess ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)",
+        border: `1px solid ${isSuccess ? "rgba(34, 197, 94, 0.25)" : "rgba(239, 68, 68, 0.25)"}`,
+        color: isSuccess ? "#86efac" : "#fca5a5"
+      }}>
+        <span>{isSuccess ? "✓ ส่งล่าสุด:" : "⚠️ สถานะ:"} {dateStr} {timeStr ? `(${timeStr} น.)` : ""}</span>
+        <span style={{ opacity: 0.75 }}>• {runnerBadge}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="glass-card" style={{
       padding: "24px",
@@ -1053,123 +1100,243 @@ export default function TelegramSettingsCard() {
         </div>
       </div>
 
-      {/* Schedule Preferences Box */}
+      {/* Schedule Preferences Box - Grouped by Session */}
       <div style={{
         background: "rgba(15, 23, 42, 0.5)",
         border: "1px solid rgba(255, 255, 255, 0.08)",
-        borderRadius: "10px",
-        padding: "14px 18px",
+        borderRadius: "12px",
+        padding: "18px 20px",
         marginBottom: "20px"
       }}>
-        <div style={{ fontSize: "13px", fontWeight: "700", color: "#f8fafc", marginBottom: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
-          ⏰ ตารางกำหนดการส่งการแจ้งเตือนอัตโนมัติ (Automated Schedules):
+        <div style={{ marginBottom: "16px" }}>
+          <div style={{ fontSize: "14px", fontWeight: "700", color: "#f8fafc", display: "flex", alignItems: "center", gap: "8px" }}>
+            ⏰ กำหนดการส่งการแจ้งเตือนอัตโนมัติ (Automated Delivery Schedule)
+          </div>
+          <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
+            ระบบมี Gatekeeper ตรวจสอบวันหยุดตลาดหลักทรัพย์ (SET Holidays) และป้องกันการส่งซ้ำในรอบสัปดาห์/เดือนอย่างเคร่งครัด
+          </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={goldEnabled}
-              onChange={e => setGoldEnabled(e.target.checked)}
-              style={{ width: "17px", height: "17px", accentColor: "#3b82f6", cursor: "pointer" }}
-            />
-            <div>
-              🌟 <b>สรุปผลวิเคราะห์อิมแพ็คข่าวเศรษฐกิจทองคำ (AI News Digest - XAU/USD)</b>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                ส่งทุกวันจันทร์ - ศุกร์ เวลา <b>08:00 น.</b> (เรียงลำดับเวลา เช้า-ดึก พร้อมวิเคราะห์ทิศทางทองคำทุกข่าว)
-              </div>
-            </div>
-          </label>
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={oilEnabled}
-              onChange={e => setOilEnabled(e.target.checked)}
-              style={{ width: "17px", height: "17px", accentColor: "#3b82f6", cursor: "pointer" }}
-            />
-            <div>
-              🛢️ <b>ภาพแคปจอกราฟสดแท่งเทียนน้ำมันดิบ WTI Crude Oil</b>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                ส่งทุกวันอังคาร เวลา <b>08:00 น.</b> (ภาพกราฟสด Daily จาก Investing.com พร้อมตารางราคาน้ำมันขายปลีกในไทย)
-              </div>
+          {/* Session 1: Morning */}
+          <div style={{
+            background: "rgba(30, 41, 59, 0.4)",
+            border: "1px solid rgba(59, 130, 246, 0.2)",
+            borderRadius: "10px",
+            padding: "14px 16px"
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "12px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+              flexWrap: "wrap",
+              gap: "6px"
+            }}>
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "#93c5fd", display: "flex", alignItems: "center", gap: "6px" }}>
+                🌅 รอบเช้า (Morning Session • 07:45 - 08:30 น.)
+              </span>
+              <span style={{ fontSize: "11px", color: "#cbd5e1", background: "rgba(59, 130, 246, 0.15)", padding: "2px 8px", borderRadius: "12px" }}>
+                ส่งแยกข้อความชัดเจน พร้อมระบบ Rollover วันหยุด
+              </span>
             </div>
-          </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={thaiStocksEnabled}
-              onChange={e => setThaiStocksEnabled(e.target.checked)}
-              style={{ width: "17px", height: "17px", accentColor: "#10b981", cursor: "pointer" }}
-            />
-            <div>
-              📈 <b>รายงานหุ้นไทยเด่นที่สุดในตลาดวันนี้ (Daily Top Picks)</b>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                ส่งทุกวันจันทร์ - ศุกร์ เวลา <b>08:30 น.</b> (3 หุ้นเด่นระบบ AI Screener + ราคาเป้าหมาย TP/SL อิง SET Tick Size)
-              </div>
-            </div>
-          </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {/* Gold News */}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={goldEnabled}
+                  onChange={e => setGoldEnabled(e.target.checked)}
+                  style={{ width: "17px", height: "17px", accentColor: "#eab308", cursor: "pointer", marginTop: "3px" }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <b>🌟 สรุปผลวิเคราะห์อิมแพ็คข่าวเศรษฐกิจทองคำ (AI News Digest - XAU/USD)</b>
+                    <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.2)", color: "#93c5fd" }}>🔵 รายวัน</span>
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    ส่งทุกวันจันทร์ - ศุกร์ เวลา <b>07:45 น.</b> (เรียงไทม์ไลน์ข่าวเช้า-ดึก + วิเคราะห์ทิศทางกระทบทองคำ)
+                  </div>
+                  {renderLastSent("gold_news")}
+                </div>
+              </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={sectorWeeklyEnabled}
-              onChange={e => setSectorWeeklyEnabled(e.target.checked)}
-              style={{ width: "17px", height: "17px", accentColor: "#8b5cf6", cursor: "pointer" }}
-            />
-            <div>
-              ⚡ <b>วิเคราะห์กลุ่มอุตสาหกรรมที่น่าสนใจประจำสัปดาห์ (Weekly Sector Rotation)</b>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                ส่งทุกวันจันทร์ เวลา <b>08:30 น.</b> (กลุ่มนำ Overweight, หุ้นเด่นประจำกลุ่ม และกลยุทธ์รอบสัปดาห์)
-              </div>
-            </div>
-          </label>
+              {/* Oil Chart */}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={oilEnabled}
+                  onChange={e => setOilEnabled(e.target.checked)}
+                  style={{ width: "17px", height: "17px", accentColor: "#3b82f6", cursor: "pointer", marginTop: "3px" }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <b>🛢️ ภาพแคปจอกราฟสดแท่งเทียนน้ำมันดิบ WTI Crude Oil</b>
+                    <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "4px", background: "rgba(139, 92, 246, 0.2)", color: "#c084fc" }}>🟣 รายสัปดาห์ (วันอังคาร)</span>
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    ส่งทุกวันอังคาร เวลา <b>08:00 น.</b> (ภาพ Daily Candle สดจาก Investing.com + ตารางราคาน้ำมันขายปลีกในไทย)
+                  </div>
+                  {renderLastSent("oil_chart")}
+                </div>
+              </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={sectorMonthlyEnabled}
-              onChange={e => setSectorMonthlyEnabled(e.target.checked)}
-              style={{ width: "17px", height: "17px", accentColor: "#f59e0b", cursor: "pointer" }}
-            />
-            <div>
-              🗓️ <b>วิเคราะห์กลุ่มอุตสาหกรรมยุทธศาสตร์ประจำเดือน (Monthly Sector Outlook)</b>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                ส่งทุกวันที่ 1 ของเดือน เวลา <b>08:30 น.</b> (ธีมมหภาค, สัดส่วนจัดพอร์ต Monthly Allocation และหุ้นแกนหลัก)
-              </div>
-            </div>
-          </label>
+              {/* Daily Thai Stocks */}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={thaiStocksEnabled}
+                  onChange={e => setThaiStocksEnabled(e.target.checked)}
+                  style={{ width: "17px", height: "17px", accentColor: "#10b981", cursor: "pointer", marginTop: "3px" }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <b>📈 รายงานหุ้นไทยเด่นที่สุดในตลาดวันนี้ (Daily Top Picks)</b>
+                    <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "4px", background: "rgba(16, 185, 129, 0.2)", color: "#6ee7b7" }}>🔵 วันทำการ SET</span>
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    ส่งทุกวันทำการตลาดหลักทรัพย์ เวลา <b>08:30 น.</b> (3 หุ้นเด่นระบบ AI Screener + เป้าทำกำไร TP/SL อิง Tick Size)
+                  </div>
+                  {renderLastSent("daily_stocks")}
+                </div>
+              </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={intradayAlertsEnabled}
-              onChange={e => setIntradayAlertsEnabled(e.target.checked)}
-              style={{ width: "17px", height: "17px", accentColor: "#ef4444", cursor: "pointer" }}
-            />
-            <div>
-              🚀 <b>แจ้งเตือนหุ้นไทยทะลุกรอบ & วอลุ่มผิดปกติระหว่างวัน (Intraday Breakout & Volume Alert)</b>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                สแกนและส่งแจ้งเตือนด่วนทุกวันจันทร์ - ศุกร์ เวลา <b>10:30 น. และ 14:30 น.</b> (ตรวจจับหุ้นเบรกแนวต้านสำคัญ วอลุ่มพุ่งผิดปกติ มากกว่า 150% พร้อมจุด Entry/TP/SL)
-              </div>
-            </div>
-          </label>
+              {/* Weekly Sector */}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={sectorWeeklyEnabled}
+                  onChange={e => setSectorWeeklyEnabled(e.target.checked)}
+                  style={{ width: "17px", height: "17px", accentColor: "#8b5cf6", cursor: "pointer", marginTop: "3px" }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <b>⚡ วิเคราะห์กลุ่มอุตสาหกรรมที่น่าสนใจประจำสัปดาห์ (Weekly Sector Rotation)</b>
+                    <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "4px", background: "rgba(139, 92, 246, 0.2)", color: "#c084fc" }}>🟣 สัปดาห์ละ 1 ครั้ง</span>
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    ส่งเฉพาะวันทำการแรกของสัปดาห์ (วันจันทร์ หรือวันทำการแรกหากติดวันหยุด) เวลา <b>08:30 น.</b> (กลุ่มนำ Overweight + กลยุทธ์)
+                  </div>
+                  {renderLastSent("weekly_sector")}
+                </div>
+              </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={marketWrapEnabled}
-              onChange={e => setMarketWrapEnabled(e.target.checked)}
-              style={{ width: "17px", height: "17px", accentColor: "#06b6d4", cursor: "pointer" }}
-            />
-            <div>
-              📊 <b>รายงานสรุปภาพรวมตลาดหุ้นไทยสิ้นวัน (End-of-Day Market Wrap)</b>
-              <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
-                ส่งทุกวันจันทร์ - ศุกร์ เวลา <b>17:15 น.</b> (สรุปดัชนี SET, ยอดซื้อขายสุทธิ 4 กลุ่มนักลงทุน, เช็คผลงาน 3 หุ้นเด่นประจำวัน, และพรีวิวทองคำภาคค่ำ)
-              </div>
+              {/* Monthly Sector */}
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={sectorMonthlyEnabled}
+                  onChange={e => setSectorMonthlyEnabled(e.target.checked)}
+                  style={{ width: "17px", height: "17px", accentColor: "#f59e0b", cursor: "pointer", marginTop: "3px" }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <b>🗓️ วิเคราะห์กลุ่มอุตสาหกรรมยุทธศาสตร์ประจำเดือน (Monthly Sector Outlook)</b>
+                    <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "4px", background: "rgba(245, 158, 11, 0.2)", color: "#fcd34d" }}>🟠 เดือนละ 1 ครั้ง</span>
+                  </div>
+                  <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                    ส่งเฉพาะวันทำการแรกของแต่ละเดือน เวลา <b>08:30 น.</b> (ธีมมหภาค + สัดส่วนจัดพอร์ต Monthly Allocation)
+                  </div>
+                  {renderLastSent("monthly_sector")}
+                </div>
+              </label>
             </div>
-          </label>
+          </div>
+
+          {/* Session 2: Intraday */}
+          <div style={{
+            background: "rgba(30, 41, 59, 0.4)",
+            border: "1px solid rgba(239, 68, 68, 0.2)",
+            borderRadius: "10px",
+            padding: "14px 16px"
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "12px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+              flexWrap: "wrap",
+              gap: "6px"
+            }}>
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "#fca5a5", display: "flex", alignItems: "center", gap: "6px" }}>
+                ⚡ รอบระหว่างวัน (Intraday Session • 14:35 น.)
+              </span>
+              <span style={{ fontSize: "11px", color: "#cbd5e1", background: "rgba(239, 68, 68, 0.15)", padding: "2px 8px", borderRadius: "12px" }}>
+                จับจังหวะเปิดตลาดรอบบ่าย
+              </span>
+            </div>
+
+            <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={intradayAlertsEnabled}
+                onChange={e => setIntradayAlertsEnabled(e.target.checked)}
+                style={{ width: "17px", height: "17px", accentColor: "#ef4444", cursor: "pointer", marginTop: "3px" }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <b>🚀 แจ้งเตือนหุ้นไทยทะลุกรอบ & วอลุ่มผิดปกติระหว่างวัน (Intraday Breakout & Volume Alert)</b>
+                  <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "4px", background: "rgba(239, 68, 68, 0.2)", color: "#fca5a5" }}>🔵 วันทำการ SET</span>
+                </div>
+                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                  สแกนและส่งแจ้งเตือนด่วนทุกวันทำการ เวลา <b>14:35 น.</b> (ตรวจจับหุ้นเบรกแนวต้านสำคัญ วอลุ่มพุ่งผิดปกติ &gt;150% พร้อมจุด Entry/TP/SL)
+                </div>
+                {renderLastSent("intraday_breakout")}
+              </div>
+            </label>
+          </div>
+
+          {/* Session 3: Market Wrap */}
+          <div style={{
+            background: "rgba(30, 41, 59, 0.4)",
+            border: "1px solid rgba(6, 182, 212, 0.2)",
+            borderRadius: "10px",
+            padding: "14px 16px"
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: "12px",
+              paddingBottom: "8px",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+              flexWrap: "wrap",
+              gap: "6px"
+            }}>
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "#67e8f9", display: "flex", alignItems: "center", gap: "6px" }}>
+                🌆 รอบเย็น / สรุปสิ้นวัน (Market Wrap Session • 17:20 น.)
+              </span>
+              <span style={{ fontSize: "11px", color: "#cbd5e1", background: "rgba(6, 182, 212, 0.15)", padding: "2px 8px", borderRadius: "12px" }}>
+                หลังตลาด SET ปิดทำการ
+              </span>
+            </div>
+
+            <label style={{ display: "flex", alignItems: "flex-start", gap: "12px", fontSize: "12.5px", color: "#e2e8f0", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={marketWrapEnabled}
+                onChange={e => setMarketWrapEnabled(e.target.checked)}
+                style={{ width: "17px", height: "17px", accentColor: "#06b6d4", cursor: "pointer", marginTop: "3px" }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <b>📊 รายงานสรุปภาพรวมตลาดหุ้นไทยสิ้นวัน (End-of-Day Market Wrap)</b>
+                  <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "4px", background: "rgba(6, 182, 212, 0.2)", color: "#67e8f9" }}>🔵 วันทำการ SET</span>
+                </div>
+                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "2px" }}>
+                  ส่งทุกวันทำการตลาดหลักทรัพย์ เวลา <b>17:20 น.</b> (สรุปดัชนี SET, ยอดซื้อขายสุทธิ 4 กลุ่มนักลงทุน, เช็คผลงาน 3 หุ้นเด่น, และพรีวิวทองคำภาคค่ำ)
+                </div>
+                {renderLastSent("market_wrap")}
+              </div>
+            </label>
+          </div>
+
         </div>
       </div>
 

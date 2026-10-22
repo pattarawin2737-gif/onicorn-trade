@@ -19,11 +19,17 @@ from datetime import datetime, timezone, timedelta
 # Add parent directory of scripts to sys.path if needed
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from alert_utils import can_execute_alert, record_alert_sent, is_force_mode
+    from alert_utils import (
+        can_execute_alert, record_alert_sent, is_force_mode,
+        is_alert_enabled, schedule_footer, period_badge
+    )
 except ImportError:
     can_execute_alert = None
     record_alert_sent = None
     is_force_mode = lambda *args: False
+    is_alert_enabled = lambda *args: True
+    schedule_footer = lambda *args: ""
+    period_badge = lambda *args: ""
 
 # Bangkok Timezone (UTC+7)
 BKK_TZ = timezone(timedelta(hours=7))
@@ -173,8 +179,10 @@ def build_daily_stocks_message():
     evaluated.sort(key=lambda x: (x["prob"], x["changePct"]), reverse=True)
     top3 = evaluated[:3]
 
+    badge = period_badge("daily_stocks")
+    footer = schedule_footer("daily_stocks")
     msg = (
-        f"📈 <b>รายงานหุ้นไทยเด่นที่สุดในตลาดวันนี้ (Daily Top Picks)</b>\n"
+        f"📈 <b>รายงานหุ้นไทยเด่นที่สุดในตลาดวันนี้ (Daily Top Picks)</b> {badge}\n"
         f"📅 <b>{date_str} (เวลา {time_str} น.)</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"💡 <i>คัดสรรโดยระบบ AI Quantitative Screener & Tick Size Engine</i>\n\n"
@@ -197,7 +205,9 @@ def build_daily_stocks_message():
         )
 
     msg += (
-        f"⚠️ <b>คำแนะนำ:</b> จุด Entry/TP/SL คำนวณตามช่วงราคาตลาดหลักทรัพย์ฯ (SET Tick Size) โปรดวางแผน Money Management เสมอ\n\n"
+        f"⚠️ <b>คำแนะนำ:</b> จุด Entry/TP/SL คำนวณตามช่วงราคาตลาดหลักทรัพย์ฯ (SET Tick Size) โปรดวางแผน Money Management เสมอ\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{footer}\n"
         f"🔗 <b>เปิดดูกราฟสดและอินดิเคเตอร์:</b>\n"
         f"https://onicorn-trade.pages.dev"
     )
@@ -223,8 +233,10 @@ def build_weekly_sector_message():
 
     top_sectors = [s for s in sectors if s.get("rank", 99) <= 3]
 
+    badge = period_badge("weekly_sector")
+    footer = schedule_footer("weekly_sector")
     msg = (
-        f"⚡ <b>ระบบวิเคราะห์กลุ่มอุตสาหกรรมที่น่าสนใจ (ประจำสัปดาห์นี้)</b>\n"
+        f"⚡ <b>ระบบวิเคราะห์กลุ่มอุตสาหกรรมที่น่าสนใจ (Weekly Sector Rotation)</b> {badge}\n"
         f"📅 <b>{date_str} (เวลา {time_str} น.)</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🎯 <b>ธีมการลงทุนประจำสัปดาห์:</b>\n{market_theme}\n\n"
@@ -245,7 +257,8 @@ def build_weekly_sector_message():
         )
 
     msg += (
-        f"🔔 <i>แจ้งเตือนอัตโนมัติทุกวันจันทร์ เวลา 08:30 น.</i>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{footer}\n"
         f"🔗 <b>ดูผลวิเคราะห์ทั้ง 8 กลุ่มอุตสาหกรรมแบบละเอียด:</b>\n"
         f"https://onicorn-trade.pages.dev"
     )
@@ -271,8 +284,10 @@ def build_monthly_sector_message():
 
     top_sectors = [s for s in sectors if s.get("rank", 99) <= 3]
 
+    badge = period_badge("monthly_sector")
+    footer = schedule_footer("monthly_sector")
     msg = (
-        f"🗓️ <b>ระบบวิเคราะห์กลุ่มอุตสาหกรรมยุทธศาสตร์ (ประจำเดือนนี้)</b>\n"
+        f"🗓️ <b>ระบบวิเคราะห์กลุ่มอุตสาหกรรมยุทธศาสตร์ (Monthly Sector Outlook)</b> {badge}\n"
         f"📅 <b>{date_str} (เวลา {time_str} น.)</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🌐 <b>ธีมยุทธศาสตร์ระยะกลางประจำเดือน:</b>\n{market_theme}\n\n"
@@ -293,7 +308,8 @@ def build_monthly_sector_message():
         )
 
     msg += (
-        f"🔔 <i>แจ้งเตือนอัตโนมัติทุกวันที่ 1 ของเดือน เวลา 08:30 น.</i>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{footer}\n"
         f"🔗 <b>เข้าสู่ระบบ Onicorn Trade Dashboard:</b>\n"
         f"https://onicorn-trade.pages.dev"
     )
@@ -418,8 +434,10 @@ def build_intraday_breakout_message():
     top_breakouts = breakouts[:5]
     count_str = f"พบทั้งหมด {len(top_breakouts)} หลักทรัพย์"
 
+    badge = period_badge("intraday_alert")
+    footer = schedule_footer("intraday_alert")
     msg = (
-        f"⚡ <b>[แจ้งเตือนด่วน] หุ้นไทยทะลุกรอบ & วอลุ่มพุ่งผิดปกติ (Intraday Breakout)</b>\n"
+        f"⚡ <b>[แจ้งเตือนด่วน] หุ้นไทยทะลุกรอบ & วอลุ่มพุ่งผิดปกติ (Intraday Breakout)</b> {badge}\n"
         f"📅 <b>{date_str} (ตรวจพบเวลา {time_str} น. | {count_str})</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🚨 <i>ตรวจพบสัญญาณ Breakout ทะลุแนวต้านสำคัญ + วอลุ่มสะสมผิดปกติจริงระหว่างวัน</i>\n\n"
@@ -444,7 +462,9 @@ def build_intraday_breakout_message():
         )
 
     msg += (
-        f"⚠️ <b>คำแนะนำบริหารความเสี่ยง:</b> หุ้นจังหวะ Breakout อาจผันผวนสูง แนะนำแบ่งไม้เข้า (Scale-in) และวาง Stop Loss เคร่งครัดเสมอ\n\n"
+        f"⚠️ <b>คำแนะนำบริหารความเสี่ยง:</b> หุ้นจังหวะ Breakout อาจผันผวนสูง แนะนำแบ่งไม้เข้า (Scale-in) และวาง Stop Loss เคร่งครัดเสมอ\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{footer}\n"
         f"🔗 <b>เปิดดูกราฟสดและวอลุ่ม Real-time:</b>\n"
         f"https://onicorn-trade.pages.dev"
     )
@@ -535,7 +555,7 @@ def build_market_wrap_message():
         f"• 💵 <b>อัตราแลกเปลี่ยน USD/THB:</b> <b>฿{usd_thb:.2f} / $</b>\n"
         f"• 💡 <b>ประเด็นสำคัญคืนนี้:</b> ติดตามตัวเลขดัชนีราคาผู้ผลิต (PPI) สหรัฐฯ และถ้อยแถลงเจ้าหน้าที่เฟดก่อนตลาด New York เปิดทำการ\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🔔 <i>แจ้งเตือนอัตโนมัติทุกวันจันทร์ - ศุกร์ เวลา 17:15 น.</i>\n"
+        f"{footer}\n"
         f"🔗 <b>เข้าสู่ระบบ Onicorn Trade Dashboard:</b>\n"
         f"https://onicorn-trade.pages.dev"
     )
@@ -558,99 +578,80 @@ def main():
     # Normalize thai_stocks to daily_stocks
     task_type = "daily_stocks" if args.type == "thai_stocks" else args.type
     force_mode = is_force_mode(args)
-
     now_bkk = get_bkk_now()
-    day_of_week = now_bkk.isoweekday() # 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
-    day_of_month = now_bkk.day
-    hour = now_bkk.hour
-    minute = now_bkk.minute
-    cur_min = hour * 60 + minute
 
     print("=" * 60)
     print("🚀 Automated Thai Stock & Sector Telegram Alerts")
-    print(f"⏰ Bangkok Time: {now_bkk.strftime('%Y-%m-%d %H:%M:%S')} (Day {day_of_week}, Date {day_of_month})")
+    print(f"⏰ Bangkok Time: {now_bkk.strftime('%Y-%m-%d %H:%M:%S')} (Day {now_bkk.isoweekday()}, Date {now_bkk.day})")
     print(f"🎯 Execution Type: {task_type}")
     print(f"⚡ Mode: {'FORCE' if force_mode else 'NORMAL'}")
     print("=" * 60)
 
-    # Pre-flight Gatekeeper Check for explicit single task
-    if task_type in ["daily_stocks", "weekly_sector", "monthly_sector", "intraday_alert", "market_wrap"] and can_execute_alert:
-        can_run, reason = can_execute_alert(task_type, force=force_mode)
-        if not can_run:
-            print(reason)
-            return
-        print(reason)
-
     token, chat_id, settings = get_telegram_credentials()
 
-    # Check enable flags from settings
-    thai_stocks_enabled = str(settings.get("telegram_thai_stocks_enabled", "1")) != "0"
-    sector_weekly_enabled = str(settings.get("telegram_sector_weekly_enabled", "1")) != "0"
-    sector_monthly_enabled = str(settings.get("telegram_sector_monthly_enabled", "1")) != "0"
-    intraday_alerts_enabled = str(settings.get("telegram_intraday_alerts_enabled", "1")) != "0"
-    market_wrap_enabled = str(settings.get("telegram_market_wrap_enabled", "1")) != "0"
-
-    messages_to_send = [] # List of tuples: (title, task_key, message_text)
-    is_weekday = 1 <= day_of_week <= 5
-
-    # Morning slot: up to 10:00 AM
-    is_morning_slot = (cur_min <= 600)
-
-    # Helper gatekeeper for individual tasks
-    def should_run_subtask(sub_task_name):
+    def should_run_subtask(sub_task):
+        if not is_alert_enabled(sub_task, settings):
+            print(f"⏩ [ปิดใช้งาน] {sub_task}: ถูกปิดในการตั้งค่าระบบ")
+            return False
         if can_execute_alert:
-            can_run, sub_reason = can_execute_alert(sub_task_name, force=force_mode)
+            can_run, sub_reason = can_execute_alert(sub_task, force=force_mode)
             if not can_run:
-                print(f"⏩ Skipping {sub_task_name}: {sub_reason}")
+                print(sub_reason)
                 return False
+            print(sub_reason)
         return True
 
-    # 1. Monthly Sector Outlook (Every 1st of month at ~08:30 AM)
-    should_send_monthly = (task_type in ["monthly_sector", "all"]) or (task_type == "morning_alerts" and day_of_month == 1) or (task_type == "auto" and day_of_month == 1 and sector_monthly_enabled and is_morning_slot)
-    if should_send_monthly and should_run_subtask("monthly_sector"):
-        print("🗓️ Preparing Monthly Sector Outlook...")
-        m_msg = build_monthly_sector_message()
-        if m_msg:
-            messages_to_send.append(("Monthly Sector Outlook", "monthly_sector", m_msg))
+    # Pre-flight Gatekeeper Check for explicit single task
+    if task_type in ["daily_stocks", "weekly_sector", "monthly_sector", "intraday_alert", "market_wrap"]:
+        if not should_run_subtask(task_type):
+            return
 
-    # 2. Weekly Sector Rotation (Every Monday at ~08:30 AM)
-    should_send_weekly = (task_type in ["weekly_sector", "all"]) or (task_type == "morning_alerts" and day_of_week == 1) or (task_type == "auto" and day_of_week == 1 and sector_weekly_enabled and is_morning_slot)
-    if should_send_weekly and should_run_subtask("weekly_sector"):
-        print("⚡ Preparing Weekly Sector Rotation...")
-        w_msg = build_weekly_sector_message()
-        if w_msg:
-            messages_to_send.append(("Weekly Sector Rotation", "weekly_sector", w_msg))
+    messages_to_send = [] # List of tuples: (title, task_key, message_text)
 
-    # 3. Daily Top Stocks (Every Monday to Friday at ~08:30 AM)
-    should_send_daily = (task_type in ["daily_stocks", "all", "morning_alerts"]) or (task_type == "auto" and is_weekday and thai_stocks_enabled and is_morning_slot)
-    if should_send_daily and should_run_subtask("daily_stocks"):
-        print("📈 Preparing Daily Top Thai Stock Picks...")
-        d_msg = build_daily_stocks_message()
-        if d_msg:
-            messages_to_send.append(("Daily Top Thai Stocks", "daily_stocks", d_msg))
+    # 1. Monthly Sector Outlook
+    if task_type in ["monthly_sector", "all", "morning_alerts", "auto"]:
+        if (task_type == "monthly_sector") or should_run_subtask("monthly_sector"):
+            print("🗓️ Preparing Monthly Sector Outlook...")
+            m_msg = build_monthly_sector_message()
+            if m_msg:
+                messages_to_send.append(("Monthly Sector Outlook", "monthly_sector", m_msg))
 
-    # 4. Intraday Breakout & Volume Alert (During trading hours 14:00 - 16:30)
-    is_intraday_slot = (840 <= cur_min <= 990) # 14:00 PM to 16:30 PM
-    should_send_intraday = (task_type in ["intraday_alert", "all"]) or (task_type == "auto" and is_weekday and intraday_alerts_enabled and is_intraday_slot)
-    if should_send_intraday and should_run_subtask("intraday_alert"):
-        print("⚡ Scanning for Intraday Breakout & Volume Spikes...")
-        intra_msg = build_intraday_breakout_message()
-        if intra_msg:
-            messages_to_send.append(("Intraday Breakout Alert", "intraday_alert", intra_msg))
-        else:
-            print("ℹ️ ไม่พบหุ้นที่เกิดสัญญาณ Breakout ทะลุแนวต้านในรอบนี้ — ข้ามการส่งข้อความเข้า Telegram (No Alert)")
+    # 2. Weekly Sector Rotation
+    if task_type in ["weekly_sector", "all", "morning_alerts", "auto"]:
+        if (task_type == "weekly_sector") or should_run_subtask("weekly_sector"):
+            print("⚡ Preparing Weekly Sector Rotation...")
+            w_msg = build_weekly_sector_message()
+            if w_msg:
+                messages_to_send.append(("Weekly Sector Rotation", "weekly_sector", w_msg))
 
-    # 5. End-of-Day Market Wrap (Every Monday to Friday at ~17:15 PM)
-    is_evening_slot = (1000 <= cur_min < 1170) # 16:40 PM to 19:30 PM
-    should_send_market_wrap = (task_type in ["market_wrap", "all"]) or (task_type == "auto" and is_weekday and market_wrap_enabled and is_evening_slot)
-    if should_send_market_wrap and should_run_subtask("market_wrap"):
-        print("📊 Preparing End-of-Day Market Wrap...")
-        wrap_msg = build_market_wrap_message()
-        if wrap_msg:
-            messages_to_send.append(("End-of-Day Market Wrap", "market_wrap", wrap_msg))
+    # 3. Daily Top Stocks
+    if task_type in ["daily_stocks", "all", "morning_alerts", "auto"]:
+        if (task_type == "daily_stocks") or should_run_subtask("daily_stocks"):
+            print("📈 Preparing Daily Top Thai Stock Picks...")
+            d_msg = build_daily_stocks_message()
+            if d_msg:
+                messages_to_send.append(("Daily Top Thai Stocks", "daily_stocks", d_msg))
+
+    # 4. Intraday Breakout & Volume Alert
+    if task_type in ["intraday_alert", "all", "auto"]:
+        if (task_type == "intraday_alert") or should_run_subtask("intraday_alert"):
+            print("⚡ Scanning for Intraday Breakout & Volume Spikes...")
+            intra_msg = build_intraday_breakout_message()
+            if intra_msg:
+                messages_to_send.append(("Intraday Breakout Alert", "intraday_alert", intra_msg))
+            else:
+                print("ℹ️ ไม่พบหุ้นที่เกิดสัญญาณ Breakout ทะลุแนวต้านในรอบนี้ — ข้ามการส่งข้อความเข้า Telegram (No Alert)")
+
+    # 5. End-of-Day Market Wrap
+    if task_type in ["market_wrap", "all", "auto"]:
+        if (task_type == "market_wrap") or should_run_subtask("market_wrap"):
+            print("📊 Preparing End-of-Day Market Wrap...")
+            wrap_msg = build_market_wrap_message()
+            if wrap_msg:
+                messages_to_send.append(("End-of-Day Market Wrap", "market_wrap", wrap_msg))
 
     if not messages_to_send:
-        print("ℹ️ ไม่มีการส่งข้อความในรอบนี้ (ไม่มีข้อมูลเข้าเงื่อนไขหรือไม่มีหุ้นทะลุกรอบ)")
+        print("ℹ️ ไม่มีการส่งข้อความในรอบนี้")
         return
 
     # Dry-run or send

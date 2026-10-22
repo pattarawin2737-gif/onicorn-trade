@@ -49,30 +49,18 @@ echo "🎯 Task: $TASK $EXTRA_FLAG"
 echo "🐍 Python: $PYTHON_BIN"
 echo "============================================================"
 
+# Auto-update scripts if self_update.py exists
+if [ -f "$SCRIPT_DIR/self_update.py" ]; then
+    $PYTHON_BIN "$SCRIPT_DIR/self_update.py" || true
+fi
+
 case "$TASK" in
     morning)
-        echo "🌅 [1/4] Running Gold News Digest..."
+        echo "🌅 [1/2] Running Gold News Digest..."
         $PYTHON_BIN "$SCRIPT_DIR/send_gold_news.py" $EXTRA_FLAG || true
 
-        echo "📈 [2/4] Running Daily Top Thai Stocks..."
-        $PYTHON_BIN "$SCRIPT_DIR/send_thai_stock_alerts.py" --type daily_stocks $EXTRA_FLAG || true
-
-        DAY_OF_WEEK=$(date +%u) # 1=Mon, 2=Tue
-        DAY_OF_MONTH=$(date +%-d)
-
-        if [ "$DAY_OF_WEEK" = "1" ] || [ "$EXTRA_FLAG" = "--force" ]; then
-            echo "⚡ [3/4] Running Weekly Sector Rotation (Monday)..."
-            $PYTHON_BIN "$SCRIPT_DIR/send_thai_stock_alerts.py" --type weekly_sector $EXTRA_FLAG || true
-        else
-            echo "⏩ [3/4] Skipping Weekly Sector (only runs on Mondays)"
-        fi
-
-        if [ "$DAY_OF_MONTH" = "1" ] || [ "$EXTRA_FLAG" = "--force" ]; then
-            echo "🗓️ [4/4] Running Monthly Sector Outlook (1st of month)..."
-            $PYTHON_BIN "$SCRIPT_DIR/send_thai_stock_alerts.py" --type monthly_sector $EXTRA_FLAG || true
-        else
-            echo "⏩ [4/4] Skipping Monthly Sector (only runs on 1st of month)"
-        fi
+        echo "📈 [2/2] Running Thai Stock Morning Alerts..."
+        $PYTHON_BIN "$SCRIPT_DIR/send_thai_stock_alerts.py" --type morning_alerts $EXTRA_FLAG || true
         ;;
 
     gold_news)
